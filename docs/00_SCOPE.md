@@ -18,7 +18,7 @@ signed, analysed and kept in compliance — on synthetic data that looks like th
 | AI narrative | One analysis run narrated by the model and gated by provenance; one run rejected by the gate; degraded mode is the default state | `kit-docs/11` |
 | QMS | Qualification expiry dashboard by fleet, one qualification definition | `kit-docs/08` |
 | DMS | Document library, upload, ingestion status | `kit-docs/09` |
-| Platform | Roles, audit log, EN/ES toggle, Avianca brand, PDF export | `kit-docs/12`, `13` |
+| Platform | Roles, audit log, Avianca brand, PDF export | `kit-docs/12`, `13` |
 
 ## Out of scope — do not build
 
@@ -27,12 +27,13 @@ signed, analysed and kept in compliance — on synthetic data that looks like th
 - Mobile / offline client.
 - Automation runner (workflow-orchestrator service). Ingest and analysis run as in-app routes for the demo.
 - Local inference container. The inference seam points at a hosted API or stays empty.
-- Full Spanish translation. The toggle works; strings not yet translated fall back to English.
+- Spanish interface. English only for now (decided 2026-09-08); Spanish is a later roll-out item.
 
 ## Assumptions
 
-- Avianca operates A320-family, A330 and B787 fleets from BOG, MDE and CLO; programmes follow an
-  EBT/CBTA model using the ICAO competency framework. The demo speaks that language and no other.
+- Avianca operates A320-family, A330 and B787 fleets from BOG, MDE, CLO and CTG, trains at the CAE
+  centre in Bogotá, and is already on EBT (OPC/LPC kept alongside). Programmes use the ICAO
+  competency framework. The demo speaks that language and no other.
 - The audience is Head of Training / Training Standards, not IT. Screens matter more than APIs.
 - Data is synthetic, deterministic, and regenerable on the server from the repo alone.
 

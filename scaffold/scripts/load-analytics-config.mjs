@@ -44,7 +44,7 @@
 import { readdir, readFile } from 'node:fs/promises';
 import path from 'node:path';
 import {
-  SCAFFOLD_ROOT, argFlag, connect, readYamlFile, recordConfigVersion, renderTable,
+  SCAFFOLD_ROOT, argFlag, connect, loadPolicy, readYamlFile, recordConfigVersion, renderTable,
 } from './lib/kit-seed.mjs';
 
 const CONFIG_FILE = 'config/analytics.yaml';
@@ -231,6 +231,19 @@ async function write(client, rows, file) {
       checksum: file.checksum,
       payload: file.data,
       notes: file.data.note ?? 'Loaded by scripts/load-analytics-config.mjs.',
+    });
+
+    // policy.yaml is recorded HERE as well, not only by the synthetic seeder: an instance stood up
+    // without a synthetic population (reset:clean) must still pass the config gate's
+    // "recorded policy version is the file on disk" assertion, and the policy is configuration
+    // exactly like the thresholds are.
+    const policyFile = await loadPolicy();
+    await recordConfigVersion(client, {
+      name: 'policy',
+      version: String(policyFile.data.version),
+      checksum: policyFile.checksum,
+      payload: policyFile.data,
+      notes: policyFile.data.note ?? 'Loaded by scripts/load-analytics-config.mjs.',
     });
 
     await client.query('COMMIT');

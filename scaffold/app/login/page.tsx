@@ -39,6 +39,10 @@ export default async function LoginPage({
 
   return (
     <div className="stack" style={{ maxWidth: '26rem', margin: '0 auto' }}>
+      {b.logo.path ? (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img src={b.logo.path} alt={b.logo.alt || b.product.name} height={b.logo.height_px * 1.5} style={{ alignSelf: 'flex-start' }} />
+      ) : null}
       <h1>{b.product.name}</h1>
 
       {message ? (

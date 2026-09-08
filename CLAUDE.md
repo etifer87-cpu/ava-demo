@@ -21,7 +21,7 @@ working here — Cowork, Claude Code, mobile — follows these rules. They are b
    not as a comment, not as a placeholder. `npm run verify` runs a neutrality scan against a word list
    that lives OUTSIDE this repository (`NEUTRALITY_WORDLIST` in `.env`); a hit fails the gate.
 3. **Scope is fixed:** ETR, Program Builder, QMS, DMS, analytics with gated AI narrative, PDF export,
-   Avianca brand, EN first with ES toggle. **No dispatch / crew-scheduling module.** No LMS or roster
+   Avianca brand, English-only interface for now. **No dispatch / crew-scheduling module.** No LMS or roster
    integration. Do not build what `docs/03_DEMO_SCRIPT.md` does not show.
 4. **Isolation is by name and port, and both are fixed** (`docs/01_ISOLATION.md`): compose project
    `ava`, containers `ava-*`, app on 3100, database on 5433, PDF renderer on 3101, cookie

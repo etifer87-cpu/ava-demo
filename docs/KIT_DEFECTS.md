@@ -51,3 +51,9 @@ Expected: runbook Phase 3 says "Sign in, open the subject list" · Found: every 
 
 ## 2026-09-08 · scripts/smoke-screens.mjs, .env.example §6 · the `x-internal-token` bypass is documented but not implemented
 Expected: `.env.example` says the header "is checked before any route logic runs" and the smoke sends it · Found: neither `proxy.ts` nor `requireSession()` reads it, so `/api/subjects` returns 401 and the smoke aborts on every fresh install · Done here: the smoke signs in as a real user (`SMOKE_USER` / `SMOKE_PASSWORD`, local `.env` only) and carries the session cookie; no bypass added · Kit should: either implement the header in `proxy.ts` + `requireSession()` with a constant-time compare, or drop it from `.env.example` and do what this replica does.
+
+## 2026-09-08 · scripts/load-analytics-config.mjs · policy.yaml is only recorded by the synthetic seeder
+Expected: `verify --group config` asserts "the recorded policy version is the file on disk" on any environment built by the documented path · Found: the `policy` row in `config_versions` is written by `seed-synthetic.mjs` alone, so an instance without a synthetic population can never pass that assertion, and a policy edit on a live instance is invisible to the gate until the population is regenerated · Done here: `config:load` records the policy version too (same `recordConfigVersion`) · Kit should: do the same — policy is configuration, not seed data.
+
+## 2026-09-08 · template_kinds catalogue · no loader from policy.yaml
+Expected: policy.yaml §1 says "Adding a kind is a row here and a row there, never a migration" · Found: the table is only ever written by migration 0032; nothing syncs it from the file, so the only way to add a kind IS a migration · Done here: `0141_template_kinds_operator.sql` (ebt_recurrent, type_rating; OPC / LPC relabel) · Kit should: either sync the catalogue in `config:load` (with the same is_active-never-DELETE rule) or correct the comment.

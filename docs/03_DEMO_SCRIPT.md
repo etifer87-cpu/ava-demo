@@ -20,7 +20,7 @@ Persona logged in: **Camila Restrepo — Training Standards Manager** (role `tra
 
 On screen: Avianca-branded header, fleet overview — subjects by fleet (A320 · A330 · B787), screening
 bands (standard / monitor / attention / priority / insufficient), qualification expiries in 30 days,
-last analysis run. Language toggle EN/ES visible top-right.
+last analysis run.
 
 Sentence: *"Every figure on this page is computed from signed training records. Nothing here was typed
 in, and nothing here was written by an AI."*
@@ -46,6 +46,7 @@ content hash shown → sign. The record freezes. **Export PDF** → the signed r
 
 Sentence: *"The instructor decides; the system proposes and remembers why they disagreed. Once
 signed, the record cannot change, and the PDF is the signed page, not a second document."*
+(Outcome vocabulary on this screen is EBT: PROFICIENT / NOT PROFICIENT; OPC/LPC templates use PASS / FAIL.)
 
 ## 4 · Subject profile — one pilot over time (2 min) — slice: Analytics subject
 
@@ -85,9 +86,8 @@ knows which documents it came from."*
 ## 8 · Governance — who did what (0.5 min) — slice: Platform
 
 Open **Audit**. Filter to the last 15 minutes: the publish, the signature, the upload. Roles list.
-Toggle **ES** → the header and navigation switch; note that full translation is a roll-out item.
 
-Sentence: *"Nothing is deleted, everything is audited, and it already speaks Spanish."*
+Sentence: *"Nothing is deleted, and everything is audited."*
 
 ## 9 · Close
 
@@ -104,7 +104,7 @@ Return to the landing page. Offer: a pilot on their own programme documents.
 4. AI narrative — analysis runs table, three seeded states, provenance gate visible.
 5. QMS dashboard + one definition view.
 6. DMS library + upload + status.
-7. Audit view, roles, EN/ES toggle, brand.
+7. Audit view, roles, brand.
 
 Data the script depends on (see `04_SEED_DATASET.md`): Camila Restrepo, Andrés Mejía, Valentina
 Ochoa; programme *A320 EBT Recurrent · Module 3* at v2; three analysis runs in three states for

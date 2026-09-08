@@ -145,11 +145,11 @@ code, .mono, .id { font-family: var(--font-mono); font-size: 0.95em; }
 /* --- app shell ---------------------------------------------------------- */
 
 .app-header {
-  background: var(--brand-primary);
-  color: var(--brand-primary-ink);
+  background: var(--header, var(--brand-primary));
+  color: var(--header-ink, var(--brand-primary-ink));
   border-bottom: 1px solid var(--border);
 }
-.app-header a { color: var(--brand-primary-ink); text-decoration: none; }
+.app-header a { color: var(--header-ink, var(--brand-primary-ink)); text-decoration: none; }
 .app-header-inner {
   max-width: var(--content-max); margin: 0 auto;
   display: flex; align-items: center; gap: var(--space-4);

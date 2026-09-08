@@ -26,8 +26,13 @@
 # the checker; docs/13 section 7 states the pairs that must be checked.
 # ---------------------------------------------------------------------------
 
-version: "1.0"
-updated: "2026-08-26"
+version: "1.1"
+updated: "2026-09-08"
+
+# Colour scheme. "light" pins the interface to the light palette regardless of the viewer's OS
+# setting; "auto" follows prefers-color-scheme and uses the dark set below. The Avianca demo is
+# light-only: the brand is white, near-black and one red, and no dark variant exists to match.
+scheme: "light"
 
 # ---------------------------------------------------------------------------
 # 1. Identity
@@ -35,18 +40,18 @@ updated: "2026-08-26"
 product:
   # Rendered in the header, the browser title and every generated report header.
   # Neutral by default and deliberately descriptive rather than a brand.
-  name: "Training Management System"
-  short_name: "TMS"
+  name: "Avianca Training Management System"
+  short_name: "Avianca TMS"
   # Printed under the header on internal builds. Empty string hides it.
-  environment_label: ""
+  environment_label: "DEMO"
 
 logo:
   # Served from scaffold/public/. Leave empty to render the product's short name
   # as a text mark, which is what an operator with no asset should do rather
   # than shipping a placeholder image.
-  path: ""
-  alt: ""
-  height_px: 24
+  path: "/brand/avianca-logo.png"
+  alt: "Avianca"
+  height_px: 28
 
 # ---------------------------------------------------------------------------
 # 2. Colour tokens
@@ -57,17 +62,19 @@ logo:
 # ---------------------------------------------------------------------------
 colour:
   light:
-    primary: "#1E3A5F"          # --brand-primary      header, primary action, focused control
+    primary: "#1B1B1B"          # --brand-primary      primary action, focused control (avianca.com --brand-primary)
+    header: "#FFFFFF"           # --header             app header background (optional; defaults to primary)
+    header_ink: "#131313"       # --header-ink         text drawn ON the header (optional; defaults to primary_ink)
     primary_ink: "#FFFFFF"      # --brand-primary-ink  text drawn ON primary
-    accent: "#B4762B"           # --brand-accent       selected state, active tab underline
+    accent: "#DA291C"           # --brand-accent       selected state, active tab underline (sampled from the logo)
     accent_ink: "#FFFFFF"       # --brand-accent-ink   text drawn ON accent
     surface: "#FFFFFF"          # --surface            page background
-    surface_raised: "#F8FAFC"   # --surface-raised     cards, table headers
-    surface_sunken: "#F1F5F9"   # --surface-sunken     filter bar, code blocks
-    ink: "#0F172A"              # --ink                body text
-    ink_muted: "#516079"        # --ink-muted          captions, secondary text (AA on surface)
-    border: "#CBD5E1"           # --border             hairlines, table rules
-    border_strong: "#94A3B8"    # --border-strong      input borders, focus ring track
+    surface_raised: "#F8F8F8"   # --surface-raised     cards, table headers (avianca.com --light-color)
+    surface_sunken: "#EFEFEF"   # --surface-sunken     filter bar, code blocks
+    ink: "#131313"              # --ink                body text (avianca.com --text-color)
+    ink_muted: "#5A5A5A"        # --ink-muted          captions, secondary text (6.9:1 on white)
+    border: "#D9D9D9"           # --border             hairlines, table rules (avianca.com disabled/border)
+    border_strong: "#8A8A8A"    # --border-strong      input borders, focus ring track
   dark:
     primary: "#8FB3DA"
     primary_ink: "#0B1220"
@@ -91,11 +98,11 @@ colour:
 # ---------------------------------------------------------------------------
 state:
   light:
-    good: "#15803D"             # --state-good
-    warn: "#B45309"             # --state-warn
-    bad: "#B91C1C"              # --state-bad
-    info: "#1D4ED8"             # --state-info
-    neutral: "#475569"          # --state-neutral
+    good: "#15803D"             # --state-good   (avianca.com positive is #1EA93C - 3.0:1, indicator-only; darkened for text)
+    warn: "#C24A00"             # --state-warn   (avianca.com warning #EF5B06 darkened to 4.6:1)
+    bad: "#C20000"              # --state-bad    (avianca.com negative)
+    info: "#0B7A87"             # --state-info   (avianca.com teal #0190A0 darkened to 4.6:1)
+    neutral: "#5A5A5A"          # --state-neutral
   dark:
     good: "#4ADE80"
     warn: "#FBBF24"
@@ -131,20 +138,37 @@ grade_palette:
 # ---------------------------------------------------------------------------
 font:
   # --font-sans : all interface text
-  sans: 'ui-sans-serif, system-ui, "Segoe UI", Helvetica, Arial, sans-serif'
+  sans: '"Red Hat Display", system-ui, -apple-system, "Segoe UI", "Helvetica Neue", Arial, sans-serif'
   # --font-mono : ids, external references, grades in tables, code
   mono: 'ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace'
   # --font-display : headings. Same stack as sans by default; an operator with a
   # licensed display face changes this one line and self-hosts the file under
   # scaffold/public/fonts/.
-  display: 'ui-sans-serif, system-ui, "Segoe UI", Helvetica, Arial, sans-serif'
+  display: '"Red Hat Display", system-ui, -apple-system, "Segoe UI", "Helvetica Neue", Arial, sans-serif'
+  # Self-hosted faces, emitted as @font-face by lib/config.ts. Files under scaffold/public/fonts/.
+  # Red Hat Display is SIL OFL 1.1 (LICENSE-RedHatDisplay.txt beside the files).
+  faces:
+    - family: "Red Hat Display"
+      src: "/fonts/red-hat-display-latin-wght-normal.woff2"
+      weight: "300 900"
+      style: "normal"
+      unicode_range: "U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+2074, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD"
+    - family: "Red Hat Display"
+      src: "/fonts/red-hat-display-latin-ext-wght-normal.woff2"
+      weight: "300 900"
+      style: "normal"
+      unicode_range: "U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF"
+    - family: "Red Hat Display"
+      src: "/fonts/red-hat-display-latin-wght-italic.woff2"
+      weight: "300 900"
+      style: "italic"
 
 # ---------------------------------------------------------------------------
 # 6. Shape
 # ---------------------------------------------------------------------------
 shape:
-  radius_px: 6                  # --radius
-  radius_small_px: 3            # --radius-sm
+  radius_px: 10                 # --radius   (avianca.com: generous radii, pill buttons)
+  radius_small_px: 6            # --radius-sm
   # Focus ring width. Never set to 0: keyboard focus must be visible, and the
   # ring is the only affordance a keyboard user has.
   focus_ring_px: 2              # --focus-ring

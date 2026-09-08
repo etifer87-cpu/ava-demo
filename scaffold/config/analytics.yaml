@@ -18,8 +18,8 @@
 # rate_display and are applied at render only.
 # ---------------------------------------------------------------------------
 
-version: "1.1"
-updated: "2026-08-26"
+version: "1.2"
+updated: "2026-09-08"
 # Free-text note recorded with the version in config_versions on every load.
 note: "Illustrative values; an operator tunes these against their own baseline before publishing an indicator. v1.1: program_indicator.scopes.template_kinds now name the process kinds of docs/04 section 4 directly, because migration 0032 replaced the six coarse families with the template_kinds catalogue. No threshold changed."
 
@@ -108,8 +108,10 @@ program_indicator:
       # decides whether it belongs in this scope, and the decision is written down
       # here instead of being inherited silently from a family name.
       template_kinds:
+        - ebt_recurrent          # v1.2: the operator's EBT module (policy.yaml v1.2, migration 0141)
         - simulator_recurrent
         - proficiency_check
+        - type_rating            # v1.2
         - command_upgrade
         - low_visibility
         - upset_recovery

@@ -10,9 +10,13 @@ of **named fixtures** the demo script depends on.
 | Setting | Value |
 |---|---|
 | Operator display name | Avianca |
-| Org units (bases) | BOG · MDE · CLO |
-| Asset classes (fleets) | A320 (A319/A320/A321) · A330 · B787 |
-| Subject label | Pilot (EN) · Piloto (ES) |
+| Org units (bases) | BOG · MDE · CLO · CTG (AOC `AV-COL` under operator `AV`; department `TRG`) |
+| Asset classes (fleets) | A320 (A319/A320/A321) · A330 · B787; devices FFS-A320 / FFS-A330 / FFS-B787 at CAE Bogotá |
+| Subject label | Pilot |
+| Positions | CP · FO · CRFO |
+| Seats | PF · PM · observer · relief |
+| Instructor roles | TRE · TRI · SFE · SFI · LTC · CRMI · GI |
+| Outcomes | PASS · FAIL · PARTIAL PASS · INCOMPLETE · PROFICIENT (= PASS) · NOT PROFICIENT (= FAIL) |
 | Grading scale | kit default 1–5 with NR/NO/NA |
 | Framework | ICAO 9 competencies / 73 OBs, unmodified |
 
@@ -37,11 +41,10 @@ from any real crew list.
 | Programme | Fleet | Type | Seeded version |
 |---|---|---|---|
 | A320 EBT Recurrent · Module 3 | A320 | ebt_recurrent | v2 published, v3 authored live in the demo |
-| A320 OPC / LPC | A320 | lpc | v1 |
+| A330 EBT Recurrent · B787 EBT Recurrent | A330 · B787 | ebt_recurrent | v1 each |
+| A320 OPC / LPC | A320 | proficiency_check | v1 |
 | A320 Type Rating (initial) | A320 | type_rating | v1 |
-| A330 EBT Recurrent | A330 | ebt_recurrent | v1 |
-| B787 EBT Recurrent | B787 | ebt_recurrent | v1 |
-| Command Upgrade | all | upgrade | v1 |
+| Command Upgrade | all | command_upgrade | v1 |
 | Line Check | all | line_check | v1 |
 
 ## Named fixtures the script depends on

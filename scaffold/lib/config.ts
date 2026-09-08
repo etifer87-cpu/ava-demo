@@ -41,6 +41,9 @@ function load<T>(file: string): T {
 export interface ColourSet {
   primary: string;
   primary_ink: string;
+  /** Optional header pair; the header falls back to primary / primary_ink when absent. */
+  header?: string;
+  header_ink?: string;
   accent: string;
   accent_ink: string;
   surface: string;
@@ -60,14 +63,24 @@ export interface StateSet {
   neutral: string;
 }
 
+export interface FontFace {
+  family: string;
+  src: string;
+  weight: string;
+  style: string;
+  unicode_range?: string;
+}
+
 export interface BrandConfig {
   version: string;
+  /** "light" pins the light palette; "auto" (default) follows prefers-color-scheme. */
+  scheme?: 'light' | 'auto';
   product: { name: string; short_name: string; environment_label: string };
   logo: { path: string; alt: string; height_px: number };
   colour: { light: ColourSet; dark: ColourSet };
   state: { light: StateSet; dark: StateSet };
   grade_palette: Record<string, { colour: string; label: string }>;
-  font: { sans: string; mono: string; display: string };
+  font: { sans: string; mono: string; display: string; faces?: FontFace[] };
   shape: { radius_px: number; radius_small_px: number; focus_ring_px: number };
 }
 
@@ -89,6 +102,8 @@ export function brandCss(b: BrandConfig = brand()): string {
       `--brand-primary-ink:${c.primary_ink}`,
       `--brand-accent:${c.accent}`,
       `--brand-accent-ink:${c.accent_ink}`,
+      `--header:${c.header ?? c.primary}`,
+      `--header-ink:${c.header_ink ?? c.primary_ink}`,
       `--surface:${c.surface}`,
       `--surface-raised:${c.surface_raised}`,
       `--surface-sunken:${c.surface_sunken}`,
@@ -112,10 +127,24 @@ export function brandCss(b: BrandConfig = brand()): string {
     `--focus-ring:${b.shape.focus_ring_px}px`,
   ].join(';');
 
-  return [
-    `:root{${vars(b.colour.light, b.state.light)};${shape}}`,
-    `@media (prefers-color-scheme: dark){:root{${vars(b.colour.dark, b.state.dark)}}}`,
-  ].join('\n');
+  const faces = (b.font.faces ?? [])
+    .map(
+      (f) =>
+        `@font-face{font-family:${JSON.stringify(f.family)};src:url(${JSON.stringify(f.src)}) format("woff2");` +
+        `font-weight:${f.weight};font-style:${f.style};font-display:swap` +
+        (f.unicode_range ? `;unicode-range:${f.unicode_range}` : '') +
+        `}`,
+    )
+    .join('\n');
+
+  const light = `:root{${vars(b.colour.light, b.state.light)};${shape}}`;
+  // scheme "light" pins the palette: no dark override is emitted and the UA is told so.
+  const dark =
+    b.scheme === 'light'
+      ? `:root{color-scheme:light}`
+      : `@media (prefers-color-scheme: dark){:root{${vars(b.colour.dark, b.state.dark)}}}`;
+
+  return [faces, light, dark].filter(Boolean).join('\n');
 }
 
 /** Grade colours for the chart token builder. Keyed by the numeric grade, sorted ascending. */

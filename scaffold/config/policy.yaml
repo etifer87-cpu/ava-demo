@@ -20,9 +20,9 @@
 # No operator content. Every vocabulary below is a neutral starter list.
 # ---------------------------------------------------------------------------
 
-version: "1.1"
-updated: "2026-08-26"
-note: "Vocabularies are starter lists, not recommendations; an operator replaces them with their own before the first real session is graded. v1.1: the db_kind mapping and the element-catalogue db_type mapping are gone - migrations 0032 and 0033 widened the schema to carry the real vocabulary, so both levels collapsed into one."
+version: "1.2"
+updated: "2026-09-08"
+note: "v1.2: Avianca operator context. Vocabularies replaced with the operator's own (bases, fleets, seats, instructor roles, EBT session kinds, outcome terms). v1.1: the db_kind mapping and the element-catalogue db_type mapping are gone - migrations 0032 and 0033 widened the schema to carry the real vocabulary, so both levels collapsed into one."
 
 # ---------------------------------------------------------------------------
 # 1. Template kinds - docs/04_ETR.md section 4.
@@ -44,6 +44,11 @@ note: "Vocabularies are starter lists, not recommendations; an operator replaces
 #    can read. Adding a kind is a row here and a row there, never a migration.
 # ---------------------------------------------------------------------------
 template_kinds:
+  - kind: ebt_recurrent
+    label: "EBT recurrent module"        # Evaluation / Manoeuvres / Scenario phases are SECTIONS of the template, not kinds
+    facility_kind: ffs
+    fan_out_on_signature: false
+    supports_attempts: true
   - kind: ground_school
     label: "Ground school"
     facility_kind: classroom
@@ -55,7 +60,7 @@ template_kinds:
     fan_out_on_signature: false
     supports_attempts: true
   - kind: proficiency_check
-    label: "Proficiency check"
+    label: "OPC / LPC"                    # kept beside EBT: licence and operator proficiency checks
     facility_kind: ffs
     fan_out_on_signature: false
     supports_attempts: true
@@ -70,6 +75,11 @@ template_kinds:
     fan_out_on_signature: false
     supports_attempts: false
     one_record_per_sector: true     # docs/05 section 7
+  - kind: type_rating
+    label: "Type rating"
+    facility_kind: ffs
+    fan_out_on_signature: false
+    supports_attempts: true
   - kind: command_upgrade
     label: "Command upgrade"
     facility_kind: ffs
@@ -158,19 +168,21 @@ reserved_element_titles:
 #    .filter_roster_by_instructor_role is binding false because of it.
 # ---------------------------------------------------------------------------
 seats:
-  subject_roles: ["seat_1", "seat_2", "observer", "relief"]
-  default_subject_role: "seat_2"
-  pf_roles: ["A", "B", "both", "either"]
-  max_subjects_per_session: 4
+  subject_roles: ["PF", "PM", "observer", "relief"]
+  default_subject_role: "PM"
+  pf_roles: ["PF", "PM", "both", "either"]
+  max_subjects_per_session: 2       # one crew per simulator session; classroom fan-out is unbounded by this
 
-instructor_roles: ["examiner", "instructor_sim", "instructor_line", "instructor_ground", "assessor"]
+# TRE/TRI type-rating examiner/instructor, SFE/SFI synthetic-flight examiner/instructor,
+# LTC line training captain, CRMI CRM instructor, GI ground instructor.
+instructor_roles: ["TRE", "TRI", "SFE", "SFI", "LTC", "CRMI", "GI"]
 
 # Role codes that may be an assessor of record. Re-validated server-side on
 # session creation against session_template_versions.allowed_assessor_roles: a
 # client that omits the list must never silently widen eligibility.
 assessor_role_codes: ["examiner", "instructor", "ground_instructor", "assessment_manager"]
 
-positions: ["position_a", "position_b"]   # neutral seat-independent job labels
+positions: ["CP", "FO", "CRFO"]          # Captain, First Officer, Cruise Relief First Officer (long-haul)
 
 # ---------------------------------------------------------------------------
 # 4. Grading policy - docs/03_COMPETENCY_FRAMEWORK.md sections 4 and 5.
@@ -186,7 +198,12 @@ grading:
   # Non-scoring codes are defined in analytics.yaml (grade_scale.non_scoring)
   # and are listed there, not here, so one vocabulary cannot drift from another.
   boolean_grade_values: ["Yes", "No"]
-  outcomes: ["PASS", "FAIL", "PARTIAL PASS", "INCOMPLETE"]
+  outcomes: ["PASS", "FAIL", "PARTIAL PASS", "INCOMPLETE", "PROFICIENT", "NOT PROFICIENT"]
+  # EBT vocabulary. PROFICIENT is recorded as itself and read as PASS wherever an aggregate needs
+  # a pass/fail reading; NOT PROFICIENT likewise as FAIL. PARTIAL PASS is never folded into either.
+  outcome_equivalents:
+    PROFICIENT: "PASS"
+    "NOT PROFICIENT": "FAIL"
   # Outcome is NEVER inferred. A computed suggestion may be stored beside the
   # human value and shown to the assessor; the human value is the record.
   outcome_is_always_explicit: true
@@ -256,10 +273,10 @@ templates:
 #    look like an operator's, it is wrong.
 # ---------------------------------------------------------------------------
 synthetic:
-  default_seed: "tms-kit"
-  default_subjects: 40
+  default_seed: "avianca-demo"
+  default_subjects: 48
   default_months: 24
-  person_id_prefix: "DEMO-"
+  person_id_prefix: "AV-"
   # The window is EXTENDED, never truncated, to cover every base window
   # configured in analytics.yaml. A generator that honours --months literally
   # leaves program_indicator.base_from with no data, and every base-relative
@@ -267,24 +284,27 @@ synthetic:
   extend_window_to_cover_analytics_bases: true
 
   org_units:
-    - { code: OPS,      name: "Demo Operations",       kind: operator,   parent: null }
-    - { code: OPS-A,    name: "Demo Division A",       kind: aoc,        parent: OPS }
-    - { code: OPS-B,    name: "Demo Division B",       kind: aoc,        parent: OPS }
-    - { code: OPS-A-N,  name: "Demo Base North",       kind: base,       parent: OPS-A }
-    - { code: OPS-A-S,  name: "Demo Base South",       kind: base,       parent: OPS-A }
-    - { code: OPS-B-N,  name: "Demo Base East",        kind: base,       parent: OPS-B }
-    - { code: TRG,      name: "Demo Training",         kind: department, parent: OPS }
+    - { code: AV,       name: "Avianca",                       kind: operator,   parent: null }
+    - { code: AV-COL,   name: "Avianca Colombia (AOC)",        kind: aoc,        parent: AV }
+    - { code: BOG,      name: "Bogotá (BOG)",                  kind: base,       parent: AV-COL }
+    - { code: MDE,      name: "Medellín (MDE)",                kind: base,       parent: AV-COL }
+    - { code: CLO,      name: "Cali (CLO)",                    kind: base,       parent: AV-COL }
+    - { code: CTG,      name: "Cartagena (CTG)",               kind: base,       parent: AV-COL }
+    - { code: TRG,      name: "Flight Training",               kind: department, parent: AV }
 
   asset_classes:
-    - { code: "TYPE-A", name: "Demo type A",            category: aircraft }
-    - { code: "TYPE-B", name: "Demo type B",            category: aircraft }
-    - { code: "TYPE-C", name: "Demo type C",            category: aircraft }
-    - { code: "SIM-A",  name: "Demo training device A", category: simulator }
+    - { code: "A320",     name: "Airbus A320 family (A319/A320/A321)", category: aircraft }
+    - { code: "A330",     name: "Airbus A330",                         category: aircraft }
+    - { code: "B787",     name: "Boeing 787",                          category: aircraft }
+    # Training devices at the CAE Bogotá training centre (exclusive to the operator).
+    - { code: "FFS-A320", name: "A320 full flight simulator, CAE Bogotá", category: simulator }
+    - { code: "FFS-A330", name: "A330 full flight simulator, CAE Bogotá", category: simulator }
+    - { code: "FFS-B787", name: "B787 full flight simulator, CAE Bogotá", category: simulator }
 
   # Obviously invented. Combined deterministically, never sampled from a real
   # roster, and never a recognisable public figure.
-  given_names: ["Alex", "Robin", "Sam", "Jordan", "Casey", "Morgan", "Riley", "Quinn", "Avery", "Devon", "Harper", "Emerson", "Rowan", "Sage", "Blair", "Marlow", "Ellis", "Reese", "Nico", "Toby"]
-  family_names: ["Rivera", "Delgado", "Okafor", "Lindqvist", "Marchetti", "Novak", "Haddad", "Ferreira", "Kaur", "Whitlock", "Bergstrom", "Osei", "Ivanov", "Castillo", "Ahmadi", "Yilmaz", "Brennan", "Sorensen", "Duarte", "Nakamura"]
+  given_names: ["Camila", "Andrés", "Valentina", "Santiago", "Mariana", "Sebastián", "Daniela", "Juan Pablo", "Isabella", "Mateo", "Laura", "Nicolás", "Gabriela", "Felipe", "Sara", "Alejandro", "Paula", "Diego", "Manuela", "Tomás"]
+  family_names: ["Restrepo", "Mejía", "Ochoa", "Velásquez", "Cárdenas", "Salazar", "Quintero", "Arango", "Betancur", "Zuluaga", "Montoya", "Giraldo", "Londoño", "Hoyos", "Ramírez", "Castaño", "Echeverri", "Vargas", "Osorio", "Jaramillo"]
 
   roster:
     assessor_count: 14
