@@ -37,6 +37,35 @@ const flag = (name) => process.argv.includes(`--${name}`);
 
 const BASE = (arg("base") ?? process.env.APP_BASE_URL ?? "http://127.0.0.1:3000").replace(/\/+$/, "");
 const TOKEN = arg("token") ?? process.env.INTERNAL_API_TOKEN ?? "";
+
+/*
+ * Session. The proxy and every handler require a signed session cookie; no header bypass exists
+ * (and none should - see proxy.ts). So the smoke SIGNS IN like a person: SMOKE_USER / SMOKE_PASSWORD
+ * from the environment, one POST to /api/auth/login, and the returned cookie on every fetch after.
+ * Both variables live in the local .env only, never in a deployed one; on a server run
+ * `SMOKE_USER=... SMOKE_PASSWORD=... npm run smoke` from an operator shell.
+ */
+let COOKIE = "";
+async function signIn() {
+  const user = process.env.SMOKE_USER;
+  const password = process.env.SMOKE_PASSWORD;
+  if (!user || !password) {
+    throw new Error("SMOKE_USER and SMOKE_PASSWORD must be set: the smoke signs in as a real user (see scripts/set-password.mjs).");
+  }
+  const res = await fetch(`${BASE}/api/auth/login`, {
+    method: "POST",
+    headers: { "content-type": "application/json", accept: "application/json" },
+    body: JSON.stringify({ username: user, password }),
+    redirect: "manual",
+  });
+  const setCookie = typeof res.headers.getSetCookie === "function" ? res.headers.getSetCookie() : [res.headers.get("set-cookie")].filter(Boolean);
+  const session = setCookie.map((c) => c.split(";")[0]).find((c) => c && !c.endsWith("="));
+  if (!session || (res.status !== 200 && res.status !== 303 && res.status !== 302)) {
+    throw new Error(`sign-in as ${user} failed: status ${res.status}, no session cookie`);
+  }
+  COOKIE = session;
+  console.log(`signed in as ${user}`);
+}
 const TIMEOUT_MS = Number(arg("timeout", "20000"));
 const CONCURRENCY = Number(arg("concurrency", "6"));
 const LIMIT_SUBJECTS = Number(arg("limit-subjects", "0")); // 0 = no limit; use only for a fast local loop
@@ -143,7 +172,11 @@ async function get(path) {
   const started = Date.now();
   try {
     const res = await fetch(`${BASE}${path}`, {
-      headers: TOKEN ? { "x-internal-token": TOKEN, accept: "text/html,application/json" } : {},
+      headers: {
+        accept: "text/html,application/json",
+        ...(TOKEN ? { "x-internal-token": TOKEN } : {}),
+        ...(COOKIE ? { cookie: COOKIE } : {}),
+      },
       redirect: "follow",
       signal: controller.signal,
     });
@@ -263,6 +296,7 @@ function table(rows) {
 /* --------------------------------------------------------------------- */
 
 async function main() {
+  await signIn();
   process.stdout.write(`smoke-screens: ${BASE}\n\n`);
 
   process.stdout.write("not fetched, deliberately:\n");
