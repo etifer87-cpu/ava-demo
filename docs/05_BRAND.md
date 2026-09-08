@@ -8,7 +8,7 @@ chart or report carries a literal.
 
 | Asset | Path in repo | Source |
 |---|---|---|
-| Logo, colour on light | `scaffold/public/brand/avianca-logo.png` (3325×776, red wordmark + bird) | `Media/Logo/avianca_logo_png.png` |
+| Logo, colour on light | `scaffold/public/brand/avianca-logo.png` (lowercase wordmark + bird, red on transparent) | `Media/Logo/ava_logo.png` (replaced the earlier `avianca_logo_png.png` on 2026-09-08) |
 | Logo, vector | `Media/Logo/avianca-logo.ai` (not shipped; export SVG for the header if needed) | supplied |
 | Logo, on dark | derive a white version from the .ai for the dark header / PDF footer | to do |
 

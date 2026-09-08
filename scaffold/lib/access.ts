@@ -21,11 +21,12 @@ interface GrantRow {
   capability_code: string;
   scope: Scope;
   org_unit_id: string | null;
+  asset_class_id: string | null;
   is_overridable: boolean;
 }
 
 const GRANT_SQL = `
-  SELECT rc.capability_code, rc.scope, ur.org_unit_id, c.is_overridable
+  SELECT rc.capability_code, rc.scope, ur.org_unit_id, ur.asset_class_id, c.is_overridable
     FROM user_roles ur
     JOIN role_capabilities rc ON rc.role_code = ur.role_code
     JOIN capabilities c       ON c.code = rc.capability_code
@@ -39,6 +40,13 @@ export interface ResolvedAccess {
   readonly capabilities: CapabilityMap;
   /** capability -> the org units the grant was scoped to (null means every unit). */
   readonly grantOrgUnits: Readonly<Record<string, readonly (string | null)[]>>;
+  /**
+   * capability -> scope -> the FLEETS (asset classes) the grant rows were bound to. null means
+   * an unbound grant at that scope. Kept per scope, not per capability: an instructor bound to
+   * A320 (assigned) who is also fleet manager for B787 (all) must not become "all" on A320.
+   * Migration 0142.
+   */
+  readonly grantFleets: Readonly<Record<string, Readonly<Partial<Record<Scope, readonly (string | null)[]>>>>>;
 }
 
 /**
@@ -54,15 +62,40 @@ export async function resolveAccess(session: Session): Promise<ResolvedAccess> {
 
   const capabilities: Record<string, Scope[]> = {};
   const grantOrgUnits: Record<string, (string | null)[]> = {};
+  const grantFleets: Record<string, Partial<Record<Scope, (string | null)[]>>> = {};
 
   for (const row of rows) {
     const scopes = (capabilities[row.capability_code] ??= []);
     if (!scopes.includes(row.scope)) scopes.push(row.scope);
     const units = (grantOrgUnits[row.capability_code] ??= []);
     if (!units.includes(row.org_unit_id)) units.push(row.org_unit_id);
+    const byScope = (grantFleets[row.capability_code] ??= {});
+    const fleets = (byScope[row.scope] ??= []);
+    if (!fleets.includes(row.asset_class_id)) fleets.push(row.asset_class_id);
   }
 
-  return { session, capabilities, grantOrgUnits };
+  return { session, capabilities, grantOrgUnits, grantFleets };
+}
+
+/**
+ * The fleets a capability is bound to at a scope: null when at least one grant row at that scope
+ * is unbound (an unbound grant is wider than any bound one), else the bound asset_class ids.
+ */
+export function fleetsFor(access: ResolvedAccess, capability: string, scope: Scope): readonly string[] | null {
+  const fleets = access.grantFleets[capability]?.[scope];
+  if (!fleets || fleets.length === 0 || fleets.includes(null)) return null;
+  return fleets.filter((f): f is string => f !== null);
+}
+
+/** Every fleet any grant of this capability is bound to, or null if any grant is unbound. Display only. */
+export function boundFleets(access: ResolvedAccess, capability: string): readonly string[] | null {
+  const out = new Set<string>();
+  for (const scope of scopesFor(access, capability)) {
+    const f = fleetsFor(access, capability, scope);
+    if (f === null) return null;
+    for (const id of f) out.add(id);
+  }
+  return [...out];
 }
 
 export function scopesFor(access: ResolvedAccess, capability: string): readonly Scope[] {
@@ -141,7 +174,33 @@ const ORG_SQL = `
      AND p.org_unit_id IN (SELECT id FROM tree)
 `;
 
-/** A result meaning "no filter": the caller holds the capability at `all`. */
+/** People CURRENTLY on the given fleets. The fleet seam for every scope but `own`. */
+const FLEET_SQL = `
+  SELECT p.id AS person_id
+    FROM people p
+   WHERE p.deleted_at IS NULL
+     AND p.asset_class_id = ANY($1::uuid[])
+`;
+
+async function fleetPeople(fleets: readonly string[]): Promise<Set<string>> {
+  const rows = await query<{ person_id: string }>(FLEET_SQL, [fleets]);
+  return new Set(rows.map((r) => r.person_id));
+}
+
+/** Restrict a scope's member set to the fleets that scope is bound to. Unbound: unchanged. */
+async function withinFleets(
+  access: ResolvedAccess,
+  capability: string,
+  scope: Scope,
+  members: Set<string>,
+): Promise<Set<string>> {
+  const fleets = fleetsFor(access, capability, scope);
+  if (fleets === null || members.size === 0) return members;
+  const allowed = await fleetPeople(fleets);
+  return new Set([...members].filter((id) => allowed.has(id)));
+}
+
+/** A result meaning "no filter": the caller holds the capability at `all`, unbound to any fleet. */
 export const ALL_PEOPLE = Symbol('all_people');
 export type VisiblePeople = typeof ALL_PEOPLE | Set<string>;
 
@@ -156,30 +215,39 @@ export async function visiblePersonIds(
 ): Promise<VisiblePeople> {
   const scopes = scopesFor(access, capability);
   if (scopes.length === 0) return new Set<string>();
-  if (scopes.includes('all')) return ALL_PEOPLE;
+  // `all` unbound to a fleet is the only case with no filter at all. `all` bound to a fleet is
+  // "everyone on that fleet", which is a set like any other.
+  if (scopes.includes('all') && fleetsFor(access, capability, 'all') === null) return ALL_PEOPLE;
 
   const ids = new Set<string>();
   const { session } = access;
+  const add = (members: Set<string>) => { for (const id of members) ids.add(id); };
 
+  // `own` is never fleet-restricted: a person always reaches their own row.
   if (scopes.includes('own') && session.personId) {
     ids.add(session.personId);
   }
 
+  if (scopes.includes('all')) {
+    const fleets = fleetsFor(access, capability, 'all');
+    if (fleets) add(await fleetPeople(fleets));
+  }
+
   if (scopes.includes('assigned') && session.personId) {
     const rows = await query<{ person_id: string }>(ASSIGNED_SQL, [session.personId]);
-    for (const r of rows) ids.add(r.person_id);
+    add(await withinFleets(access, capability, 'assigned', new Set(rows.map((r) => r.person_id))));
   }
 
   const units = (access.grantOrgUnits[capability] ?? []).filter((u): u is string => u !== null);
 
   if (scopes.includes('team') && units.length > 0) {
     const rows = await query<{ person_id: string }>(TEAM_SQL, [units]);
-    for (const r of rows) ids.add(r.person_id);
+    add(await withinFleets(access, capability, 'team', new Set(rows.map((r) => r.person_id))));
   }
 
   if (scopes.includes('org') && units.length > 0) {
     const rows = await query<{ person_id: string }>(ORG_SQL, [units]);
-    for (const r of rows) ids.add(r.person_id);
+    add(await withinFleets(access, capability, 'org', new Set(rows.map((r) => r.person_id))));
   }
 
   return applySelfExclusions(access, capability, ids);

@@ -57,3 +57,6 @@ Expected: `verify --group config` asserts "the recorded policy version is the fi
 
 ## 2026-09-08 · template_kinds catalogue · no loader from policy.yaml
 Expected: policy.yaml §1 says "Adding a kind is a row here and a row there, never a migration" · Found: the table is only ever written by migration 0032; nothing syncs it from the file, so the only way to add a kind IS a migration · Done here: `0141_template_kinds_operator.sql` (ebt_recurrent, type_rating; OPC / LPC relabel) · Kit should: either sync the catalogue in `config:load` (with the same is_active-never-DELETE rule) or correct the comment.
+
+## 2026-09-08 · scripts/synthetic/population.mjs · org units and asset classes are only written by the synthetic generator
+Expected: the operator context (bases, fleets, devices) exists on any instance, populated or not · Found: `org_units` and `asset_classes` are inserted only inside the synthetic population step, and the lists live under `policy.yaml → synthetic:` · Done here: `scripts/seed-operator.mjs` (`npm run seed:operator`), run in `reset:clean` before the first user; lists still read from `synthetic:` to avoid a policy schema change · Kit should: move the two lists to a top-level `operator:` section and seed them in `config:load` or a dedicated step.
