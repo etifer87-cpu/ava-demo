@@ -20,7 +20,8 @@
     "smoke": "node --env-file=.env scripts/smoke-screens.mjs",
     "test": "vitest run",
     "typecheck": "tsc --noEmit",
-    "scan": "node --env-file=.env scripts/neutrality-scan.mjs"
+    "scan": "node --env-file=.env scripts/neutrality-scan.mjs",
+    "password": "node --env-file=.env scripts/set-password.mjs"
   },
   "dependencies": {
     "next": "^16.0.0",

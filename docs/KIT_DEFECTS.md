@@ -45,3 +45,6 @@ Expected: runbook Phase 1 says `docker compose -f scaffold/deploy/compose.yml up
 
 ## 2026-09-08 · scripts/seed-framework.mjs:37, scripts/build-framework-seed.py:26 · blueprint folder name is hard-coded
 Expected: the runbook lets the kit be copied "from this folder alone" into any layout · Found: both scripts resolve `<kit>/docs/03_COMPETENCY_FRAMEWORK.md` by literal name, so a replica that keeps its own `docs/` (as this one does — the blueprint lives in `kit-docs/`) fails at seed 3/6 · Done here: `KIT_DOCS_DIR` env var, default `kit-docs` · Kit should: read the folder from one place (env or a `kit.json`), default `docs`.
+
+## 2026-09-08 · runbook Phase 3 / scripts · no way to sign in to a freshly seeded instance
+Expected: runbook Phase 3 says "Sign in, open the subject list" · Found: every seeded login carries the deliberate never-matching hash `!` and the kit ships no tool to set a password, so Phase 3 cannot be executed as written · Done here: `scripts/set-password.mjs` (`npm run password -- <username>`), hidden prompt, bcrypt computed in Postgres like the login route · Kit should: ship the same and name it in the runbook. Seeded staff logins are `demo.platform_admin`, `demo.training_manager`, `demo.assessment_manager`, `demo.records_officer`, `demo.qms_admin`, `demo.compliance_verifier`, `demo.planner`.
