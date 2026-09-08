@@ -1,0 +1,34 @@
+# secrets and per-host config
+.env
+.env.*
+!.env.example
+scaffold/.env
+scaffold/.env.*
+!scaffold/.env.example
+
+# data root and generated output
+/data/
+scaffold/data/
+*.pdf.tmp
+/exports/
+
+# node / next
+node_modules/
+.next/
+scaffold/.next/
+scaffold/tsconfig.tsbuildinfo
+npm-debug.log*
+
+# session and scratch artefacts — never commit these
+.cookie_*
+*.cookie
+*.tmp
+*.log
+_to_delete/
+
+# design source (kept locally, not shipped)
+Media/Logo/*.ai
+
+# OS
+.DS_Store
+Thumbs.db
