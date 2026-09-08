@@ -1,0 +1,74 @@
+{
+  "meta": {
+    "purpose": "Starter template. Synthetic content, authored against docs/05_TEMPLATES_AND_BUILDER.md section 2. No operator syllabus, no operator numbering, no operator wording.",
+    "authored_for": "docs/05_TEMPLATES_AND_BUILDER.md section 6",
+    "external_ref_note": "external_ref carries a SYN- prefixed placeholder syllabus number. It is an import mapping key and a cross-reference, never an identity: an operator replaces these with their own and nothing breaks, because every answer keys on element_key."
+  },
+  "code": "SEED-SIM-REC",
+  "name": "Simulator recurrent training (starter)",
+  "kind": "simulator_recurrent",
+  "asset_class_code": null,
+  "org_unit_code": null,
+  "version": {
+    "period": "starter",
+    "change_note": "Initial published version, seeded with the kit.",
+    "notes": "Full-shape simulator form: setup grid, section headers, a reset block, graded events with role and attempts, a malfunction option group, and the full competency block.",
+    "allowed_assessor_roles": ["examiner", "instructor"],
+    "hide_record_from_subject": false,
+    "setup": {
+      "rows": [
+        { "label": "Training device", "value": "" },
+        { "label": "Device class", "value": "" },
+        { "label": "Session number", "value": "" },
+        { "label": "Aerodrome of departure", "value": "" },
+        { "label": "Aerodrome of arrival", "value": "" },
+        { "label": "Mass and balance case", "value": "" },
+        { "label": "Weather case", "value": "" },
+        { "label": "Runway state", "value": "" }
+      ],
+      "notes": "Values are entered by the assessor at session start and frozen into the record snapshot."
+    }
+  },
+  "competencies": ["KNO", "PRO", "COM", "FPA", "FPM", "LTW", "PSD", "SAW", "WLM"],
+  "elements": [
+    { "element_key": "sec_preparation", "catalogue_type": "section", "title": "Preparation and departure", "position": 0, "content": { "competency_codes": ["KNO", "PRO", "SAW"], "performance_criteria": ["Briefing covers threats relevant to the case", "Systems set up to the published configuration"] } },
+    { "element_key": "setup_device", "catalogue_type": "setup", "title": "Device and environment set-up", "parent_key": "sec_preparation", "position": 1, "content": { "rows": [ { "label": "Position", "value": "" }, { "label": "Fuel state", "value": "" }, { "label": "Configuration", "value": "" } ], "notes": "Recorded once at the start of the session." } },
+    { "element_key": "task_preflight_prep", "catalogue_type": "task", "title": "Pre-flight preparation and briefing", "parent_key": "sec_preparation", "position": 2, "external_ref": "SYN-1.1", "is_mandatory": true, "content": { "number": "1.1", "time": "00:15", "pf_role": "both", "grade_type": "scale", "allow_attempts": 2, "competency_codes": ["KNO", "PRO", "COM"], "performance_criteria": ["States the plan, the threats and the intended mitigations"] } },
+    { "element_key": "task_systems_setup", "catalogue_type": "task", "title": "Aircraft systems set-up", "parent_key": "sec_preparation", "position": 3, "external_ref": "SYN-1.2", "is_mandatory": true, "content": { "number": "1.2", "time": "00:10", "pf_role": "either", "grade_type": "scale", "allow_attempts": 2, "competency_codes": ["PRO", "KNO"] } },
+    { "element_key": "task_departure_brief", "catalogue_type": "task", "title": "Departure briefing and threat identification", "parent_key": "sec_preparation", "position": 4, "external_ref": "SYN-1.3", "content": { "number": "1.3", "time": "00:05", "pf_role": "A", "grade_type": "scale", "allow_attempts": 2, "competency_codes": ["COM", "SAW", "PSD"] } },
+    { "element_key": "task_taxi_checks", "catalogue_type": "task", "title": "Taxi and pre-take-off checks", "parent_key": "sec_preparation", "position": 5, "external_ref": "SYN-1.4", "content": { "number": "1.4", "time": "00:08", "pf_role": "either", "grade_type": "scale", "allow_attempts": 2, "competency_codes": ["PRO", "WLM"] } },
+
+    { "element_key": "sec_takeoff", "catalogue_type": "section", "title": "Take-off and initial climb", "position": 6, "content": { "competency_codes": ["FPM", "PRO", "PSD"] } },
+    { "element_key": "task_normal_takeoff", "catalogue_type": "task", "title": "Normal take-off", "parent_key": "sec_takeoff", "position": 7, "external_ref": "SYN-2.1", "is_mandatory": true, "content": { "number": "2.1", "time": "00:04", "pf_role": "A", "grade_type": "scale", "allow_attempts": 3, "competency_codes": ["FPM", "PRO"] } },
+    { "element_key": "task_rejected_takeoff", "catalogue_type": "task", "title": "Rejected take-off", "parent_key": "sec_takeoff", "position": 8, "external_ref": "SYN-2.2", "is_mandatory": true, "content": { "number": "2.2", "time": "00:04", "pf_role": "A", "grade_type": "scale", "allow_attempts": 3, "competency_codes": ["PSD", "PRO", "FPM"], "performance_criteria": ["Decision taken by the published decision speed", "Aircraft stopped on the remaining surface"] } },
+    { "element_key": "task_engine_failure_after_v1", "catalogue_type": "task", "title": "Engine failure after V1", "parent_key": "sec_takeoff", "position": 9, "external_ref": "SYN-2.3", "is_mandatory": true, "content": { "number": "2.3", "time": "00:06", "pf_role": "A", "grade_type": "scale", "allow_attempts": 3, "competency_codes": ["FPM", "PSD", "WLM"] } },
+    { "element_key": "task_engine_out_climb", "catalogue_type": "task", "title": "Engine-out initial climb and clean-up", "parent_key": "sec_takeoff", "position": 10, "external_ref": "SYN-2.4", "content": { "number": "2.4", "time": "00:06", "pf_role": "both", "grade_type": "scale", "allow_attempts": 3, "competency_codes": ["FPM", "PRO", "LTW"] } },
+
+    { "element_key": "sec_handling", "catalogue_type": "section", "title": "Airborne handling", "position": 11, "content": { "competency_codes": ["FPM", "FPA", "SAW"] } },
+    { "element_key": "task_steep_turns", "catalogue_type": "task", "title": "Steep turns", "parent_key": "sec_handling", "position": 12, "external_ref": "SYN-3.1", "content": { "number": "3.1", "time": "00:05", "pf_role": "either", "grade_type": "scale", "allow_attempts": 3, "competency_codes": ["FPM"] } },
+    { "element_key": "task_stall_recovery", "catalogue_type": "task", "title": "Approach to stall and recovery", "parent_key": "sec_handling", "position": 13, "external_ref": "SYN-3.2", "is_mandatory": true, "content": { "number": "3.2", "time": "00:06", "pf_role": "either", "grade_type": "scale", "allow_attempts": 3, "competency_codes": ["FPM", "PSD", "KNO"] } },
+    { "element_key": "task_upset_recovery", "catalogue_type": "task", "title": "Upset recovery from a nose-high attitude", "parent_key": "sec_handling", "position": 14, "external_ref": "SYN-3.3", "content": { "number": "3.3", "time": "00:06", "pf_role": "either", "grade_type": "scale", "allow_attempts": 3, "competency_codes": ["FPM", "PSD"] } },
+    { "element_key": "task_manual_high_altitude", "catalogue_type": "task", "title": "Manual flight at high altitude", "parent_key": "sec_handling", "position": 15, "external_ref": "SYN-3.4", "content": { "number": "3.4", "time": "00:08", "pf_role": "either", "grade_type": "scale", "allow_attempts": 2, "competency_codes": ["FPM", "SAW", "WLM"] } },
+
+    { "element_key": "sec_abnormal", "catalogue_type": "section", "title": "Abnormal and emergency procedures", "position": 16, "content": { "competency_codes": ["PRO", "PSD", "LTW", "WLM"] } },
+    { "element_key": "reset_midsession", "catalogue_type": "setup", "title": "Reposition and reset", "parent_key": "sec_abnormal", "position": 17, "content": { "rows": [ { "label": "Reposition to", "value": "" }, { "label": "Level", "value": "" }, { "label": "Configuration", "value": "" } ], "resets": 1, "notes": "A reset block is not graded and never appears in the element grade counts." } },
+    { "element_key": "opt_malfunctions", "catalogue_type": "event_option", "title": "Malfunctions introduced", "parent_key": "sec_abnormal", "position": 18, "content": { "grid_options": [ { "key": "eng_fire", "name": "Engine fire", "trigger": "After level-off" }, { "key": "eng_severe_damage", "name": "Engine severe damage", "trigger": "During climb" }, { "key": "hyd_loss", "name": "Hydraulic system loss", "trigger": "En route" }, { "key": "elec_bus_loss", "name": "Electrical bus loss", "trigger": "En route" }, { "key": "press_loss", "name": "Loss of pressurisation", "trigger": "At cruise level" }, { "key": "smoke_fumes", "name": "Smoke or fumes", "trigger": "At cruise level" }, { "key": "gear_unsafe", "name": "Unsafe landing gear indication", "trigger": "On approach" }, { "key": "flap_jam", "name": "Flap or slat jam", "trigger": "On approach" } ], "notes": "Selections print on the record report. Each option carries its own key, so a multi-select answer is key-addressed like every other answer." } },
+    { "element_key": "task_depressurisation", "catalogue_type": "task", "title": "Rapid depressurisation and emergency descent", "parent_key": "sec_abnormal", "position": 19, "external_ref": "SYN-4.1", "is_mandatory": true, "content": { "number": "4.1", "time": "00:08", "pf_role": "both", "grade_type": "scale", "allow_attempts": 2, "competency_codes": ["PRO", "PSD", "WLM"] } },
+    { "element_key": "task_engine_fire_drill", "catalogue_type": "task", "title": "Engine fire drill", "parent_key": "sec_abnormal", "position": 20, "external_ref": "SYN-4.2", "is_mandatory": true, "content": { "number": "4.2", "time": "00:07", "pf_role": "both", "grade_type": "scale", "allow_attempts": 2, "competency_codes": ["PRO", "LTW", "COM"] } },
+    { "element_key": "task_smoke_removal", "catalogue_type": "task", "title": "Smoke or fumes removal", "parent_key": "sec_abnormal", "position": 21, "external_ref": "SYN-4.3", "content": { "number": "4.3", "time": "00:07", "pf_role": "both", "grade_type": "scale", "allow_attempts": 2, "competency_codes": ["PRO", "PSD", "COM"] } },
+    { "element_key": "task_hydraulic_failure", "catalogue_type": "task", "title": "Hydraulic system failure management", "parent_key": "sec_abnormal", "position": 22, "external_ref": "SYN-4.4", "content": { "number": "4.4", "time": "00:09", "pf_role": "both", "grade_type": "scale", "allow_attempts": 2, "competency_codes": ["KNO", "PRO", "WLM"] } },
+
+    { "element_key": "sec_approach", "catalogue_type": "section", "title": "Approach and landing", "position": 23, "content": { "competency_codes": ["FPA", "FPM", "PRO", "SAW"] } },
+    { "element_key": "task_precision_approach", "catalogue_type": "task", "title": "Precision approach, all engines operating", "parent_key": "sec_approach", "position": 24, "external_ref": "SYN-5.1", "is_mandatory": true, "content": { "number": "5.1", "time": "00:08", "pf_role": "A", "grade_type": "scale", "allow_attempts": 3, "competency_codes": ["FPA", "FPM", "PRO"] } },
+    { "element_key": "task_nonprecision_approach", "catalogue_type": "task", "title": "Non-precision approach", "parent_key": "sec_approach", "position": 25, "external_ref": "SYN-5.2", "is_mandatory": true, "content": { "number": "5.2", "time": "00:08", "pf_role": "A", "grade_type": "scale", "allow_attempts": 3, "competency_codes": ["FPA", "FPM", "SAW"] } },
+    { "element_key": "task_nonprecision_one_engine", "catalogue_type": "task", "title": "Non-precision approach with one engine inoperative", "parent_key": "sec_approach", "position": 26, "external_ref": "SYN-5.3", "content": { "number": "5.3", "time": "00:09", "pf_role": "A", "grade_type": "scale", "allow_attempts": 3, "competency_codes": ["FPM", "WLM", "PSD"] } },
+    { "element_key": "task_circling_approach", "catalogue_type": "task", "title": "Circling approach", "parent_key": "sec_approach", "position": 27, "external_ref": "SYN-5.4", "content": { "number": "5.4", "time": "00:07", "pf_role": "B", "grade_type": "scale", "allow_attempts": 3, "competency_codes": ["FPM", "SAW"] } },
+    { "element_key": "task_go_around_low", "catalogue_type": "task", "title": "Go-around from a low altitude", "parent_key": "sec_approach", "position": 28, "external_ref": "SYN-5.5", "is_mandatory": true, "content": { "number": "5.5", "time": "00:05", "pf_role": "both", "grade_type": "scale", "allow_attempts": 3, "competency_codes": ["FPM", "PRO", "LTW"] } },
+    { "element_key": "task_abnormal_config_landing", "catalogue_type": "task", "title": "Landing with an abnormal configuration", "parent_key": "sec_approach", "position": 29, "external_ref": "SYN-5.6", "content": { "number": "5.6", "time": "00:07", "pf_role": "A", "grade_type": "scale", "allow_attempts": 3, "competency_codes": ["FPM", "PSD", "KNO"] } },
+
+    { "element_key": "sec_crew", "catalogue_type": "section", "title": "Crew coordination", "position": 30, "content": { "competency_codes": ["LTW", "COM", "WLM"] } },
+    { "element_key": "note_crew_guidance", "catalogue_type": "note", "title": null, "parent_key": "sec_crew", "position": 31, "content": { "text": "Grade the crew-facing items on what was observed during the events above. Observable behaviours are SELECTED in the competency block; they are never graded individually and never inferred from a remark." } },
+    { "element_key": "task_crew_briefing", "catalogue_type": "task", "title": "Crew briefing and workload allocation", "parent_key": "sec_crew", "position": 32, "external_ref": "SYN-6.1", "content": { "number": "6.1", "time": "00:05", "pf_role": "both", "grade_type": "scale", "allow_attempts": 1, "competency_codes": ["LTW", "COM", "WLM"] } },
+    { "element_key": "task_post_flight_debrief", "catalogue_type": "task", "title": "Post-flight debrief participation", "parent_key": "sec_crew", "position": 33, "external_ref": "SYN-6.2", "content": { "number": "6.2", "time": "00:10", "pf_role": "both", "grade_type": "scale", "allow_attempts": 1, "competency_codes": ["COM", "LTW", "KNO"] } }
+  ]
+}

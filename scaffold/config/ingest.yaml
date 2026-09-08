@@ -1,0 +1,61 @@
+# Ingest pipeline configuration. Read at runtime; nothing here is inline in code.
+# Specified by docs/11_AI_PIPELINE.md section 3.
+version: 1
+
+# --- deterministic pre-classifier (docs/11 section 3.1) -----------------------
+# Counted before any model call. A document scoring below min_markers is stored as a
+# notes row, which is a normal outcome and not an error.
+classifier:
+  min_markers: 2          # also settable as INGEST_MIN_MARKERS
+  markers:
+    - grading
+    - assessment
+    - session
+    - assessor
+    - signature
+    - competency
+    - observable
+    - aircraft
+    - "date of"
+  # Log the marker count on every document so the distribution is inspectable later.
+  log_marker_count: true
+
+# --- text extraction and cleaning (docs/11 section 3.2) -----------------------
+text:
+  max_chars: 60000        # hard truncate; recorded on the row as text_truncated_at
+  min_chars: 100          # below this the file is a scan: fail loud, route to OCR or a human
+  strip_control_chars: true
+  quote_to_apostrophe: true
+  drop_backslashes: true
+  collapse_whitespace: true
+
+# --- date repair (docs/11 section 3.5) ----------------------------------------
+dates:
+  source_order: day_first
+  future_tolerance_days: 90      # beyond this: flag date_suspect, never auto-correct
+  earliest_plausible: "2000-01-01"
+
+# --- competency name resolution ------------------------------------------------
+# Used ONLY to resolve a printed string to a competency_id at ingest time. Nothing keys on
+# a name; this table exists because legacy documents print older wording. Add an entry
+# rather than editing a prompt.
+competency_aliases: {}
+#   "<older printed wording>": <competency code from the framework>
+#   "<ampersand form of a name>": <competency code from the framework>
+
+# --- enum allowlists ------------------------------------------------------------
+# A value outside an allowlist is a rejection unless a default is named here, in which case
+# the substitution is recorded on the row.
+enums:
+  overall_result:
+    values: [PASS, FAIL, PARTIAL, INCOMPLETE]
+    default: null                 # null means: reject rather than substitute
+  session_type:
+    values: []                    # empty means: accept any, store verbatim
+    default: null
+
+# --- dedup and idempotency (docs/11 section 3.6) --------------------------------
+dedup:
+  file_hash: sha256
+  conflict_target: [subject_id, session_date, document_name]   # always named explicitly
+  require_request_key: true

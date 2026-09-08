@@ -1,0 +1,325 @@
+# ---------------------------------------------------------------------------
+# policy.yaml - operator-configurable TRAINING POLICY.
+#
+# Specified by docs/03_COMPETENCY_FRAMEWORK.md section 5, docs/04_ETR.md
+# sections 2, 3, 4 and 8, docs/05_TEMPLATES_AND_BUILDER.md section 3, and
+# docs/14_SEED_AND_SYNTHETIC_DATA.md.
+#
+# analytics.yaml owns every threshold that a METRIC reads. This file owns every
+# vocabulary and rule that a HUMAN PROCESS reads: what kinds of session exist,
+# what a seat is called, what counts as a pass, who may sign, when a record
+# locks, how long things are kept, and what the synthetic population looks
+# like. The two files never restate each other. Where a value could plausibly
+# live in both, it lives in analytics.yaml and this file points at it.
+#
+# BINDING RULE, same as analytics.yaml: nothing in TypeScript, SQL, a route, a
+# component, a prompt or a seed script may hardcode a value from this file.
+# Changing a value here is a version bump plus a config reload; it is never a
+# deploy and never a migration.
+#
+# No operator content. Every vocabulary below is a neutral starter list.
+# ---------------------------------------------------------------------------
+
+version: "1.1"
+updated: "2026-08-26"
+note: "Vocabularies are starter lists, not recommendations; an operator replaces them with their own before the first real session is graded. v1.1: the db_kind mapping and the element-catalogue db_type mapping are gone - migrations 0032 and 0033 widened the schema to carry the real vocabulary, so both levels collapsed into one."
+
+# ---------------------------------------------------------------------------
+# 1. Template kinds - docs/04_ETR.md section 4.
+#
+#    `kind` is the vocabulary the builder, the session-create filter, the
+#    database and analytics.yaml's program_indicator.scopes ALL share. One
+#    level, one spelling.
+#
+#    Until migration 0032 there were two: this file mapped each kind to a
+#    coarse `db_kind` because 0020 constrained session_templates.template_kind
+#    to six families, so the database recorded "simulator" for four different
+#    kinds of event and no read surface could tell them apart. 0032 replaced
+#    that CHECK with the operator-editable `template_kinds` catalogue table and
+#    the mapping was deleted.
+#
+#    THIS LIST AND THE template_kinds TABLE MUST AGREE. The table is seeded from
+#    exactly these codes; the seeder rejects a kind that is not in the table by
+#    name, rather than letting Postgres report a foreign-key violation nobody
+#    can read. Adding a kind is a row here and a row there, never a migration.
+# ---------------------------------------------------------------------------
+template_kinds:
+  - kind: ground_school
+    label: "Ground school"
+    facility_kind: classroom
+    fan_out_on_signature: true      # one event, many subjects, one record each
+    supports_attempts: false
+  - kind: simulator_recurrent
+    label: "Simulator, recurrent"
+    facility_kind: ffs
+    fan_out_on_signature: false
+    supports_attempts: true
+  - kind: proficiency_check
+    label: "Proficiency check"
+    facility_kind: ffs
+    fan_out_on_signature: false
+    supports_attempts: true
+  - kind: line_check
+    label: "Line check"
+    facility_kind: line
+    fan_out_on_signature: false
+    supports_attempts: false        # NOT zeroed. Repeat logic is skipped entirely.
+  - kind: line_supervised
+    label: "Supervised line flying"
+    facility_kind: line
+    fan_out_on_signature: false
+    supports_attempts: false
+    one_record_per_sector: true     # docs/05 section 7
+  - kind: command_upgrade
+    label: "Command upgrade"
+    facility_kind: ffs
+    fan_out_on_signature: false
+    supports_attempts: true
+  - kind: crm
+    label: "Crew resource management"
+    facility_kind: classroom
+    fan_out_on_signature: true
+    supports_attempts: false
+  - kind: low_visibility
+    label: "Low visibility operations"
+    facility_kind: ffs
+    fan_out_on_signature: false
+    supports_attempts: true
+  - kind: upset_recovery
+    label: "Upset prevention and recovery"
+    facility_kind: ffs
+    fan_out_on_signature: false
+    supports_attempts: true
+  - kind: aerodrome_competence
+    label: "Aerodrome competence"
+    facility_kind: classroom
+    fan_out_on_signature: true
+    supports_attempts: false
+  - kind: assessment
+    label: "Assessment or selection"
+    facility_kind: other
+    fan_out_on_signature: false
+    supports_attempts: false
+    hide_record_from_subject: true  # docs/04 section 4: restricted, hidden entirely
+  - kind: other
+    label: "Other"
+    facility_kind: other
+    fan_out_on_signature: false
+    supports_attempts: false
+
+# ---------------------------------------------------------------------------
+# 2. Element catalogue - docs/05_TEMPLATES_AND_BUILDER.md section 2.
+#
+#    These eight codes ARE template_elements.element_type. Migration 0033
+#    widened the CHECK to exactly this list, so a catalogue type is stored as
+#    itself and `content.catalogue_type` is gone: a field, a computed panel and
+#    a note used to be stored alike as "text" and the database could not tell
+#    them apart.
+#
+#    The renderer switches on element_type. Nothing switches on the title.
+#
+#    Unlike the template kinds above, this vocabulary is NOT operator-editable
+#    and is constrained by a CHECK rather than a catalogue table: every type
+#    needs a renderer branch, a builder palette entry and a report block, so a
+#    new one is a code change by definition.
+#
+#    `graded` decides template_elements.is_graded and whether max_attempts is
+#    written. A group is not itself graded; its children may be.
+# ---------------------------------------------------------------------------
+element_catalogue:
+  section:      { graded: false }
+  task:         { graded: true  }
+  setup:        { graded: false }
+  event_option: { graded: false }
+  note:         { graded: false }
+  field:        { graded: false }
+  computed:     { graded: false }
+  group:        { graded: false }
+
+# Titles the renderer owns natively. A template declaring one of these produces
+# a visible duplicate in the report, so the builder and the seeder reject it at
+# authoring time rather than at render time.
+reserved_element_titles:
+  - "Remarks"
+  - "Session remarks"
+  - "Signatures"
+  - "Signature"
+  - "Outcome"
+  - "Competency assessment"
+  - "Competencies"
+  - "Subjects"
+
+# ---------------------------------------------------------------------------
+# 3. Seats and roles.
+#    seat_role is a LABEL on session_subjects, never an enum: an operator's seat
+#    vocabulary is theirs. instructor_role is the highest assessor
+#    qualification a person holds, or null - a large share of people who grade
+#    hold none, and analytics.yaml.assessor_fairness.status
+#    .filter_roster_by_instructor_role is binding false because of it.
+# ---------------------------------------------------------------------------
+seats:
+  subject_roles: ["seat_1", "seat_2", "observer", "relief"]
+  default_subject_role: "seat_2"
+  pf_roles: ["A", "B", "both", "either"]
+  max_subjects_per_session: 4
+
+instructor_roles: ["examiner", "instructor_sim", "instructor_line", "instructor_ground", "assessor"]
+
+# Role codes that may be an assessor of record. Re-validated server-side on
+# session creation against session_template_versions.allowed_assessor_roles: a
+# client that omits the list must never silently widen eligibility.
+assessor_role_codes: ["examiner", "instructor", "ground_instructor", "assessment_manager"]
+
+positions: ["position_a", "position_b"]   # neutral seat-independent job labels
+
+# ---------------------------------------------------------------------------
+# 4. Grading policy - docs/03_COMPETENCY_FRAMEWORK.md sections 4 and 5.
+#    The BOUNDARY of "below standard" is NOT here. It is stated once, in
+#    analytics.yaml under grade_scale.below_standard_max, and everything reads
+#    it from there. What lives here is what the operator DOES about it.
+# ---------------------------------------------------------------------------
+grading:
+  target_grade: 3
+  # How many competencies may sit at grade 2 in one record before the record
+  # itself is treated as below the programme's expectation.
+  tolerated_grade_2_competencies: 2
+  # Non-scoring codes are defined in analytics.yaml (grade_scale.non_scoring)
+  # and are listed there, not here, so one vocabulary cannot drift from another.
+  boolean_grade_values: ["Yes", "No"]
+  outcomes: ["PASS", "FAIL", "PARTIAL PASS", "INCOMPLETE"]
+  # Outcome is NEVER inferred. A computed suggestion may be stored beside the
+  # human value and shown to the assessor; the human value is the record.
+  outcome_is_always_explicit: true
+  store_computed_outcome: true
+
+  remedial_triggers:
+    any_grade_1: true
+    successive_grade_2_same_competency: 2
+    assessor_judgement: true         # free-standing; needs no numeric trigger
+  # A remedial trigger is a PROMPT to a human, never an automatic status change.
+  remedial_is_advisory: true
+
+# ---------------------------------------------------------------------------
+# 5. Signature and locking policy - docs/04_ETR.md section 2.
+# ---------------------------------------------------------------------------
+signatures:
+  method: "typed_person_id"          # identity assertion, never a drawn image
+  require_disclaimer: true
+  lock_on_first_signature: true      # NOT the last: otherwise one party edits
+                                     # after the other has attested
+  signatures_required: 2             # assessor and subject
+  unsign:
+    allowed: true
+    requires_password: true
+    clears_both_signatures: true
+    audited: true
+  # An imported record was not signed here. It renders "signed on <date>" with
+  # the original names and WITHOUT the electronic-signature wording.
+  imported_records_use_electronic_wording: false
+  capture_signature_timestamp: true  # when false, signature-lag metrics are
+                                     # emitted null with "not captured", never 0
+
+# ---------------------------------------------------------------------------
+# 6. Retention - docs/09_DMS.md and docs/17_GOVERNANCE.md are the authorities
+#    for the process; these are the windows the platform enforces.
+#    Deleting is MOVING: every delete relocates the file to the retention store
+#    and writes an audit row. Nothing here hard-deletes.
+# ---------------------------------------------------------------------------
+retention:
+  training_record_years: 10
+  analysis_run_years: 5
+  audit_log_years: 7
+  soft_deleted_purge_days: null      # null = never purged automatically
+  retention_store_path: "retention"  # relative to DATA_ROOT
+
+# ---------------------------------------------------------------------------
+# 7. Template authoring and publish - docs/05 section 3.
+# ---------------------------------------------------------------------------
+templates:
+  element_key_pattern: "^[a-z0-9][a-z0-9_.-]{0,62}$"
+  require_change_note: true
+  require_effective_date: true
+  require_password_on_publish: true
+  # A seeded version is published as version 1 with today's effective date.
+  # Backdating a publish does not retroactively re-grade or re-render anything;
+  # seeded sessions are backdated freely and independently of this value.
+  seed_version: 1
+  seed_status: "published"
+
+# ---------------------------------------------------------------------------
+# 8. Synthetic-data profile - read by scripts/seed-synthetic.mjs.
+#    docs/14_SEED_AND_SYNTHETIC_DATA.md.
+#
+#    NOTHING IN THIS SECTION DESCRIBES A REAL PERSON, A REAL ROUTE, A REAL
+#    AIRCRAFT OR A REAL EVENT. The names are obviously invented, the ids carry a
+#    DEMO- prefix, and the classes are letter codes. If a value here starts to
+#    look like an operator's, it is wrong.
+# ---------------------------------------------------------------------------
+synthetic:
+  default_seed: "tms-kit"
+  default_subjects: 40
+  default_months: 24
+  person_id_prefix: "DEMO-"
+  # The window is EXTENDED, never truncated, to cover every base window
+  # configured in analytics.yaml. A generator that honours --months literally
+  # leaves program_indicator.base_from with no data, and every base-relative
+  # band then silently fails to occur.
+  extend_window_to_cover_analytics_bases: true
+
+  org_units:
+    - { code: OPS,      name: "Demo Operations",       kind: operator,   parent: null }
+    - { code: OPS-A,    name: "Demo Division A",       kind: aoc,        parent: OPS }
+    - { code: OPS-B,    name: "Demo Division B",       kind: aoc,        parent: OPS }
+    - { code: OPS-A-N,  name: "Demo Base North",       kind: base,       parent: OPS-A }
+    - { code: OPS-A-S,  name: "Demo Base South",       kind: base,       parent: OPS-A }
+    - { code: OPS-B-N,  name: "Demo Base East",        kind: base,       parent: OPS-B }
+    - { code: TRG,      name: "Demo Training",         kind: department, parent: OPS }
+
+  asset_classes:
+    - { code: "TYPE-A", name: "Demo type A",            category: aircraft }
+    - { code: "TYPE-B", name: "Demo type B",            category: aircraft }
+    - { code: "TYPE-C", name: "Demo type C",            category: aircraft }
+    - { code: "SIM-A",  name: "Demo training device A", category: simulator }
+
+  # Obviously invented. Combined deterministically, never sampled from a real
+  # roster, and never a recognisable public figure.
+  given_names: ["Alex", "Robin", "Sam", "Jordan", "Casey", "Morgan", "Riley", "Quinn", "Avery", "Devon", "Harper", "Emerson", "Rowan", "Sage", "Blair", "Marlow", "Ellis", "Reese", "Nico", "Toby"]
+  family_names: ["Rivera", "Delgado", "Okafor", "Lindqvist", "Marchetti", "Novak", "Haddad", "Ferreira", "Kaur", "Whitlock", "Bergstrom", "Osei", "Ivanov", "Castillo", "Ahmadi", "Yilmaz", "Brennan", "Sorensen", "Duarte", "Nakamura"]
+
+  roster:
+    assessor_count: 14
+    # Assessors deliberately span the banding minimums in analytics.yaml
+    # (assessor_fairness.adjusted_delta.min_records_banded and
+    # .leniency.min_sessions) so that both the banded and the provisional
+    # states occur in a fresh install.
+    inactive_subject_count: 3
+    no_record_subject_count: 2       # exercises concern = NULL ("no data")
+    watch_list_count: 3
+    concern_override_count: 1
+    seniority_years: [1, 3, 7, 12]   # spans comparison.seniority_windows
+
+  volume:
+    sessions_per_subject_per_year: 4
+    subjects_per_simulator_session: 2
+    subjects_per_ground_session: 6
+    line_sectors_per_line_session: 1  # docs/05 section 7: one record IS one sector
+    import_share: 0.35                # share of records with source = 'import'
+    repeat_attempt_share: 0.18        # share of SUBJECTS who repeat at least one element
+    non_scoring_share: 0.09           # share of element grades stored NR / NO / NA
+    remark_share_low_grades: 0.75     # share of grade<=2 rows carrying a remark
+    ob_selection_share: 0.85          # share of competency grades carrying OB references
+    quiet_period_months: 2            # months held below suppression.min_n_rate
+
+  analysis_runs:
+    complete_count: 6
+    failed_provenance_count: 1        # a run REJECTED by the provenance gate
+    queued_count: 1
+    degraded_count: 1                 # figures computed, no narrative: no inference configured
+
+  # Bands that this layer does NOT produce, with the reason. An honest gap is
+  # cheaper than a coverage claim that is not true.
+  not_covered:
+    - key: "currency.statuses"
+      reason: "Qualification holdings are QMS-owned (migrations 0060-0069). The QMS seed exercises VALID, WARNING, DUE, PLANNED, EXPIRED, MISSING, SUSPENDED and INACTIVE."
+    - key: "data_quality.report_duplicates"
+      reason: "Duplicate (record_id, element_key, instance_no, attempt) rows cannot be inserted: migrations 0029 and 0034 carry a UNIQUE constraint on exactly that tuple. The metric is exercised by an import fixture, not by the generator."

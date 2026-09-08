@@ -1,0 +1,479 @@
+# ---------------------------------------------------------------------------
+# analytics.yaml — every threshold, weight, window, band boundary and minimum
+# sample used anywhere in the analytics layer.
+#
+# Specified by docs/06_ANALYTICS.md. Rendered by docs/07_VISUALISATION.md.
+#
+# BINDING RULE: nothing in TypeScript, SQL, a route, a component or a prompt may
+# hardcode any value in this file. SQL reads it through analytics_num() /
+# analytics_int() / analytics_text() over the analytics_config table, which
+# scripts/load-analytics-config.mjs populates from this file. TypeScript
+# receives it as an injected AnalyticsConfig object; no analytics module reads
+# it from disk or from a global.
+#
+# Changing a value here is a version bump plus a config reload. It is never a
+# deploy, and it never requires a migration.
+#
+# All rates are proportions in [0,1]. Display multipliers live under
+# rate_display and are applied at render only.
+# ---------------------------------------------------------------------------
+
+version: "1.1"
+updated: "2026-08-26"
+# Free-text note recorded with the version in config_versions on every load.
+note: "Illustrative values; an operator tunes these against their own baseline before publishing an indicator. v1.1: program_indicator.scopes.template_kinds now name the process kinds of docs/04 section 4 directly, because migration 0032 replaced the six coarse families with the template_kinds catalogue. No threshold changed."
+
+# ---------------------------------------------------------------------------
+# 1. Grade scale — the primitives every metric is built on.
+#    docs/03_COMPETENCY_FRAMEWORK.md defines the scale; this defines how the
+#    analytics layer reads it.
+# ---------------------------------------------------------------------------
+grade_scale:
+  # The single definition of a valid grade. grade_num(text) returns an int only
+  # when trim(text) matches this pattern; everything else resolves to NULL and
+  # is excluded from BOTH numerator and denominator of every metric.
+  valid_pattern: "^[1-5]$"
+  min: 1
+  max: 5
+
+  # Stored alongside grades, all resolving to NULL. Never imputed, never
+  # counted as a 3, never mentioned in generated narrative.
+  non_scoring: ["NR", "NO", "NA"]
+
+  # ---- THE ONE DEFINITION OF "BELOW STANDARD" -----------------------------
+  # A grade is below standard when grade_num(g) <= below_standard_max.
+  # It is stated here and nowhere else. Every view, module, route, component
+  # and report reads it from this key.
+  below_standard_max: 2
+  # ------------------------------------------------------------------------
+
+  meets_standard_min: 3
+
+  # A grade of this value is a critical failure: non-compensatory, removed from
+  # the screening index arithmetic, handled as a flag with a recovery run.
+  critical_grade: 1
+
+# ---------------------------------------------------------------------------
+# 2. Display units. Presentation only — never applied before a threshold
+#    comparison. Per metric, because the two metrics have different
+#    denominators and therefore describe different exposures.
+# ---------------------------------------------------------------------------
+rate_display:
+  below_standard_rate:
+    denominator: 1000
+    unit: "per_1000_grades"
+    axis_label: "per 1000 grades"
+  adverse_competency_rate:
+    denominator: 1000
+    unit: "per_1000_records"
+    axis_label: "per 1000 records"
+  # The two series never share a y-axis. The formatter takes the metric and
+  # returns denominator, unit and axis label together; there is no shared
+  # "per 1000" string anywhere.
+
+# ---------------------------------------------------------------------------
+# 3. Small-sample suppression.
+# ---------------------------------------------------------------------------
+suppression:
+  # A period with fewer valid grade events (or records, for a record-denominated
+  # metric) than this renders "n<30" with a NULL value. Never zero, never
+  # interpolated. A suppressed period BREAKS a consecutive-period run.
+  min_n_rate: 30
+  # The worst-N / best-N summary requires this many events per competency.
+  min_n_summary: 30
+  # A cohort comparison below this on either side reports "insufficient",
+  # which is a different statement from "not significant".
+  min_n_comparison_side: 8
+
+# ---------------------------------------------------------------------------
+# 4. Program-level indicator (PLI). docs/06_ANALYTICS.md §5.
+# ---------------------------------------------------------------------------
+program_indicator:
+  metrics: ["below_standard_rate", "adverse_competency_rate"]
+  # adverse_competency_rate is published at overall grain only: at competency
+  # grain it collapses onto below_standard_rate.
+  grains: ["overall", "competency"]
+
+  scopes:
+    simulator:
+      label: "Simulator and proficiency"
+      period: month
+      base_from: "2024-04-01"
+      base_to: "2025-03-31"
+      base_periods: 12          # PERIODS, not months. Asserted on every base row.
+      default_window_periods: 24
+      # session_templates.template_kind values, which since migration 0032 are the
+      # process kinds of docs/04 section 4 rather than six coarse families. Listing
+      # them one by one is the point: an operator adding a new simulator-based kind
+      # decides whether it belongs in this scope, and the decision is written down
+      # here instead of being inherited silently from a family name.
+      template_kinds:
+        - simulator_recurrent
+        - proficiency_check
+        - command_upgrade
+        - low_visibility
+        - upset_recovery
+        - assessment
+      exclude_asset_class_codes: []
+      pooled_series: true       # the families may be pooled within this scope
+    line_operations:
+      label: "Line operations"
+      period: quarter
+      base_from: "2022-04-01"
+      base_to: "2025-03-31"
+      base_periods: 12          # 12 quarters. Do NOT "correct" this to 12 months.
+      default_window_periods: 12
+      # Line checks only. Supervised line flying (line_supervised) is deliberately
+      # ABSENT: one record is one sector there, so its denominator counts something
+      # different and pooling the two would mix two exposures under one rate.
+      template_kinds: ["line_check"]
+      exclude_asset_class_codes: []
+      pooled_series: false
+  # Scopes are never pooled with each other: different period lengths and
+  # different bases make a cross-scope pooled number meaningless.
+
+  # base_rate is the POOLED rate over the base window (sum below / sum n),
+  # never the mean of the per-period rates.
+  # sd_p is the SAMPLE standard deviation of the per-period rates.
+  alert_sigma: [1, 2, 3]
+
+  target:
+    type: relative            # relative | absolute
+    value: 0.05               # relative -> base_rate * (1 - 0.05); absolute -> the rate itself
+
+  status_rules:
+    consecutive_above_target: 3   # -> AMBER
+    consecutive_at_alert1: 2      # -> RED
+    # A period at or below target resets both runs.
+    # A suppressed period breaks a run rather than continuing it.
+    suppressed_breaks_run: true
+
+  # The base is never recomputed automatically, by any job, on any schedule.
+  # Rebasing is an edit to base_from/base_to here plus a version bump, recorded
+  # in config_versions. A base that drifts with the data makes improvement
+  # permanently invisible.
+  rebase: manual_only
+
+  # Before publishing a scope at a period length, compute
+  # observed_sd / poisson_sd over the base window. Below this ratio the
+  # movement is indistinguishable from counting noise: aggregate up.
+  overdispersion_warn_below: 1.2
+
+  # When sd_p > base_rate * this ratio, the surface prints, unprompted, that
+  # single-period moves are weak evidence and the run rules carry the signal.
+  sd_caveat_ratio: 0.5
+
+# ---------------------------------------------------------------------------
+# 5. Rolling control chart (RCC). docs/06_ANALYTICS.md §6.
+#    An independent early-warning instrument with its own base. Never
+#    reconciled with the PLI or the screening index.
+# ---------------------------------------------------------------------------
+control_chart:
+  window_events: 100            # rolling window, in grade events
+  # The base rate is estimated over this many consecutive grade events from
+  # estimation_start, then multiplied by window_events and floored.
+  # Too small a sample yields either a 0 base (permanently alerting) or an
+  # inflated base (never alerting). Size it so the expected count is well into
+  # double digits.
+  estimation_sample_events: 400
+  estimation_start: "2024-04-01"
+  limit_1_offset: 2             # counts, not rates
+  limit_2_offset: 4
+  forecast_periods: 6           # drawn dashed, labelled "projection"
+  display:
+    denominator: 100
+    unit: "per_100_records"
+    axis_label: "per 100 records"
+  # NOTE: estimation_sample_events and any rate_display denominator are
+  # unrelated ideas. They are given different values deliberately so that no
+  # sentence can treat them as the same quantity.
+
+# ---------------------------------------------------------------------------
+# 6. Screening index (SCI) — per subject, per competency.
+#    docs/06_ANALYTICS.md §7. Screening only: it decides where to look, never
+#    an outcome, and it is never shown to the subject.
+# ---------------------------------------------------------------------------
+screening_index:
+  window_sessions: 8            # last N valid grade events in that competency
+  min_valid_grades: 3           # below this -> INSUFFICIENT
+  recency_half_life: 3.5        # in EVENTS, not days: w(i) = 0.5 ^ (i / half_life)
+
+  # Asymmetric by design. One below-standard grade is not cancelled by one
+  # above-standard grade. Grade 1 is absent: it never enters the arithmetic.
+  points:
+    "2": -5.0
+    "3": 0.0
+    "4": 1.0
+    "5": 2.0
+
+  # Non-compensatory critical flag.
+  clean_run_n: 3                # consecutive events required to clear the flag
+  clean_run_min_grade: 3        # each of those events must be at least this
+  # A grade of 2 after the critical grade breaks the run and it restarts at 0.
+  # A non-scoring code is not an event and neither continues nor breaks it.
+
+  leniency:
+    min_sessions: 30            # MINIMUM SAMPLE before an assessor's delta is used
+    reduced_weight: 0.5         # contribution weight when unadjusted
+    clamp_min: 2                # clamping at 2, not 1, so an adjustment can never
+    clamp_max: 5                # manufacture a critical grade nobody awarded
+
+  bands:
+    amber_below: -1.5           # score < this -> AMBER
+    above_over: 0.5             # score > this -> ABOVE
+    # otherwise STANDARD; an unrecovered critical grade -> RED, overriding score
+
+  trend_threshold: 0.05         # points; newer-half mean minus older-half mean
+
+  # Template codes excluded from the index, as a list rather than a predicate in
+  # a view. Empty means every graded record type feeds it.
+  exclude_template_codes: []
+
+  # Where the same (subject, competency, date) exists from both an in-app
+  # session and an import, the in-app session shadows the import.
+  session_shadows_import: true
+
+# ---------------------------------------------------------------------------
+# 7. Concern level and record flagging. docs/06_ANALYTICS.md §8, §9.
+# ---------------------------------------------------------------------------
+concern:
+  lookback_days: 730            # null means all history
+  high:
+    grade_1_count_at_least: 1
+  medium:
+    grade_2_count_at_least: 2
+  low:
+    min_observations: 1
+  # No observations -> NULL, rendered "no data". Never "Low".
+  # A model-produced concern level ranks below the derived value and below an
+  # explicit override, and is always labelled as model-derived.
+
+flagged_record:
+  grade_1_at_least: 1
+  grade_2_at_least: 3
+  # A surface needing a different trigger reads a DIFFERENT key. Two triggers
+  # must never share one label.
+
+# ---------------------------------------------------------------------------
+# 8. Trend. docs/06_ANALYTICS.md §10.
+# ---------------------------------------------------------------------------
+trend:
+  flat_band: 0.05               # |delta| within this -> FLAT
+  min_points: 4                 # below this the arrow is omitted, not drawn flat
+  slope_interval_days: 90       # OLS slope is reported per this interval
+
+# ---------------------------------------------------------------------------
+# 9. Coverage. docs/06_ANALYTICS.md §11.
+# ---------------------------------------------------------------------------
+coverage:
+  # Legacy free-text behaviour rows are matched to the catalogue by containment
+  # on a normalised key; canonical catalogue text is always what is displayed.
+  # In-app selections carry observable_behaviour_id and need no matching.
+  ob_match_method: containment
+  targets:
+    competency_coverage_min: 1.0
+    ob_coverage_min: 0.8
+    remark_coverage_min: 0.6
+    catalogue_match_rate_min: 1.0
+
+# ---------------------------------------------------------------------------
+# 10. Assessor grading fairness. docs/06_ANALYTICS.md §13.
+#     Management instruments for a standardisation conversation. An assessor
+#     never sees their own page.
+# ---------------------------------------------------------------------------
+assessor_fairness:
+
+  # -- D1: expected grade, from the SAME subjects with OTHER assessors --------
+  # Never compare an assessor to the peer mean: that measures their roster.
+  expected:
+    half_life: 3.5              # symmetric in RANK distance, not time
+    window_rank: 12             # bounds the self-join; a performance guard, not
+                                # a statistical choice. Weights are renormalised
+                                # over the peers actually used.
+    min_grades: 3               # below this, fall back and record the level used
+    fallback_order:
+      - same_subject_same_competency_other_assessors   # level 1
+      - same_subject_all_competencies_other_assessors  # level 2
+      - peer_group_same_competency                     # level 3
+      - peer_group_overall                             # level 4
+    # A population where a large share of rows resolve above level 1 is not fit
+    # for banding, and the surface says so rather than banding it.
+    max_share_above_level_1_for_banding: 0.10
+
+  # -- D2: adjusted leniency delta, shrunk toward zero ------------------------
+  adjusted_delta:
+    k_shrink: 20                # delta = raw * n / (n + k). Without shrinkage the
+                                # lowest-volume assessors occupy both extremes.
+    ci_z: 1.96
+    outlier_abs: 0.5            # grade points, on the ADJUSTED delta
+    min_records_banded: 10      # below this -> provisional: excluded from outlier
+                                # flags and NEVER banded
+    # The unadjusted delta is retained and shown as a secondary figure, and is
+    # never used for banding or flagging.
+    show_raw_secondary: true
+
+  # -- grade spread ----------------------------------------------------------
+  spread:
+    sigma_floor: 0.60           # excess above this is penalised
+    sigma_min: 0.35             # deficit below this is penalised
+    # TWO-SIDED. A one-sided term scores perfect non-discrimination identically
+    # to good calibration: an assessor awarding one grade to everything has
+    # sigma 0 and loses nothing.
+
+  # -- D3: justification -----------------------------------------------------
+  justification:
+    grade_max: 2                # a grade at or below this needs a substantive remark
+    min_words: 8                # below this the remark is not substantive
+    never_penalise_grade_min: 4 # grades at or above this with no comment are never
+                                # penalised, in any metric, on any surface
+    random_sample_pct: 5        # clean rows with remarks sampled into the model pass
+    masking_requires_model: true
+    # A keyword rule alone must never cap a score. Keyword-only "masking"
+    # detection is dominated by false positives from domain-ambiguous words, and
+    # those false positives hold assessors below the band their evidence
+    # supports. unjustified_low stays purely deterministic because the rule is
+    # definitional.
+    negative_cue_list_ref: "config/negative_cues.yaml"   # English-only; see traps
+    model_sees: ["ordinal_index", "grade", "remark_text"]
+    # No assessor id, no subject id, no record id, no names. The model returns
+    # the grade the TEXT alone implies, judged independently of the awarded
+    # grade. This is bias mitigation, not efficiency.
+
+  # -- D5: habits ------------------------------------------------------------
+  habits:
+    central_grades: [3, 4]      # share of grades in this set; readable only against
+                                # the peer median
+    halo:
+      min_competencies_graded: 6
+      scale_full: 0.5           # halo rate scaled to 1.0 at this value
+    drift:
+      scale_full: 0.3           # |slope per trend.slope_interval_days| at 1.0
+    not_observed:
+      use_excess_over_expected: true   # BINDING. A raw not-observed rate
+                                       # penalises a roster, not an assessor.
+      scale_full: 0.35
+    template_reuse:
+      shingle: 3                # word shingles
+      jaccard: 0.8              # threshold; untuned in this kit
+    signature_lag:
+      capture_required: true    # when no signature timestamp exists the metric is
+                                # emitted as null with a "not captured" note,
+                                # NEVER as zero
+
+  # -- D6: standardisation index (ASI) ---------------------------------------
+  standardisation_index:
+    base: 100
+    rescale_over_available_terms: true
+    # An unmeasurable term must never act as free credit. Terms whose inputs
+    # cannot exist are shown n/a and EXCLUDED from the denominator:
+    #   ASI = 100 * (1 - deductions / available_points)
+    terms:
+      leniency:
+        points: 15
+        scale_full: 0.5         # min(|delta| / 0.5, 1)
+      spread:
+        points: 20              # two-sided; see assessor_fairness.spread
+      justification:
+        points: 25              # 1 - justification_rate
+      halo:
+        points: 15              # min(halo_rate / habits.halo.scale_full, 1)
+      drift:
+        points: 15              # min(|drift| / habits.drift.scale_full, 1)
+      not_observed:
+        points: 10              # min(excess / habits.not_observed.scale_full, 1)
+    bands:
+      green_min: 75
+      amber_min: 50
+      # below amber_min -> red; provisional -> not banded
+    caps:                       # a ceiling on the BAND, applied after the score
+      open_masking_alert: amber
+      own_screening_red: amber
+      halo_ineligible: amber
+      two_or_more_caps: red
+    # The breakdown is rendered in full: every term, its scaled value, points
+    # lost, the n/a terms, the available-points denominator and every active cap.
+
+  # -- assessor status: derived, never stored, nobody hidden ------------------
+  status:
+    dormant_after_days: 365
+    # former  = login deactivated
+    # dormant = no grading in dormant_after_days
+    # current = otherwise
+    # unregistered / role_missing are data-hygiene TAGS, not exclusions.
+    filter_roster_by_instructor_role: false   # BINDING false: a large share of
+                                              # graders hold no formal role and
+                                              # own a large share of the corpus
+    status_is_display_filter_only: true       # grades from dormant and former
+                                              # assessors stay in the peer mean and
+                                              # in every expected-grade calculation
+
+  # -- benchmark definitions, printed on the surfaces that use them ----------
+  benchmarks:
+    comparison_grid: all_assessors_including_self
+    individual_drilldown: all_assessors_excluding_self
+
+# ---------------------------------------------------------------------------
+# 11. Cohort comparison. docs/06_ANALYTICS.md §14.
+# ---------------------------------------------------------------------------
+comparison:
+  min_n_per_side: 8             # below this -> "insufficient", NOT "not significant"
+  ci_z: 1.96
+  ci_level: 0.95
+  ci_method_rate: wilson        # every displayed rate; never the normal approximation
+  ci_method_mean: welch
+  effect_size: cohen_d
+  trend_period: quarter
+  seniority_windows: ["all", 2, 5, 10]   # years around people.joined_on
+  position_read_from: record             # never the roster's current position
+  multiple_comparison:
+    method: bonferroni
+    alpha: 0.05
+    divisor: competency_count   # read from the framework table at runtime.
+                                # NEVER a literal: adding a competency must
+                                # change the threshold automatically.
+  early_warning:
+    ewma_lambda: 0.3
+    consecutive_below_run: 3
+    cusum_k: 0.5
+    cusum_h: 4.0
+
+# ---------------------------------------------------------------------------
+# 12. Program / cohort summary. docs/06_ANALYTICS.md §15.
+# ---------------------------------------------------------------------------
+program_summary:
+  top_n: 3                      # ALWAYS worst-N and best-N. A threshold-gated
+                                # panel renders empty on a good period, which
+                                # reads as "nothing to see".
+  min_n: 30
+  driving_behaviours: 3
+  behaviour_windows: ["current", "previous", "previous_3", "all"]
+
+# ---------------------------------------------------------------------------
+# 13. Currency and expiry. docs/06_ANALYTICS.md §12.
+#     Per-type values live on qual_types rows; these are the defaults used when
+#     a type leaves a field null.
+# ---------------------------------------------------------------------------
+currency:
+  default_warning_days: 90
+  default_grace_days: 0
+  default_early_renewal_days: 60
+  due_soon_days: 90
+  planned_excluded_from_due: true
+  statuses: ["VALID", "WARNING", "DUE", "PLANNED", "EXPIRED", "MISSING", "SUSPENDED", "INACTIVE"]
+  # Which statuses count toward compliance %. Operators disagree about PLANNED,
+  # so it is a config choice rather than an assumption.
+  compliant_statuses: ["VALID", "WARNING", "PLANNED"]
+
+# ---------------------------------------------------------------------------
+# 14. Data-quality metrics that are reported, never silently corrected.
+# ---------------------------------------------------------------------------
+data_quality:
+  # Duplicate (record_id, element_key, attempt) rows are COUNTED and reported.
+  # No deduplication rule is applied until one is chosen and written down: some
+  # duplicates carry conflicting grades and there is no obviously correct
+  # survivor.
+  dedupe_rule: none
+  report_duplicates: true
+  # Dimensions are bucketed by the record's values at session time, falling back
+  # to the template's, and only then to the person's current values.
+  dimension_fallback: ["record", "template", "person_current"]

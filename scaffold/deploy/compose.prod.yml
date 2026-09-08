@@ -1,0 +1,54 @@
+# Production overlay.
+#
+#   docker compose -f compose.yml -f compose.prod.yml up -d
+#
+# Reads APP_IMAGE_PROD and nothing else. See the note in compose.stage.yml and
+# docs/15_DEPLOYMENT.md section 4: one image tag variable PER ENVIRONMENT, immutable,
+# commit-sha-suffixed, never "latest".
+#
+# Rollback is the previous tag, and it is seconds:
+#   APP_IMAGE_PROD=ava-demo:<previous-sha> \
+#     docker compose -f compose.yml -f compose.prod.yml up -d
+# Migrations do not roll back. That is why destructive schema changes are two releases -
+# so the rollback is always "run the previous image", which always works.
+
+services:
+
+  app:
+    image: ${APP_IMAGE_PROD:?prod deploy requires APP_IMAGE_PROD, e.g. ava-demo:<sha>}
+    container_name: ava-prod-app
+    environment:
+      APP_ENV: prod
+      LOG_LEVEL: ${LOG_LEVEL:-info}
+    deploy:
+      resources:
+        limits:
+          memory: 2g
+
+  db:
+    container_name: ava-prod-db
+    deploy:
+      resources:
+        limits:
+          memory: 4g
+
+  pdf:
+    container_name: ava-prod-pdf
+
+  automation:
+    container_name: ava-prod-automation
+
+  inference:
+    container_name: ava-prod-inference
+
+networks:
+  ava:
+    name: ava-prod
+
+volumes:
+  db_data:
+    name: ava-prod-db-data
+  automation_data:
+    name: ava-prod-automation-data
+  inference_models:
+    name: ava-prod-inference-models

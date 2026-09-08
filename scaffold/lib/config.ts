@@ -1,0 +1,160 @@
+import 'server-only';
+import { readFileSync } from 'node:fs';
+import path from 'node:path';
+import { parse } from 'yaml';
+
+/**
+ * config.ts - the only reader of scaffold/config/*.yaml.
+ *
+ * SERVER ONLY.
+ *
+ * Contract rule 7: no threshold, band boundary, weight, colour or product name is inline in code.
+ * They live in YAML, are read here once per process, and are passed DOWN as values. Nothing deeper
+ * in the tree reads a file or a global, which is what keeps every analytics function pure and
+ * testable with a literal config object.
+ *
+ * Caching is per process and deliberate: a config change is a reload, and a reload is a restart or
+ * an explicit bump through config_versions. A file re-read on every request would make two requests
+ * in the same report disagree.
+ */
+
+const CONFIG_DIR = path.resolve(process.cwd(), 'config');
+
+const cache = new Map<string, unknown>();
+
+function load<T>(file: string): T {
+  const hit = cache.get(file);
+  if (hit) return hit as T;
+  const raw = readFileSync(path.join(CONFIG_DIR, file), 'utf8');
+  const parsed = parse(raw) as T;
+  if (!parsed || typeof parsed !== 'object') {
+    throw new Error(`config/${file} did not parse to an object`);
+  }
+  cache.set(file, parsed);
+  return parsed;
+}
+
+/* ------------------------------------------------------------------ */
+/* brand.yaml                                                          */
+/* ------------------------------------------------------------------ */
+
+export interface ColourSet {
+  primary: string;
+  primary_ink: string;
+  accent: string;
+  accent_ink: string;
+  surface: string;
+  surface_raised: string;
+  surface_sunken: string;
+  ink: string;
+  ink_muted: string;
+  border: string;
+  border_strong: string;
+}
+
+export interface StateSet {
+  good: string;
+  warn: string;
+  bad: string;
+  info: string;
+  neutral: string;
+}
+
+export interface BrandConfig {
+  version: string;
+  product: { name: string; short_name: string; environment_label: string };
+  logo: { path: string; alt: string; height_px: number };
+  colour: { light: ColourSet; dark: ColourSet };
+  state: { light: StateSet; dark: StateSet };
+  grade_palette: Record<string, { colour: string; label: string }>;
+  font: { sans: string; mono: string; display: string };
+  shape: { radius_px: number; radius_small_px: number; focus_ring_px: number };
+}
+
+export function brand(): BrandConfig {
+  return load<BrandConfig>('brand.yaml');
+}
+
+/**
+ * The token block written into :root by app/layout.tsx.
+ *
+ * Emitted as two rule sets - light on :root, dark inside the scheme override - so that the CSS in
+ * globals.css can rely on the properties existing without knowing their values, and an operator's
+ * edit to brand.yaml is the whole rebrand.
+ */
+export function brandCss(b: BrandConfig = brand()): string {
+  const vars = (c: ColourSet, s: StateSet) =>
+    [
+      `--brand-primary:${c.primary}`,
+      `--brand-primary-ink:${c.primary_ink}`,
+      `--brand-accent:${c.accent}`,
+      `--brand-accent-ink:${c.accent_ink}`,
+      `--surface:${c.surface}`,
+      `--surface-raised:${c.surface_raised}`,
+      `--surface-sunken:${c.surface_sunken}`,
+      `--ink:${c.ink}`,
+      `--ink-muted:${c.ink_muted}`,
+      `--border:${c.border}`,
+      `--border-strong:${c.border_strong}`,
+      `--state-good:${s.good}`,
+      `--state-warn:${s.warn}`,
+      `--state-bad:${s.bad}`,
+      `--state-info:${s.info}`,
+      `--state-neutral:${s.neutral}`,
+    ].join(';');
+
+  const shape = [
+    `--font-sans:${b.font.sans}`,
+    `--font-mono:${b.font.mono}`,
+    `--font-display:${b.font.display}`,
+    `--radius:${b.shape.radius_px}px`,
+    `--radius-sm:${b.shape.radius_small_px}px`,
+    `--focus-ring:${b.shape.focus_ring_px}px`,
+  ].join(';');
+
+  return [
+    `:root{${vars(b.colour.light, b.state.light)};${shape}}`,
+    `@media (prefers-color-scheme: dark){:root{${vars(b.colour.dark, b.state.dark)}}}`,
+  ].join('\n');
+}
+
+/** Grade colours for the chart token builder. Keyed by the numeric grade, sorted ascending. */
+export function gradePalette(b: BrandConfig = brand()): { grade: number; colour: string; label: string }[] {
+  return Object.entries(b.grade_palette)
+    .map(([grade, v]) => ({ grade: Number(grade), colour: v.colour, label: v.label }))
+    .filter((g) => Number.isFinite(g.grade))
+    .sort((a, z) => a.grade - z.grade);
+}
+
+/* ------------------------------------------------------------------ */
+/* analytics.yaml                                                      */
+/* ------------------------------------------------------------------ */
+
+/**
+ * The analytics configuration, shaped exactly like the YAML. It is returned as `unknown`-free but
+ * intentionally loose: `lib/analytics/types.ts` owns the strict shape, and casting here would put
+ * two definitions of the same object in the tree.
+ */
+export function analyticsConfig<T = Record<string, unknown>>(): T {
+  return load<T>('analytics.yaml');
+}
+
+/** The grade-scale slice, the one lib/grades.ts needs injected. */
+export function gradeScale(): {
+  valid_pattern: string;
+  min: number;
+  max: number;
+  non_scoring: string[];
+  below_standard_max: number;
+  meets_standard_min: number;
+  critical_grade: number;
+} {
+  const cfg = analyticsConfig<{ grade_scale: ReturnType<typeof gradeScale> }>();
+  if (!cfg.grade_scale) throw new Error('config/analytics.yaml has no grade_scale block');
+  return cfg.grade_scale;
+}
+
+/** Test seam: forget everything read so far. Never called from a request path. */
+export function resetConfigCache(): void {
+  cache.clear();
+}

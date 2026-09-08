@@ -1,0 +1,487 @@
+{
+  "meta": {
+    "generated_from": "docs/03_COMPETENCY_FRAMEWORK.md",
+    "generated_by": "scaffold/scripts/build-framework-seed.py",
+    "note": "GENERATED FILE. Do not hand-edit. Change the wording in docs/03, re-run the generator, and re-seed. Hand-editing this file breaks the byte-match assertion in docs/03 section 6."
+  },
+  "framework": {
+    "code": "CBTA",
+    "name": "Competency-based training and assessment framework",
+    "edition": "1.0",
+    "source_ref": "docs/03_COMPETENCY_FRAMEWORK.md",
+    "effective_from": null,
+    "is_active": true
+  },
+  "expected": {
+    "competency_count": 9,
+    "ob_counts": [
+      7,
+      7,
+      10,
+      6,
+      7,
+      11,
+      9,
+      7,
+      9
+    ],
+    "ob_total": 73
+  },
+  "competencies": [
+    {
+      "code": "KNO",
+      "index": 0,
+      "name": "Application of Knowledge",
+      "description": "Demonstrates knowledge and understanding of relevant information, operating instructions, aircraft systems and the operating environment",
+      "colour": "#2563EB",
+      "position": 0,
+      "observable_behaviours": [
+        {
+          "code": "OB 0.1",
+          "text": "Demonstrates practical and applicable knowledge of limitations and systems and their interaction",
+          "position": 0
+        },
+        {
+          "code": "OB 0.2",
+          "text": "Demonstrates required knowledge of published operating instructions",
+          "position": 1
+        },
+        {
+          "code": "OB 0.3",
+          "text": "Demonstrates knowledge of the physical environment, the air traffic environment including routings, weather, airports and the operational infrastructure",
+          "position": 2
+        },
+        {
+          "code": "OB 0.4",
+          "text": "Demonstrates appropriate knowledge of applicable legislation",
+          "position": 3
+        },
+        {
+          "code": "OB 0.5",
+          "text": "Knows where to source required information",
+          "position": 4
+        },
+        {
+          "code": "OB 0.6",
+          "text": "Demonstrates a positive interest in acquiring knowledge",
+          "position": 5
+        },
+        {
+          "code": "OB 0.7",
+          "text": "Is able to apply knowledge effectively",
+          "position": 6
+        }
+      ]
+    },
+    {
+      "code": "PRO",
+      "index": 1,
+      "name": "Application of Procedures and Compliance with Regulations",
+      "description": "Identifies and applies appropriate procedures in accordance with published operating instructions and applicable regulations",
+      "colour": "#DB2777",
+      "position": 1,
+      "observable_behaviours": [
+        {
+          "code": "OB 1.1",
+          "text": "Identifies where to find procedures and regulations",
+          "position": 0
+        },
+        {
+          "code": "OB 1.2",
+          "text": "Applies relevant operating instructions, procedures and techniques in a timely manner",
+          "position": 1
+        },
+        {
+          "code": "OB 1.3",
+          "text": "Follows SOPs unless a higher degree of safety dictates an appropriate deviation",
+          "position": 2
+        },
+        {
+          "code": "OB 1.4",
+          "text": "Operates aeroplane systems and associated equipment correctly",
+          "position": 3
+        },
+        {
+          "code": "OB 1.5",
+          "text": "Monitors aircraft systems status",
+          "position": 4
+        },
+        {
+          "code": "OB 1.6",
+          "text": "Complies with applicable regulations",
+          "position": 5
+        },
+        {
+          "code": "OB 1.7",
+          "text": "Applies relevant procedural knowledge",
+          "position": 6
+        }
+      ]
+    },
+    {
+      "code": "COM",
+      "index": 2,
+      "name": "Communication",
+      "description": "Communicates through appropriate means in the operational environment, in both normal and non-normal situations",
+      "colour": "#F59E0B",
+      "position": 2,
+      "observable_behaviours": [
+        {
+          "code": "OB 2.1",
+          "text": "Determines that the recipient is ready and able to receive information",
+          "position": 0
+        },
+        {
+          "code": "OB 2.2",
+          "text": "Selects appropriately what, when, how and with whom to communicate",
+          "position": 1
+        },
+        {
+          "code": "OB 2.3",
+          "text": "Conveys messages clearly, accurately and concisely",
+          "position": 2
+        },
+        {
+          "code": "OB 2.4",
+          "text": "Confirms that the recipient demonstrates understanding of important information",
+          "position": 3
+        },
+        {
+          "code": "OB 2.5",
+          "text": "Listens actively and demonstrates understanding when receiving information",
+          "position": 4
+        },
+        {
+          "code": "OB 2.6",
+          "text": "Asks relevant and effective questions",
+          "position": 5
+        },
+        {
+          "code": "OB 2.7",
+          "text": "Uses appropriate escalation in communication to resolve identified deviations",
+          "position": 6
+        },
+        {
+          "code": "OB 2.8",
+          "text": "Uses and interprets non-verbal communication in a manner appropriate to the organizational and social culture",
+          "position": 7
+        },
+        {
+          "code": "OB 2.9",
+          "text": "Adheres to standard radiotelephone phraseology and procedures",
+          "position": 8
+        },
+        {
+          "code": "OB 2.10",
+          "text": "Accurately reads, interprets, constructs and responds to datalink messages in English",
+          "position": 9
+        }
+      ]
+    },
+    {
+      "code": "FPA",
+      "index": 3,
+      "name": "Aeroplane Flight Path Management, automation",
+      "description": "Controls the flight path through automation",
+      "colour": "#0891B2",
+      "position": 3,
+      "observable_behaviours": [
+        {
+          "code": "OB 3.1",
+          "text": "Uses appropriate flight management, guidance systems and automation, as installed and applicable to the conditions",
+          "position": 0
+        },
+        {
+          "code": "OB 3.2",
+          "text": "Monitors and detects deviations from the intended flight path and takes appropriate action",
+          "position": 1
+        },
+        {
+          "code": "OB 3.3",
+          "text": "Manages the flight path safely to achieve optimum operational performance",
+          "position": 2
+        },
+        {
+          "code": "OB 3.4",
+          "text": "Maintains the intended flight path during flight using automation while managing other tasks and distractions",
+          "position": 3
+        },
+        {
+          "code": "OB 3.5",
+          "text": "Selects appropriate level and mode of automation in a timely manner considering phase of flight and workload",
+          "position": 4
+        },
+        {
+          "code": "OB 3.6",
+          "text": "Effectively monitors automation, including engagement and automatic mode transitions",
+          "position": 5
+        }
+      ]
+    },
+    {
+      "code": "FPM",
+      "index": 4,
+      "name": "Aeroplane Flight Path Management, manual control",
+      "description": "Controls the flight path through manual control",
+      "colour": "#0F766E",
+      "position": 4,
+      "observable_behaviours": [
+        {
+          "code": "OB 4.1",
+          "text": "Controls the aircraft manually with accuracy and smoothness as appropriate to the situation",
+          "position": 0
+        },
+        {
+          "code": "OB 4.2",
+          "text": "Monitors and detects deviations from the intended flight path and takes appropriate action",
+          "position": 1
+        },
+        {
+          "code": "OB 4.3",
+          "text": "Manually controls the aeroplane using the relationship between aeroplane attitude, speed and thrust, and navigation signals or visual information",
+          "position": 2
+        },
+        {
+          "code": "OB 4.4",
+          "text": "Manages the flight path safely to achieve optimum operational performance",
+          "position": 3
+        },
+        {
+          "code": "OB 4.5",
+          "text": "Maintains the intended flight path during manual flight while managing other tasks and distractions",
+          "position": 4
+        },
+        {
+          "code": "OB 4.6",
+          "text": "Uses appropriate flight management and guidance systems, as installed and applicable to the conditions",
+          "position": 5
+        },
+        {
+          "code": "OB 4.7",
+          "text": "Effectively monitors flight guidance systems including engagement and automatic mode transitions",
+          "position": 6
+        }
+      ]
+    },
+    {
+      "code": "LTW",
+      "index": 5,
+      "name": "Leadership and Teamwork",
+      "description": "Influences others to contribute to a shared purpose; collaborates to accomplish the goals of the team",
+      "colour": "#CA8A04",
+      "position": 5,
+      "observable_behaviours": [
+        {
+          "code": "OB 5.1",
+          "text": "Encourages team participation and open communication",
+          "position": 0
+        },
+        {
+          "code": "OB 5.2",
+          "text": "Demonstrates initiative and provides direction when required",
+          "position": 1
+        },
+        {
+          "code": "OB 5.3",
+          "text": "Engages others in planning",
+          "position": 2
+        },
+        {
+          "code": "OB 5.4",
+          "text": "Considers inputs from others",
+          "position": 3
+        },
+        {
+          "code": "OB 5.5",
+          "text": "Gives and receives feedback constructively",
+          "position": 4
+        },
+        {
+          "code": "OB 5.6",
+          "text": "Addresses and resolves conflicts and disagreements in a constructive manner",
+          "position": 5
+        },
+        {
+          "code": "OB 5.7",
+          "text": "Exercises decisive leadership when required",
+          "position": 6
+        },
+        {
+          "code": "OB 5.8",
+          "text": "Accepts responsibility for decisions and actions",
+          "position": 7
+        },
+        {
+          "code": "OB 5.9",
+          "text": "Carries out instructions when directed",
+          "position": 8
+        },
+        {
+          "code": "OB 5.10",
+          "text": "Applies effective intervention strategies to resolve identified deviations",
+          "position": 9
+        },
+        {
+          "code": "OB 5.11",
+          "text": "Manages cultural and language challenges, as applicable",
+          "position": 10
+        }
+      ]
+    },
+    {
+      "code": "PSD",
+      "index": 6,
+      "name": "Problem Solving and Decision-Making",
+      "description": "Identifies precursors, mitigates problems and makes decisions",
+      "colour": "#7C3AED",
+      "position": 6,
+      "observable_behaviours": [
+        {
+          "code": "OB 6.1",
+          "text": "Identifies, assesses and manages threats and errors in a timely manner",
+          "position": 0
+        },
+        {
+          "code": "OB 6.2",
+          "text": "Seeks accurate and adequate information from appropriate sources",
+          "position": 1
+        },
+        {
+          "code": "OB 6.3",
+          "text": "Identifies and verifies what and why things have gone wrong, if appropriate",
+          "position": 2
+        },
+        {
+          "code": "OB 6.4",
+          "text": "Perseveres in working through problems while prioritizing safety",
+          "position": 3
+        },
+        {
+          "code": "OB 6.5",
+          "text": "Identifies and considers appropriate options",
+          "position": 4
+        },
+        {
+          "code": "OB 6.6",
+          "text": "Applies appropriate and timely decision-making techniques",
+          "position": 5
+        },
+        {
+          "code": "OB 6.7",
+          "text": "Monitors, reviews and adapts decisions as required",
+          "position": 6
+        },
+        {
+          "code": "OB 6.8",
+          "text": "Adapts when faced with situations where no guidance or procedure exists",
+          "position": 7
+        },
+        {
+          "code": "OB 6.9",
+          "text": "Demonstrates resilience when encountering an unexpected event",
+          "position": 8
+        }
+      ]
+    },
+    {
+      "code": "SAW",
+      "index": 7,
+      "name": "Situation Awareness and Management of Information",
+      "description": "Perceives, comprehends and manages information and anticipates its effect on the operation",
+      "colour": "#DC2626",
+      "position": 7,
+      "observable_behaviours": [
+        {
+          "code": "OB 7.1",
+          "text": "Monitors and assesses the state of the aeroplane and its systems",
+          "position": 0
+        },
+        {
+          "code": "OB 7.2",
+          "text": "Monitors and assesses the aeroplane's energy state, and its anticipated flight path",
+          "position": 1
+        },
+        {
+          "code": "OB 7.3",
+          "text": "Monitors and assesses the general environment as it may affect the operation",
+          "position": 2
+        },
+        {
+          "code": "OB 7.4",
+          "text": "Validates the accuracy of information and checks for gross errors",
+          "position": 3
+        },
+        {
+          "code": "OB 7.5",
+          "text": "Maintains awareness of the people involved in or affected by the operation and their capacity to perform as expected",
+          "position": 4
+        },
+        {
+          "code": "OB 7.6",
+          "text": "Develops effective contingency plans based upon potential risks associated with threats and errors",
+          "position": 5
+        },
+        {
+          "code": "OB 7.7",
+          "text": "Responds to indications of reduced situation awareness",
+          "position": 6
+        }
+      ]
+    },
+    {
+      "code": "WLM",
+      "index": 8,
+      "name": "Workload Management",
+      "description": "Maintains available workload capacity by prioritizing and distributing tasks using appropriate resources",
+      "colour": "#059669",
+      "position": 8,
+      "observable_behaviours": [
+        {
+          "code": "OB 8.1",
+          "text": "Exercises self-control in all situations",
+          "position": 0
+        },
+        {
+          "code": "OB 8.2",
+          "text": "Plans, prioritizes and schedules appropriate tasks effectively",
+          "position": 1
+        },
+        {
+          "code": "OB 8.3",
+          "text": "Manages time efficiently when carrying out tasks",
+          "position": 2
+        },
+        {
+          "code": "OB 8.4",
+          "text": "Offers and gives assistance",
+          "position": 3
+        },
+        {
+          "code": "OB 8.5",
+          "text": "Delegates tasks",
+          "position": 4
+        },
+        {
+          "code": "OB 8.6",
+          "text": "Seeks and accepts assistance, when appropriate",
+          "position": 5
+        },
+        {
+          "code": "OB 8.7",
+          "text": "Monitors, reviews and cross-checks actions conscientiously",
+          "position": 6
+        },
+        {
+          "code": "OB 8.8",
+          "text": "Verifies that tasks are completed to the expected outcome",
+          "position": 7
+        },
+        {
+          "code": "OB 8.9",
+          "text": "Manages and recovers from interruptions, distractions, variations and failures effectively while performing tasks",
+          "position": 8
+        }
+      ]
+    }
+  ]
+}

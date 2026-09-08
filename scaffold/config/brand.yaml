@@ -1,0 +1,150 @@
+# ---------------------------------------------------------------------------
+# brand.yaml - the entire brandable surface of the platform.
+#
+# Specified by docs/13_DESIGN_SYSTEM.md. An operator applies their own identity
+# by editing THIS FILE ONLY. No component, page, chart or report template
+# carries a colour literal, a font name or a product name.
+#
+# How a value here reaches the screen:
+#   1. lib/config.ts reads this file on the server (cached per process).
+#   2. app/layout.tsx writes the token block into a <style> element on :root,
+#      alongside the neutral defaults declared in app/globals.css.
+#   3. Components read CSS custom properties; charts receive resolved values as
+#      props through components/charts/chart-tokens.ts, because the PDF renderer
+#      receives no stylesheet.
+#
+# WHAT DOES NOT LIVE HERE
+#   - Competency colours. They are DATA: competencies.colour, seeded from
+#     docs/03_COMPETENCY_FRAMEWORK.md. A rebrand of a competency is an UPDATE,
+#     never an edit to a config file and never a code change.
+#   - Thresholds, bands and weights. config/analytics.yaml.
+#   - Anything secret. Env var names only, and none are needed here.
+#
+# CONTRAST IS A REQUIREMENT, NOT A PREFERENCE. Every foreground/background pair
+# below must reach WCAG AA: 4.5:1 for body text, 3:1 for large text and for
+# non-text indicators. contrastRatio() in components/charts/chart-tokens.ts is
+# the checker; docs/13 section 7 states the pairs that must be checked.
+# ---------------------------------------------------------------------------
+
+version: "1.0"
+updated: "2026-08-26"
+
+# ---------------------------------------------------------------------------
+# 1. Identity
+# ---------------------------------------------------------------------------
+product:
+  # Rendered in the header, the browser title and every generated report header.
+  # Neutral by default and deliberately descriptive rather than a brand.
+  name: "Training Management System"
+  short_name: "TMS"
+  # Printed under the header on internal builds. Empty string hides it.
+  environment_label: ""
+
+logo:
+  # Served from scaffold/public/. Leave empty to render the product's short name
+  # as a text mark, which is what an operator with no asset should do rather
+  # than shipping a placeholder image.
+  path: ""
+  alt: ""
+  height_px: 24
+
+# ---------------------------------------------------------------------------
+# 2. Colour tokens
+#
+# Each key lands on the CSS custom property named beside it. Light values sit on
+# :root; dark values are emitted inside the dark-scheme override. Nothing else
+# in the platform defines these properties.
+# ---------------------------------------------------------------------------
+colour:
+  light:
+    primary: "#1E3A5F"          # --brand-primary      header, primary action, focused control
+    primary_ink: "#FFFFFF"      # --brand-primary-ink  text drawn ON primary
+    accent: "#B4762B"           # --brand-accent       selected state, active tab underline
+    accent_ink: "#FFFFFF"       # --brand-accent-ink   text drawn ON accent
+    surface: "#FFFFFF"          # --surface            page background
+    surface_raised: "#F8FAFC"   # --surface-raised     cards, table headers
+    surface_sunken: "#F1F5F9"   # --surface-sunken     filter bar, code blocks
+    ink: "#0F172A"              # --ink                body text
+    ink_muted: "#516079"        # --ink-muted          captions, secondary text (AA on surface)
+    border: "#CBD5E1"           # --border             hairlines, table rules
+    border_strong: "#94A3B8"    # --border-strong      input borders, focus ring track
+  dark:
+    primary: "#8FB3DA"
+    primary_ink: "#0B1220"
+    accent: "#E0A458"
+    accent_ink: "#1A1206"
+    surface: "#0B1220"
+    surface_raised: "#131C2B"
+    surface_sunken: "#1A2434"
+    ink: "#E8EDF5"
+    ink_muted: "#A6B2C4"
+    border: "#2C3A50"
+    border_strong: "#48586F"
+
+# ---------------------------------------------------------------------------
+# 3. State colours
+#
+# Used for bands, validity and outcome. They are NOT brand colours: an operator
+# may retune them, but green/amber/red must stay distinguishable to a viewer with
+# a colour vision deficiency, and every use is accompanied by a word or a shape.
+# Colour never carries meaning alone. docs/13 section 6.
+# ---------------------------------------------------------------------------
+state:
+  light:
+    good: "#15803D"             # --state-good
+    warn: "#B45309"             # --state-warn
+    bad: "#B91C1C"              # --state-bad
+    info: "#1D4ED8"             # --state-info
+    neutral: "#475569"          # --state-neutral
+  dark:
+    good: "#4ADE80"
+    warn: "#FBBF24"
+    bad: "#FCA5A5"
+    info: "#93C5FD"
+    neutral: "#94A3B8"
+
+# ---------------------------------------------------------------------------
+# 4. Grade-scale palette
+#
+# The grading scale itself (1-5, plus the non-scoring codes) is defined in
+# docs/03_COMPETENCY_FRAMEWORK.md and config/analytics.yaml. Only its COLOURS
+# live here, because they are a presentation choice.
+#
+# The numeral is always printed next to the swatch. A grade is never encoded by
+# colour alone, on screen or in a report.
+# ---------------------------------------------------------------------------
+grade_palette:
+  "1": { colour: "#B91C1C", label: "ineffective" }
+  "2": { colour: "#B45309", label: "minimum acceptable" }
+  "3": { colour: "#4D7C0F", label: "adequate" }
+  "4": { colour: "#15803D", label: "effective" }
+  "5": { colour: "#1D4ED8", label: "exemplary" }
+# Non-scoring codes render as muted ink with the code as text. They have no
+# colour of their own on purpose: they are an absence of a grade, not a value.
+
+# ---------------------------------------------------------------------------
+# 5. Typography
+#
+# Every stack ENDS in a generic family. The PDF renderer loads no web font, and
+# a report that silently falls back to a different metric reflows the layout an
+# auditor signed.
+# ---------------------------------------------------------------------------
+font:
+  # --font-sans : all interface text
+  sans: 'ui-sans-serif, system-ui, "Segoe UI", Helvetica, Arial, sans-serif'
+  # --font-mono : ids, external references, grades in tables, code
+  mono: 'ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace'
+  # --font-display : headings. Same stack as sans by default; an operator with a
+  # licensed display face changes this one line and self-hosts the file under
+  # scaffold/public/fonts/.
+  display: 'ui-sans-serif, system-ui, "Segoe UI", Helvetica, Arial, sans-serif'
+
+# ---------------------------------------------------------------------------
+# 6. Shape
+# ---------------------------------------------------------------------------
+shape:
+  radius_px: 6                  # --radius
+  radius_small_px: 3            # --radius-sm
+  # Focus ring width. Never set to 0: keyboard focus must be visible, and the
+  # ring is the only affordance a keyboard user has.
+  focus_ring_px: 2              # --focus-ring

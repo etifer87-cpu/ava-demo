@@ -1,0 +1,57 @@
+{
+  "meta": {
+    "purpose": "Starter template. Synthetic content, authored against docs/05_TEMPLATES_AND_BUILDER.md section 2. No operator syllabus, no operator numbering, no operator wording.",
+    "authored_for": "docs/05_TEMPLATES_AND_BUILDER.md section 6",
+    "competency_block_note": "Every competency is marked is_required false. A proficiency check is frequently graded at manoeuvre level only, and the competency block must tolerate being ENTIRELY unfilled without the record becoming invalid. Sparse stays sparse: an unfilled competency writes no row, and a metric that reads it excludes it from both numerator and denominator rather than reading it as a 3."
+  },
+  "code": "SEED-PROF-CHK",
+  "name": "Proficiency check (starter)",
+  "kind": "proficiency_check",
+  "asset_class_code": null,
+  "org_unit_code": null,
+  "version": {
+    "period": "starter",
+    "change_note": "Initial published version, seeded with the kit.",
+    "notes": "Fixed manoeuvre list. Every task carries a comment field; the competency block is optional in full.",
+    "allowed_assessor_roles": ["examiner"],
+    "hide_record_from_subject": false,
+    "setup": {
+      "rows": [
+        { "label": "Check type", "value": "" },
+        { "label": "Training device or aircraft", "value": "" },
+        { "label": "Aerodrome", "value": "" },
+        { "label": "Attempt number", "value": "" }
+      ],
+      "notes": "Attempt number here is the attempt at the CHECK. It is unrelated to element_grades.attempt, which counts repeats of a single manoeuvre."
+    }
+  },
+  "competencies": ["KNO", "PRO", "COM", "FPA", "FPM", "LTW", "PSD", "SAW", "WLM"],
+  "competencies_required": false,
+  "elements": [
+    { "element_key": "sec_general_handling", "catalogue_type": "section", "title": "General handling", "position": 0, "content": { "competency_codes": ["FPM", "FPA"], "performance_criteria": ["Flown within the published tolerances", "Deviations detected and corrected without prompting"] } },
+    { "element_key": "pc_normal_takeoff", "catalogue_type": "task", "title": "Normal take-off", "parent_key": "sec_general_handling", "position": 1, "external_ref": "SYN-A1", "is_mandatory": true, "content": { "number": "A1", "pf_role": "A", "grade_type": "scale", "allow_attempts": 2, "comment_required_below": 3, "competency_codes": ["FPM", "PRO"] } },
+    { "element_key": "pc_crosswind_takeoff", "catalogue_type": "task", "title": "Crosswind take-off", "parent_key": "sec_general_handling", "position": 2, "external_ref": "SYN-A2", "content": { "number": "A2", "pf_role": "A", "grade_type": "scale", "allow_attempts": 2, "comment_required_below": 3, "competency_codes": ["FPM"] } },
+    { "element_key": "pc_steep_turns", "catalogue_type": "task", "title": "Steep turns", "parent_key": "sec_general_handling", "position": 3, "external_ref": "SYN-A3", "content": { "number": "A3", "pf_role": "either", "grade_type": "scale", "allow_attempts": 2, "comment_required_below": 3, "competency_codes": ["FPM"] } },
+    { "element_key": "pc_slow_flight", "catalogue_type": "task", "title": "Slow flight and recovery", "parent_key": "sec_general_handling", "position": 4, "external_ref": "SYN-A4", "content": { "number": "A4", "pf_role": "either", "grade_type": "scale", "allow_attempts": 2, "comment_required_below": 3, "competency_codes": ["FPM", "SAW"] } },
+    { "element_key": "pc_stall_recovery", "catalogue_type": "task", "title": "Approach to stall and recovery", "parent_key": "sec_general_handling", "position": 5, "external_ref": "SYN-A5", "is_mandatory": true, "content": { "number": "A5", "pf_role": "either", "grade_type": "scale", "allow_attempts": 2, "comment_required_below": 3, "competency_codes": ["FPM", "PSD"] } },
+    { "element_key": "pc_manual_climb_descent", "catalogue_type": "task", "title": "Manual climb, cruise and descent", "parent_key": "sec_general_handling", "position": 6, "external_ref": "SYN-A6", "content": { "number": "A6", "pf_role": "either", "grade_type": "scale", "allow_attempts": 2, "comment_required_below": 3, "competency_codes": ["FPM", "WLM"] } },
+
+    { "element_key": "sec_abnormal_items", "catalogue_type": "section", "title": "Abnormal and emergency items", "position": 7, "content": { "competency_codes": ["PRO", "PSD", "KNO"] } },
+    { "element_key": "pc_rejected_takeoff", "catalogue_type": "task", "title": "Rejected take-off", "parent_key": "sec_abnormal_items", "position": 8, "external_ref": "SYN-B1", "is_mandatory": true, "content": { "number": "B1", "pf_role": "A", "grade_type": "scale", "allow_attempts": 2, "comment_required_below": 3, "competency_codes": ["PSD", "PRO"] } },
+    { "element_key": "pc_engine_failure_after_v1", "catalogue_type": "task", "title": "Engine failure after V1", "parent_key": "sec_abnormal_items", "position": 9, "external_ref": "SYN-B2", "is_mandatory": true, "content": { "number": "B2", "pf_role": "A", "grade_type": "scale", "allow_attempts": 2, "comment_required_below": 3, "competency_codes": ["FPM", "PSD"] } },
+    { "element_key": "pc_engine_out_handling", "catalogue_type": "task", "title": "Engine-out handling and drills", "parent_key": "sec_abnormal_items", "position": 10, "external_ref": "SYN-B3", "content": { "number": "B3", "pf_role": "both", "grade_type": "scale", "allow_attempts": 2, "comment_required_below": 3, "competency_codes": ["PRO", "LTW"] } },
+    { "element_key": "pc_emergency_descent", "catalogue_type": "task", "title": "Emergency descent", "parent_key": "sec_abnormal_items", "position": 11, "external_ref": "SYN-B4", "content": { "number": "B4", "pf_role": "both", "grade_type": "scale", "allow_attempts": 2, "comment_required_below": 3, "competency_codes": ["PRO", "WLM"] } },
+    { "element_key": "pc_fire_drill", "catalogue_type": "task", "title": "Fire or smoke drill", "parent_key": "sec_abnormal_items", "position": 12, "external_ref": "SYN-B5", "content": { "number": "B5", "pf_role": "both", "grade_type": "scale", "allow_attempts": 2, "comment_required_below": 3, "competency_codes": ["PRO", "COM"] } },
+    { "element_key": "pc_system_failure_management", "catalogue_type": "task", "title": "System failure management", "parent_key": "sec_abnormal_items", "position": 13, "external_ref": "SYN-B6", "content": { "number": "B6", "pf_role": "both", "grade_type": "scale", "allow_attempts": 2, "comment_required_below": 3, "competency_codes": ["KNO", "PSD"] } },
+
+    { "element_key": "sec_approaches", "catalogue_type": "section", "title": "Instrument approaches and landings", "position": 14, "content": { "competency_codes": ["FPA", "FPM", "SAW"] } },
+    { "element_key": "pc_precision_approach", "catalogue_type": "task", "title": "Precision approach", "parent_key": "sec_approaches", "position": 15, "external_ref": "SYN-C1", "is_mandatory": true, "content": { "number": "C1", "pf_role": "A", "grade_type": "scale", "allow_attempts": 2, "comment_required_below": 3, "competency_codes": ["FPA", "FPM"] } },
+    { "element_key": "pc_nonprecision_approach", "catalogue_type": "task", "title": "Non-precision approach", "parent_key": "sec_approaches", "position": 16, "external_ref": "SYN-C2", "is_mandatory": true, "content": { "number": "C2", "pf_role": "A", "grade_type": "scale", "allow_attempts": 2, "comment_required_below": 3, "competency_codes": ["FPA", "SAW"] } },
+    { "element_key": "pc_approach_one_engine", "catalogue_type": "task", "title": "Approach with one engine inoperative", "parent_key": "sec_approaches", "position": 17, "external_ref": "SYN-C3", "content": { "number": "C3", "pf_role": "A", "grade_type": "scale", "allow_attempts": 2, "comment_required_below": 3, "competency_codes": ["FPM", "WLM"] } },
+    { "element_key": "pc_go_around", "catalogue_type": "task", "title": "Go-around and missed approach", "parent_key": "sec_approaches", "position": 18, "external_ref": "SYN-C4", "is_mandatory": true, "content": { "number": "C4", "pf_role": "both", "grade_type": "scale", "allow_attempts": 2, "comment_required_below": 3, "competency_codes": ["FPM", "PRO"] } },
+    { "element_key": "pc_normal_landing", "catalogue_type": "task", "title": "Normal landing", "parent_key": "sec_approaches", "position": 19, "external_ref": "SYN-C5", "is_mandatory": true, "content": { "number": "C5", "pf_role": "A", "grade_type": "scale", "allow_attempts": 2, "comment_required_below": 3, "competency_codes": ["FPM"] } },
+    { "element_key": "pc_crosswind_landing", "catalogue_type": "task", "title": "Crosswind landing", "parent_key": "sec_approaches", "position": 20, "external_ref": "SYN-C6", "content": { "number": "C6", "pf_role": "A", "grade_type": "scale", "allow_attempts": 2, "comment_required_below": 3, "competency_codes": ["FPM"] } },
+
+    { "element_key": "note_pc_evidence", "catalogue_type": "note", "title": null, "position": 21, "content": { "text": "Every grade at or below the below-standard boundary requires a substantive comment naming what was observed. The boundary itself is configuration and is read from analytics.yaml; this form never restates it." } }
+  ]
+}

@@ -1,0 +1,247 @@
+/*
+ * globals.css - the token system and the base element styles. docs/13_DESIGN_SYSTEM.md.
+ *
+ * RULES THIS FILE OBEYS, AND EVERY COMPONENT WITH IT
+ *   1. A colour is declared ONCE, on :root, as a custom property. A component never writes a hex
+ *      value. Search this file for "#" and you find the neutral fallbacks and nothing else.
+ *   2. The dark scheme overrides the SAME property names. No component knows which scheme it is in.
+ *   3. Colour never carries meaning alone: every state token is used beside a word or a shape.
+ *   4. A base style that already meets contrast is not overridden to express emphasis. Emphasis is
+ *      weight, size, position or a rule - not a darker ink on the same background.
+ *
+ * The values below are neutral fallbacks. The live values come from config/brand.yaml, written
+ * into a <style> element by app/layout.tsx, and they override these because that element comes
+ * after this stylesheet.
+ */
+
+:root {
+  /* --- brand (overridden from config/brand.yaml) --- */
+  --brand-primary: #1E3A5F;
+  --brand-primary-ink: #FFFFFF;
+  --brand-accent: #B4762B;
+  --brand-accent-ink: #FFFFFF;
+
+  --surface: #FFFFFF;
+  --surface-raised: #F8FAFC;
+  --surface-sunken: #F1F5F9;
+  --ink: #0F172A;
+  --ink-muted: #516079;
+  --border: #CBD5E1;
+  --border-strong: #94A3B8;
+
+  --state-good: #15803D;
+  --state-warn: #B45309;
+  --state-bad: #B91C1C;
+  --state-info: #1D4ED8;
+  --state-neutral: #475569;
+
+  /* --- type scale: 1.200 minor third, 16px base. Six steps, no more. --- */
+  --text-xs: 0.75rem;    /* 12px - table meta, chip text, never body copy */
+  --text-sm: 0.875rem;   /* 14px - dense table cells, captions */
+  --text-base: 1rem;     /* 16px - body */
+  --text-lg: 1.125rem;   /* 18px - section headings */
+  --text-xl: 1.5rem;     /* 24px - page titles */
+  --text-2xl: 2rem;      /* 32px - the single figure on a KPI tile */
+
+  --leading-tight: 1.25;
+  --leading-normal: 1.5;
+
+  /* --- spacing: a 4px base, seven steps. A gap not on this scale is a defect. --- */
+  --space-1: 0.25rem;
+  --space-2: 0.5rem;
+  --space-3: 0.75rem;
+  --space-4: 1rem;
+  --space-5: 1.5rem;
+  --space-6: 2rem;
+  --space-7: 3rem;
+
+  --font-sans: ui-sans-serif, system-ui, "Segoe UI", Helvetica, Arial, sans-serif;
+  --font-mono: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
+  --font-display: var(--font-sans);
+
+  --radius: 6px;
+  --radius-sm: 3px;
+  --focus-ring: 2px;
+
+  --content-max: 76rem;
+  color-scheme: light dark;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --brand-primary: #8FB3DA;
+    --brand-primary-ink: #0B1220;
+    --brand-accent: #E0A458;
+    --brand-accent-ink: #1A1206;
+    --surface: #0B1220;
+    --surface-raised: #131C2B;
+    --surface-sunken: #1A2434;
+    --ink: #E8EDF5;
+    --ink-muted: #A6B2C4;
+    --border: #2C3A50;
+    --border-strong: #48586F;
+    --state-good: #4ADE80;
+    --state-warn: #FBBF24;
+    --state-bad: #FCA5A5;
+    --state-info: #93C5FD;
+    --state-neutral: #94A3B8;
+  }
+}
+
+*, *::before, *::after { box-sizing: border-box; }
+
+html { -webkit-text-size-adjust: 100%; }
+
+body {
+  margin: 0;
+  background: var(--surface);
+  color: var(--ink);
+  font-family: var(--font-sans);
+  font-size: var(--text-base);
+  line-height: var(--leading-normal);
+}
+
+h1, h2, h3 { font-family: var(--font-display); line-height: var(--leading-tight); margin: 0; }
+h1 { font-size: var(--text-xl); }
+h2 { font-size: var(--text-lg); }
+h3 { font-size: var(--text-base); }
+
+p { margin: 0 0 var(--space-3); }
+
+a { color: var(--brand-primary); text-underline-offset: 2px; }
+a:hover { text-decoration-thickness: 2px; }
+
+/* The focus ring is never removed. It is the only affordance a keyboard user has. */
+:focus-visible {
+  outline: var(--focus-ring) solid var(--brand-accent);
+  outline-offset: 2px;
+  border-radius: var(--radius-sm);
+}
+
+code, .mono, .id { font-family: var(--font-mono); font-size: 0.95em; }
+
+/* --- layout ------------------------------------------------------------- */
+
+.page { max-width: var(--content-max); margin: 0 auto; padding: var(--space-5) var(--space-4) var(--space-7); }
+.stack > * + * { margin-top: var(--space-4); }
+.row { display: flex; flex-wrap: wrap; gap: var(--space-3); align-items: center; }
+.grid { display: grid; gap: var(--space-4); }
+.grid-kpi { grid-template-columns: repeat(auto-fill, minmax(210px, 1fr)); }
+.grid-tiles { grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); }
+.grid-spark { grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); }
+.muted { color: var(--ink-muted); }
+.small { font-size: var(--text-sm); }
+.xs { font-size: var(--text-xs); }
+.right { text-align: right; }
+.spacer { flex: 1 1 auto; }
+
+/* Visible only to a screen reader. Used for the text that carries a meaning a colour also
+   carries - the redundant channel that keeps colour from being the only channel. */
+.sr-only {
+  position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px;
+  overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0;
+}
+
+/* --- app shell ---------------------------------------------------------- */
+
+.app-header {
+  background: var(--brand-primary);
+  color: var(--brand-primary-ink);
+  border-bottom: 1px solid var(--border);
+}
+.app-header a { color: var(--brand-primary-ink); text-decoration: none; }
+.app-header-inner {
+  max-width: var(--content-max); margin: 0 auto;
+  display: flex; align-items: center; gap: var(--space-4);
+  padding: var(--space-3) var(--space-4);
+}
+.app-mark { font-family: var(--font-display); font-weight: 600; letter-spacing: 0.01em; }
+.app-nav { display: flex; flex-wrap: wrap; gap: var(--space-3); font-size: var(--text-sm); }
+.app-nav a[aria-current="page"] { border-bottom: 2px solid var(--brand-accent); padding-bottom: 2px; }
+
+.breadcrumbs { font-size: var(--text-sm); color: var(--ink-muted); margin-bottom: var(--space-3); }
+.breadcrumbs ol { list-style: none; display: flex; flex-wrap: wrap; gap: var(--space-2); margin: 0; padding: 0; }
+.breadcrumbs li::after { content: "/"; margin-left: var(--space-2); color: var(--border-strong); }
+.breadcrumbs li:last-child::after { content: ""; }
+
+/* --- surfaces ----------------------------------------------------------- */
+
+.card {
+  background: var(--surface-raised);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: var(--space-4);
+}
+.card-title { font-size: var(--text-lg); margin-bottom: var(--space-1); }
+.card-note { color: var(--ink-muted); font-size: var(--text-sm); margin-bottom: var(--space-3); }
+
+.notice {
+  border: 1px solid var(--border);
+  border-left: 4px solid var(--state-neutral);
+  border-radius: var(--radius-sm);
+  background: var(--surface-sunken);
+  padding: var(--space-3) var(--space-4);
+}
+.notice-bad { border-left-color: var(--state-bad); }
+.notice-warn { border-left-color: var(--state-warn); }
+
+/* --- table: one style, used everywhere ---------------------------------- */
+
+.table-wrap { overflow-x: auto; border: 1px solid var(--border); border-radius: var(--radius); }
+table.data { width: 100%; border-collapse: collapse; font-size: var(--text-sm); background: var(--surface); }
+table.data caption { text-align: left; padding: var(--space-3) var(--space-4); color: var(--ink-muted); font-size: var(--text-sm); }
+table.data th, table.data td { padding: var(--space-2) var(--space-3); border-bottom: 1px solid var(--border); text-align: left; vertical-align: top; }
+table.data thead th { background: var(--surface-raised); font-weight: 600; position: sticky; top: 0; }
+table.data td.num, table.data th.num { text-align: right; font-variant-numeric: tabular-nums; font-family: var(--font-mono); }
+table.data tbody tr:last-child td { border-bottom: 0; }
+table.data tbody tr:hover { background: var(--surface-sunken); }
+
+/* --- forms: filters are GET forms, so every filtered view is a URL ------- */
+
+.filters { display: flex; flex-wrap: wrap; gap: var(--space-3); align-items: flex-end; background: var(--surface-sunken); border: 1px solid var(--border); border-radius: var(--radius); padding: var(--space-3) var(--space-4); }
+.field { display: flex; flex-direction: column; gap: var(--space-1); }
+.field label { font-size: var(--text-xs); color: var(--ink-muted); text-transform: uppercase; letter-spacing: 0.04em; }
+.field input, .field select {
+  font: inherit; font-size: var(--text-sm);
+  color: var(--ink); background: var(--surface);
+  border: 1px solid var(--border-strong); border-radius: var(--radius-sm);
+  padding: var(--space-2) var(--space-3); min-width: 11rem;
+}
+.button {
+  font: inherit; font-size: var(--text-sm); font-weight: 600;
+  color: var(--brand-primary-ink); background: var(--brand-primary);
+  border: 1px solid transparent; border-radius: var(--radius-sm);
+  padding: var(--space-2) var(--space-4); cursor: pointer;
+}
+.button-quiet { color: var(--ink); background: var(--surface); border-color: var(--border-strong); }
+
+/* --- chip: a label with an optional state. The word is always present. --- */
+
+.chip {
+  display: inline-flex; align-items: center; gap: var(--space-1);
+  font-size: var(--text-xs); font-weight: 600; line-height: 1.4;
+  padding: 2px var(--space-2);
+  border: 1px solid var(--border-strong); border-radius: 999px;
+  background: var(--surface); color: var(--ink);
+  white-space: nowrap;
+}
+.chip-dot { width: 8px; height: 8px; border-radius: 50%; background: currentColor; flex: none; }
+.chip-good { border-color: var(--state-good); color: var(--state-good); }
+.chip-warn { border-color: var(--state-warn); color: var(--state-warn); }
+.chip-bad { border-color: var(--state-bad); color: var(--state-bad); }
+.chip-info { border-color: var(--state-info); color: var(--state-info); }
+
+/* --- empty and error states --------------------------------------------- */
+
+.empty, .errorstate {
+  border: 1px dashed var(--border-strong); border-radius: var(--radius);
+  padding: var(--space-6) var(--space-4); text-align: center; color: var(--ink-muted);
+  background: var(--surface-raised);
+}
+.errorstate { border-style: solid; border-color: var(--state-bad); color: var(--ink); text-align: left; }
+
+@media print {
+  .app-header, .filters, .button { display: none; }
+  .page { max-width: none; padding: 0; }
+  .card, .table-wrap { border-color: #999; }
+}

@@ -1,0 +1,56 @@
+{
+  "meta": {
+    "purpose": "Starter template. Synthetic content, authored against docs/05_TEMPLATES_AND_BUILDER.md sections 2 and 7. No operator syllabus, no operator route, no operator wording.",
+    "authored_for": "docs/05_TEMPLATES_AND_BUILDER.md section 6",
+    "one_sector_note": "ONE RECORD IS ONE SECTOR. There is no repeatable leg group and no add-another-leg affordance, which is what makes the sector counter unambiguous and lets the finalise hook write exactly one line_sectors row with a conflict-update instead of reconciling a list. A multi-sector duty day is two records.",
+    "no_attempts_note": "Repeat attempts do not exist on the line. The repeat logic is SKIPPED, not zeroed: a zero would be counted as an observed absence of repeats, which is a different statement from the concept not applying."
+  },
+  "code": "SEED-LINE-SUP",
+  "name": "Supervised line sector (starter)",
+  "kind": "line_supervised",
+  "asset_class_code": null,
+  "org_unit_code": null,
+  "version": {
+    "period": "starter",
+    "change_note": "Initial published version, seeded with the kit.",
+    "notes": "One sector per record. The header title is GENERATED, never typed.",
+    "allowed_assessor_roles": ["instructor", "examiner"],
+    "hide_record_from_subject": false,
+    "setup": {
+      "title_pattern": "S{seq}/{planned} - {role} - {date} - {flight} {dep}/{arr}",
+      "title_is_generated": true,
+      "rows": [
+        { "label": "Sector number", "value": "" },
+        { "label": "Sectors planned", "value": "" },
+        { "label": "Flight reference", "value": "" },
+        { "label": "Departure", "value": "" },
+        { "label": "Arrival", "value": "" },
+        { "label": "Supervision role", "value": "" }
+      ],
+      "notes": "The generated title is used in the form header, the record list, the report footer and the filename, so progress reads at a glance anywhere."
+    }
+  },
+  "competencies": ["KNO", "PRO", "COM", "FPA", "FPM", "LTW", "PSD", "SAW", "WLM"],
+  "elements": [
+    { "element_key": "ls_progress_panel", "catalogue_type": "computed", "title": "Sector progress", "position": 0, "content": { "component": "SectorProgressPanel", "params": { "endpoint": "line-sectors/progress", "scope": "subject" }, "notes": "Derived from previously finalised sectors by ONE endpoint: sectors done against planned and against the minimum, take-offs and landings per role, observation sectors, release state and a pace warning. A form that asks an assessor to add up their own sectors will eventually be wrong and nobody will know which copy was right. Where a classification has no per-role minimum the panel shows a bare count with no target and no colour, rather than inventing a threshold to be amber against." } },
+
+    { "element_key": "sec_sector_conduct", "catalogue_type": "section", "title": "Sector conduct", "position": 1, "content": { "competency_codes": ["PRO", "FPA", "FPM", "SAW", "WLM"] } },
+    { "element_key": "ls_preflight", "catalogue_type": "task", "title": "Pre-flight preparation and briefing", "parent_key": "sec_sector_conduct", "position": 2, "external_ref": "SYN-L1", "is_mandatory": true, "content": { "number": "L1", "grade_type": "scale", "allow_attempts": 1, "competency_codes": ["PRO", "COM", "SAW"] } },
+    { "element_key": "ls_departure", "catalogue_type": "task", "title": "Departure and initial climb", "parent_key": "sec_sector_conduct", "position": 3, "external_ref": "SYN-L2", "is_mandatory": true, "content": { "number": "L2", "grade_type": "scale", "allow_attempts": 1, "competency_codes": ["FPM", "PRO"] } },
+    { "element_key": "ls_flown_by_takeoff", "catalogue_type": "field", "title": "Take-off flown by", "parent_key": "sec_sector_conduct", "position": 4, "content": { "field_type": "radio", "label": "Take-off flown by", "field_key": "to_by_subject", "options": [ { "key": "subject", "label": "Subject" }, { "key": "supervisor", "label": "Supervising crew member" } ], "required": true, "default_from": "sector_role", "notes": "STRUCTURED, NOT FREE TEXT. Defaulted from the sector role and overridden only for the exception. A free-text tag cannot be counted, filtered or alerted on." } },
+    { "element_key": "ls_cruise", "catalogue_type": "task", "title": "Cruise, navigation and systems monitoring", "parent_key": "sec_sector_conduct", "position": 5, "external_ref": "SYN-L3", "content": { "number": "L3", "grade_type": "scale", "allow_attempts": 1, "competency_codes": ["FPA", "SAW", "WLM"] } },
+    { "element_key": "ls_communications", "catalogue_type": "task", "title": "Radio communication and phraseology", "parent_key": "sec_sector_conduct", "position": 6, "external_ref": "SYN-L4", "content": { "number": "L4", "grade_type": "scale", "allow_attempts": 1, "competency_codes": ["COM"] } },
+    { "element_key": "ls_threat_management", "catalogue_type": "task", "title": "Threat and error management in the operating environment", "parent_key": "sec_sector_conduct", "position": 7, "external_ref": "SYN-L5", "content": { "number": "L5", "grade_type": "scale", "allow_attempts": 1, "competency_codes": ["PSD", "SAW", "LTW"] } },
+    { "element_key": "ls_approach", "catalogue_type": "task", "title": "Approach preparation and execution", "parent_key": "sec_sector_conduct", "position": 8, "external_ref": "SYN-L6", "is_mandatory": true, "content": { "number": "L6", "grade_type": "scale", "allow_attempts": 1, "competency_codes": ["FPA", "FPM", "PRO"], "excluded_from_regulatory_minima": true, "notes": "The approach is graded but is EXCLUDED from the regulatory minima. The template says so rather than leaving it implied." } },
+    { "element_key": "ls_flown_by_approach", "catalogue_type": "field", "title": "Approach flown by", "parent_key": "sec_sector_conduct", "position": 9, "content": { "field_type": "radio", "label": "Approach flown by", "field_key": "appr_by_subject", "options": [ { "key": "subject", "label": "Subject" }, { "key": "supervisor", "label": "Supervising crew member" } ], "required": true, "default_from": "sector_role" } },
+    { "element_key": "ls_landing", "catalogue_type": "task", "title": "Landing and roll-out", "parent_key": "sec_sector_conduct", "position": 10, "external_ref": "SYN-L7", "is_mandatory": true, "content": { "number": "L7", "grade_type": "scale", "allow_attempts": 1, "competency_codes": ["FPM"] } },
+    { "element_key": "ls_flown_by_landing", "catalogue_type": "field", "title": "Landing flown by", "parent_key": "sec_sector_conduct", "position": 11, "content": { "field_type": "radio", "label": "Landing flown by", "field_key": "lnd_by_subject", "options": [ { "key": "subject", "label": "Subject" }, { "key": "supervisor", "label": "Supervising crew member" } ], "required": true, "default_from": "sector_role" } },
+    { "element_key": "ls_after_landing", "catalogue_type": "task", "title": "After-landing and shutdown procedures", "parent_key": "sec_sector_conduct", "position": 12, "external_ref": "SYN-L8", "content": { "number": "L8", "grade_type": "scale", "allow_attempts": 1, "competency_codes": ["PRO", "WLM"] } },
+    { "element_key": "ls_crew_cooperation", "catalogue_type": "task", "title": "Crew cooperation and support", "parent_key": "sec_sector_conduct", "position": 13, "external_ref": "SYN-L9", "content": { "number": "L9", "grade_type": "scale", "allow_attempts": 1, "competency_codes": ["LTW", "COM"] } },
+
+    { "element_key": "sec_sector_release", "catalogue_type": "section", "title": "Supervision status", "position": 14, "content": { "competency_codes": ["PSD"] } },
+    { "element_key": "ls_observation_sector", "catalogue_type": "field", "title": "Observation sector", "parent_key": "sec_sector_release", "position": 15, "content": { "field_type": "checkbox", "label": "This sector was flown as an observation sector", "field_key": "is_observation", "required": false, "notes": "An observation sector is counted separately and never contributes to a per-role take-off or landing minimum." } },
+    { "element_key": "ls_release_recommendation", "catalogue_type": "field", "title": "Release recommendation", "parent_key": "sec_sector_release", "position": 16, "content": { "field_type": "select", "label": "Recommendation after this sector", "field_key": "release_recommendation", "options": [ { "key": "continue", "label": "Continue supervised" }, { "key": "additional", "label": "Additional sectors recommended" }, { "key": "ready", "label": "Ready for release consideration" } ], "required": true, "notes": "A recommendation, never a release. The release decision itself is a qualification event and lives in the QMS module." } },
+    { "element_key": "note_ls_sector_rule", "catalogue_type": "note", "title": null, "position": 17, "content": { "text": "One record is one sector. If the duty day contains a second sector, finalise this record and open another. Counters are DERIVED from finalised sectors and are never stored on the record." } }
+  ]
+}

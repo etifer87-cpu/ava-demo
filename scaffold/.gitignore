@@ -1,0 +1,26 @@
+# Dependencies and build output
+node_modules/
+.next/
+out/
+dist/
+*.tsbuildinfo
+next-env.d.ts
+
+# Environment. .env.example is the only env file that is ever committed.
+.env
+.env.*
+!.env.example
+
+# Data root, generated reports, uploads, dumps. Nothing under here is source.
+data/
+/tmp/
+*.pdf
+*.sql.gz
+*.dump
+
+# Local tool state
+.DS_Store
+.idea/
+.vscode/
+coverage/
+.vitest/

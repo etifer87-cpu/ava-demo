@@ -1,0 +1,63 @@
+# Per-call-site inference settings. The seam itself is three environment variables
+# (LLM_BASE_URL, LLM_MODEL_FAST, LLM_MODEL_DEEP); this file carries the budgets.
+# No model name, endpoint or vendor appears here or anywhere outside lib/inference.ts.
+# Specified by docs/11_AI_PIPELINE.md sections 5 and 6.
+version: 1
+
+defaults:
+  temperature: 0
+  repair_retries: 1            # one, then fail loud with the raw response stored
+  json_mode: true
+  schema_enforced: true
+
+tiers:
+  fast:
+    max_tokens: 3000
+    timeout_ms: 60000
+  deep:
+    max_tokens: 16000
+    timeout_ms: 300000
+    # Raise generously for a local runtime: ~30 tokens/s makes a long completion take minutes,
+    # and a short default turns that into a spurious failure.
+
+call_sites:
+  extraction:
+    prompt: automation/prompts/01_extraction.md
+    tier: fast
+    max_tokens: 3000
+    temperature: 0
+  extraction_summary:            # map step of the map-reduce analysis variant
+    prompt: automation/prompts/01_extraction.md
+    tier: fast
+    max_tokens: 800
+    temperature: 0
+  competency_scoring:
+    prompt: automation/prompts/02_competency_scoring.md
+    tier: fast
+    max_tokens: 2500
+    temperature: 0
+    enabled: false               # only for legacy documents with no competency summary section
+  narrative_analysis:
+    prompt: automation/prompts/03_narrative_analysis.md
+    tier: deep
+    max_tokens: 20000
+    temperature: 0
+  report_assembly:
+    prompt: automation/prompts/04_report_assembly.md
+    tier: deep
+    max_tokens: 16000
+    temperature: 0.2
+
+analysis:
+  max_corpus_chars: 45000
+  # Above this many records, switch to map-reduce: one bounded fast-tier call per record,
+  # then one deep-tier synthesis. Long single calls lose distinct-source coverage to
+  # positional attention decay while citation density rises. docs/11 section 5.1.
+  map_reduce_above_records: 8
+  # Always recorded per run. Measure DISTINCT SOURCES CITED, never citation count.
+  track_source_coverage: true
+
+degraded_mode:
+  # Absent inference is a supported state, not an outage. docs/11 section 11.
+  ingest_status: awaiting_extraction
+  analysis_status: complete_no_narrative

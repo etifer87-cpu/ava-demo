@@ -1,0 +1,243 @@
+# TMS Kit - base compose stack.
+# Never used alone for a deployed environment: always with an overlay that supplies the
+# environment's own image variable.
+#
+#   stage: docker compose -f compose.yml -f compose.stage.yml up -d
+#   prod:  docker compose -f compose.yml -f compose.prod.yml  up -d
+#
+# See docs/15_DEPLOYMENT.md. Every published port is bound to 127.0.0.1: Docker writes its
+# own iptables rules and bypasses the host firewall, so the loopback bind - not the
+# firewall - is what keeps these private.
+
+name: ava
+
+x-logging: &default-logging
+  driver: json-file
+  options:
+    max-size: "10m"
+    max-file: "5"
+
+services:
+
+  # ---------------------------------------------------------------------------
+  # app - Next.js 16, server-rendered. The only service that talks to the database.
+  # ---------------------------------------------------------------------------
+  app:
+    # No default. Compose fails if the overlay did not set it - which is the point.
+    image: ${APP_IMAGE:?APP_IMAGE must come from compose.stage.yml or compose.prod.yml}
+    container_name: ava-app
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+      pdf:
+        condition: service_healthy
+    environment:
+      APP_ENV: ${APP_ENV:?set APP_ENV}
+      APP_RELEASE: ${APP_RELEASE:-unknown}
+      APP_BASE_URL: ${APP_BASE_URL:-}
+      NODE_ENV: production
+      DATABASE_URL: ${DATABASE_URL:?set DATABASE_URL}
+      DB_POOL_MAX: ${DB_POOL_MAX:-10}
+      DB_STATEMENT_TIMEOUT_MS: ${DB_STATEMENT_TIMEOUT_MS:-15000}
+      DATA_ROOT: /data
+      UPLOAD_MAX_BYTES: ${UPLOAD_MAX_BYTES:-33554432}
+      SESSION_SECRET: ${SESSION_SECRET:?set SESSION_SECRET}
+      SESSION_TTL_SECONDS: ${SESSION_TTL_SECONDS:-43200}
+      INTERNAL_API_TOKEN: ${INTERNAL_API_TOKEN:?set INTERNAL_API_TOKEN}
+      AUTH_FORCE_PASSWORD_CHANGE: ${AUTH_FORCE_PASSWORD_CHANGE:-true}
+      # Service name and INTERNAL port. The published host port is unreachable from
+      # inside another container and every PDF export would fail with a bare fetch error.
+      PDF_URL: http://pdf:3000
+      PDF_TIMEOUT_MS: ${PDF_TIMEOUT_MS:-120000}
+      # Inference seam. Empty LLM_BASE_URL is degraded mode: a supported, tested state.
+      LLM_BASE_URL: ${LLM_BASE_URL:-}
+      LLM_API_KEY: ${LLM_API_KEY:-}
+      LLM_MODEL_FAST: ${LLM_MODEL_FAST:-}
+      LLM_MODEL_DEEP: ${LLM_MODEL_DEEP:-}
+      LLM_TIMEOUT_FAST_MS: ${LLM_TIMEOUT_FAST_MS:-60000}
+      LLM_TIMEOUT_DEEP_MS: ${LLM_TIMEOUT_DEEP_MS:-300000}
+      LLM_MAX_TOKENS_FAST: ${LLM_MAX_TOKENS_FAST:-3000}
+      LLM_MAX_TOKENS_DEEP: ${LLM_MAX_TOKENS_DEEP:-16000}
+      LLM_TEMPERATURE: ${LLM_TEMPERATURE:-0}
+      LLM_REPAIR_RETRIES: ${LLM_REPAIR_RETRIES:-1}
+      PROVENANCE_MIN_SCORE: ${PROVENANCE_MIN_SCORE:-1.0}
+      PROVENANCE_MIN_COVERAGE: ${PROVENANCE_MIN_COVERAGE:-0.6}
+      INGEST_MAX_CHARS: ${INGEST_MAX_CHARS:-60000}
+      INGEST_MIN_CHARS: ${INGEST_MIN_CHARS:-100}
+      INGEST_MIN_MARKERS: ${INGEST_MIN_MARKERS:-2}
+      ANALYSIS_MAX_CHARS: ${ANALYSIS_MAX_CHARS:-45000}
+      AUTOMATION_URL: ${AUTOMATION_URL:-http://automation:5678}
+      LOG_LEVEL: ${LOG_LEVEL:-info}
+      LOG_JSON: ${LOG_JSON:-true}
+    volumes:
+      # Records, uploads, generated PDFs, exports. One root, one migration.
+      - ${DATA_ROOT:?set DATA_ROOT}:/data
+    ports:
+      - "127.0.0.1:${APP_PORT:-3000}:3000"
+    networks: [ava]
+    logging: *default-logging
+    healthcheck:
+      # Must return 200 with {ok, release, env, migration}. The deploy script asserts
+      # release and env, which is how stage and prod are proved separate.
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:3000/api/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 40s
+
+  # ---------------------------------------------------------------------------
+  # db - PostgreSQL 17, the system of record. Reached with direct pg from server code.
+  # ---------------------------------------------------------------------------
+  db:
+    image: postgres:17-alpine
+    container_name: ava-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:?set POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB:?set POSTGRES_DB}
+      POSTGRES_INITDB_ARGS: "--data-checksums"
+    volumes:
+      - db_data:/var/lib/postgresql/data
+      # Extensions and the schema-owning role only. Application schema is migrations.
+      - ./initdb:/docker-entrypoint-initdb.d:ro
+    ports:
+      - "127.0.0.1:${DB_PORT:-5432}:5432"
+    networks: [ava]
+    logging: *default-logging
+    shm_size: 256mb
+    command:
+      - postgres
+      - -c
+      - max_connections=100
+      - -c
+      - shared_buffers=512MB
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 20s
+
+  # ---------------------------------------------------------------------------
+  # pdf - headless Chromium HTML-to-PDF renderer. Stateless, no volumes.
+  # One template module renders both the on-screen preview and the PDF.
+  # ---------------------------------------------------------------------------
+  pdf:
+    image: gotenberg/gotenberg:8
+    container_name: ava-pdf
+    restart: unless-stopped
+    command:
+      - gotenberg
+      - --chromium-disable-javascript=false
+      - --api-timeout=120s
+    ports:
+      - "127.0.0.1:${PDF_PORT:-3001}:3000"
+    networks: [ava]
+    logging: *default-logging
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://127.0.0.1:3000/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 15s
+
+  # ---------------------------------------------------------------------------
+  # automation - OPTIONAL. Ingest and batch-analysis pipelines.
+  # Absent, the app still works; ingestion is then a manual import.
+  #   docker compose --profile automation ... up -d
+  # ---------------------------------------------------------------------------
+  automation:
+    # No default: the orchestrator is the operator's choice. Any runner that can call
+    # HTTP, run code and read a mounted directory implements scaffold/automation/*.md.
+    image: ${AUTOMATION_IMAGE:?set AUTOMATION_IMAGE to your chosen orchestrator image}
+    container_name: ava-automation
+    restart: unless-stopped
+    profiles: [automation]
+    depends_on:
+      app:
+        condition: service_healthy
+    environment:
+      # Generic names. Map each to whatever your runner calls it - most runners expose an
+      # equivalent of all three, under their own prefix.
+      #
+      # Required. Changing it orphans every stored credential in the runner.
+      AUTOMATION_ENCRYPTION_KEY: ${AUTOMATION_ENCRYPTION_KEY:?set AUTOMATION_ENCRYPTION_KEY}
+      # Filesystem allowlist for disk steps. Must include the shared data mount or file
+      # reads fail silently. Use a SINGLE path: some builds do not split a delimited list.
+      AUTOMATION_FILE_ALLOWLIST: ${AUTOMATION_FILE_ALLOWLIST:-/data}
+      # false means "do not block": pipeline code steps must read INTERNAL_API_TOKEN.
+      AUTOMATION_BLOCK_ENV_ACCESS: ${AUTOMATION_BLOCK_ENV_ACCESS:-false}
+      INTERNAL_API_TOKEN: ${INTERNAL_API_TOKEN:?set INTERNAL_API_TOKEN}
+      # Service names, never host.docker.internal (does not resolve on Linux) and never a
+      # host adapter IP (reassigned on reboot, breaks every call at once).
+      APP_URL: http://app:3000
+      LLM_BASE_URL: ${LLM_BASE_URL:-}
+      LLM_API_KEY: ${LLM_API_KEY:-}
+      LLM_MODEL_FAST: ${LLM_MODEL_FAST:-}
+      LLM_MODEL_DEEP: ${LLM_MODEL_DEEP:-}
+      GENERIC_TIMEZONE: ${TZ:-UTC}
+    volumes:
+      - automation_data:/var/lib/automation
+      - ${DATA_ROOT:?set DATA_ROOT}:/data:ro
+    ports:
+      - "127.0.0.1:${AUTOMATION_PORT:-5678}:5678"
+    networks: [ava]
+    logging: *default-logging
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q -O /dev/null http://127.0.0.1:5678/healthz || exit 1"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
+
+  # ---------------------------------------------------------------------------
+  # inference - OPTIONAL. Local OpenAI-compatible model runtime.
+  # Absent, LLM_BASE_URL points elsewhere or is unset (degraded mode).
+  #   docker compose --profile inference ... up -d
+  #
+  # WARNING: this runtime has NO authentication of any kind. It is published on
+  # 127.0.0.1 only. If another host must reach it, scope the allow rule to the container
+  # subnet exactly - a /12 is wide enough to include the host's own wireless address -
+  # and re-verify after every runtime upgrade and after the host joins a new network.
+  # ---------------------------------------------------------------------------
+  inference:
+    # No default: the runtime is the operator's choice. The only requirement is that it
+    # serves an OpenAI-compatible /v1/chat/completions on INFERENCE_PORT.
+    image: ${INFERENCE_IMAGE:?set INFERENCE_IMAGE to your chosen local model runtime}
+    container_name: ava-inference
+    restart: unless-stopped
+    profiles: [inference]
+    environment:
+      # Generic names. Map each to the variable your runtime actually reads.
+      #
+      # Bind address. A loopback default inside the container is unreachable from the app.
+      INFERENCE_HOST: ${INFERENCE_HOST:-0.0.0.0}
+      # Prerequisite for KV-cache quantisation on most runtimes.
+      INFERENCE_FLASH_ATTENTION: ${INFERENCE_FLASH_ATTENTION:-1}
+      # Often the difference between full GPU residency and a spill to CPU at long context.
+      INFERENCE_KV_CACHE_TYPE: ${INFERENCE_KV_CACHE_TYPE:-q8_0}
+      INFERENCE_NUM_CTX: ${INFERENCE_NUM_CTX:-40960}
+    volumes:
+      - inference_models:/models
+    ports:
+      - "127.0.0.1:${INFERENCE_PORT:-11434}:11434"
+    networks: [ava]
+    logging: *default-logging
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q -O /dev/null http://127.0.0.1:11434/v1/models || exit 1"]
+      interval: 60s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+
+networks:
+  ava:
+    name: ava
+    driver: bridge
+
+volumes:
+  db_data:
+  automation_data:
+  inference_models:

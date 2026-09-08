@@ -1,0 +1,48 @@
+# Stage overlay.
+#
+#   docker compose -f compose.yml -f compose.stage.yml up -d
+#
+# The whole purpose of this file is that it reads APP_IMAGE_STAGE and NOTHING ELSE.
+# compose.prod.yml reads APP_IMAGE_PROD. Two different variable names means a stage .env
+# cannot supply a prod image, and a prod .env cannot supply a stage image, even by
+# accident. A single shared tag - and "latest" above all - lets a restart on one
+# environment silently promote the other's build. See docs/15_DEPLOYMENT.md section 4.
+#
+# Prove the separation after every deploy (docs/15 section 4.1):
+#   docker inspect --format '{{.Config.Image}}' tms-app
+#   curl -s http://127.0.0.1:${APP_PORT}/api/health | jq -r '.release, .env'
+# Then deploy to stage only and confirm prod's tag and release did not move.
+
+services:
+
+  app:
+    image: ${APP_IMAGE_STAGE:?stage deploy requires APP_IMAGE_STAGE, e.g. ava-demo:<sha>}
+    container_name: ava-stage-app
+    environment:
+      APP_ENV: stage
+      # Louder logging than prod: stage exists to surface things.
+      LOG_LEVEL: ${LOG_LEVEL:-debug}
+
+  db:
+    container_name: ava-stage-db
+
+  pdf:
+    container_name: ava-stage-pdf
+
+  automation:
+    container_name: ava-stage-automation
+
+  inference:
+    container_name: ava-stage-inference
+
+networks:
+  ava:
+    name: ava-stage
+
+volumes:
+  db_data:
+    name: ava-stage-db-data
+  automation_data:
+    name: ava-stage-automation-data
+  inference_models:
+    name: ava-stage-inference-models

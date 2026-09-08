@@ -1,0 +1,51 @@
+{
+  "meta": {
+    "purpose": "Starter template. Synthetic content, authored against docs/05_TEMPLATES_AND_BUILDER.md section 2. No operator syllabus, no operator course code, no operator wording.",
+    "authored_for": "docs/05_TEMPLATES_AND_BUILDER.md section 6",
+    "fan_out_note": "ONE EVENT, MANY SUBJECTS. Signing fans the event out into one record per subject. The outcome is per subject even though the event is shared: a classroom of twelve with one outcome row is a reporting dead end the first time one person does not attend.",
+    "no_attempts_note": "No setup block and no malfunctions. Attempts are not offered: a re-sit is a new session, not an attempt on the same row."
+  },
+  "code": "SEED-GND-SCH",
+  "name": "Ground school knowledge event (starter)",
+  "kind": "ground_school",
+  "asset_class_code": null,
+  "org_unit_code": null,
+  "version": {
+    "period": "starter",
+    "change_note": "Initial published version, seeded with the kit.",
+    "notes": "Classroom form: attendance group, six knowledge checks, per-subject outcome, fan-out on signature.",
+    "allowed_assessor_roles": ["ground_instructor", "instructor", "examiner"],
+    "hide_record_from_subject": false,
+    "setup": {
+      "rows": [
+        { "label": "Course title", "value": "" },
+        { "label": "Module", "value": "" },
+        { "label": "Delivery mode", "value": "" },
+        { "label": "Duration", "value": "" }
+      ],
+      "notes": "A classroom event carries no device set-up and no reset blocks; the renderer draws the header from these rows only."
+    }
+  },
+  "competencies": ["KNO", "PRO", "COM", "SAW", "WLM"],
+  "elements": [
+    { "element_key": "sec_attendance", "catalogue_type": "section", "title": "Attendance", "position": 0, "content": { "notes": "Attendance is recorded per subject. A subject present but not assessed is logged with is_assessed false rather than left off the event." } },
+    { "element_key": "grp_attendance", "catalogue_type": "group", "title": "Attendance entries", "parent_key": "sec_attendance", "position": 1, "content": { "min": 1, "max": 24, "item_label": "Subject", "notes": "One instance per subject. instance_no on element_grades covers the repeatable group; attempt is not used here." } },
+    { "element_key": "att_present", "catalogue_type": "field", "title": "Present", "parent_key": "grp_attendance", "position": 2, "content": { "field_type": "checkbox", "label": "Present for the full event", "field_key": "present", "required": true } },
+    { "element_key": "att_arrival_time", "catalogue_type": "field", "title": "Arrival time", "parent_key": "grp_attendance", "position": 3, "content": { "field_type": "text", "label": "Arrival time", "field_key": "arrival_time", "required": false, "visible_when": { "element_key": "att_present", "op": "eq", "value": false }, "notes": "Conditional visibility is available on every element and resolves inside the same template version." } },
+    { "element_key": "att_hours_credited", "catalogue_type": "field", "title": "Hours credited", "parent_key": "grp_attendance", "position": 4, "content": { "field_type": "number", "label": "Hours credited", "field_key": "hours_credited", "min": 0, "max": 12, "required": false } },
+
+    { "element_key": "sec_knowledge_checks", "catalogue_type": "section", "title": "Knowledge checks", "position": 5, "content": { "competency_codes": ["KNO", "PRO"], "performance_criteria": ["Answers demonstrate applied understanding, not recall alone"] } },
+    { "element_key": "note_gs_boolean", "catalogue_type": "note", "title": null, "parent_key": "sec_knowledge_checks", "position": 6, "content": { "text": "Knowledge checks are graded as a boolean. A boolean element stores Yes or No in the same TEXT grade column as a scale element; the numeric coercion function returns NULL for both, so a boolean never enters a mean." } },
+    { "element_key": "gs_limitations_systems", "catalogue_type": "task", "title": "Limitations and systems interaction", "parent_key": "sec_knowledge_checks", "position": 7, "external_ref": "SYN-G1", "is_mandatory": true, "content": { "number": "G1", "grade_type": "boolean", "allow_attempts": 1, "competency_codes": ["KNO"] } },
+    { "element_key": "gs_operating_instructions", "catalogue_type": "task", "title": "Published operating instructions", "parent_key": "sec_knowledge_checks", "position": 8, "external_ref": "SYN-G2", "is_mandatory": true, "content": { "number": "G2", "grade_type": "boolean", "allow_attempts": 1, "competency_codes": ["PRO", "KNO"] } },
+    { "element_key": "gs_operating_environment", "catalogue_type": "task", "title": "Operating environment and infrastructure", "parent_key": "sec_knowledge_checks", "position": 9, "external_ref": "SYN-G3", "content": { "number": "G3", "grade_type": "boolean", "allow_attempts": 1, "competency_codes": ["KNO", "SAW"] } },
+    { "element_key": "gs_applicable_legislation", "catalogue_type": "task", "title": "Applicable legislation and compliance", "parent_key": "sec_knowledge_checks", "position": 10, "external_ref": "SYN-G4", "content": { "number": "G4", "grade_type": "boolean", "allow_attempts": 1, "competency_codes": ["PRO", "KNO"] } },
+    { "element_key": "gs_abnormal_procedures", "catalogue_type": "task", "title": "Abnormal and emergency procedures", "parent_key": "sec_knowledge_checks", "position": 11, "external_ref": "SYN-G5", "is_mandatory": true, "content": { "number": "G5", "grade_type": "boolean", "allow_attempts": 1, "competency_codes": ["PRO", "KNO"] } },
+    { "element_key": "gs_information_sources", "catalogue_type": "task", "title": "Sourcing required information", "parent_key": "sec_knowledge_checks", "position": 12, "external_ref": "SYN-G6", "content": { "number": "G6", "grade_type": "boolean", "allow_attempts": 1, "competency_codes": ["KNO", "COM"] } },
+
+    { "element_key": "sec_event_notes", "catalogue_type": "section", "title": "Event information", "position": 13, "content": {} },
+    { "element_key": "gs_material_version", "catalogue_type": "field", "title": "Course material version", "parent_key": "sec_event_notes", "position": 14, "content": { "field_type": "text", "label": "Course material version", "field_key": "material_version", "required": true, "help": "Recorded so a record can be tied to what was actually taught." } },
+    { "element_key": "gs_assessment_method", "catalogue_type": "field", "title": "Assessment method", "parent_key": "sec_event_notes", "position": 15, "content": { "field_type": "select", "label": "Assessment method", "field_key": "assessment_method", "options": [ { "key": "written", "label": "Written" }, { "key": "oral", "label": "Oral" }, { "key": "practical", "label": "Practical" }, { "key": "none", "label": "Attendance only" } ], "required": true } },
+    { "element_key": "note_gs_outcome", "catalogue_type": "note", "title": null, "parent_key": "sec_event_notes", "position": 16, "content": { "text": "The outcome selector, the session remarks and the signature blocks are drawn natively by the renderer. This template declares none of them, and declaring one would produce a visible duplicate in the report." } }
+  ]
+}
