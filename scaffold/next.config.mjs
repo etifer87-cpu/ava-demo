@@ -18,7 +18,6 @@ const nextConfig = {
   // written out because setting either to true is the shortcut that ships a broken page, and an
   // explicit false is harder to flip by accident than an absent key.
   typescript: { ignoreBuildErrors: false },
-  eslint: { ignoreDuringBuilds: false },
 
   // The build must not leak the release identity into the client bundle beyond what the health
   // route already publishes. APP_RELEASE is read server-side only.

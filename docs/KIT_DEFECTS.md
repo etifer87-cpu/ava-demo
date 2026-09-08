@@ -30,3 +30,12 @@ Expected: the kit's neutrality claim ("no LMS or vendor") · Found: one product 
 
 ## 2026-09-08 · deploy/initdb/00_bootstrap.sql · schema-owner role name is hard-coded
 Expected: `DB_MIGRATION_ROLE` in `.env.example` names the role · Found: the SQL hard-codes `tms_owner` regardless · Done here: renamed to `ava_owner` in the SQL and set `POSTGRES_USER=ava_owner` so the bootstrap's CREATE ROLE is a no-op and the same role owns and migrates · Kit should: either template the role name or drop `DB_MIGRATION_ROLE` from `.env.example`.
+
+## 2026-09-08 · deploy/compose.yml · optional profiled services carry `:?` required variables
+Expected: `docker compose up -d db pdf` works with only the db/pdf variables set (README quickstart) · Found: Compose interpolates every service at parse time, so `AUTOMATION_IMAGE:?` and `INFERENCE_IMAGE:?` abort the command even though neither profile is enabled · Done here: both defaulted to a clearly-named placeholder; `AUTOMATION_ENCRYPTION_KEY` likewise · Kit should: do the same, or move the optional services to a separate overlay.
+
+## 2026-09-08 · README.md / deploy/README.md · `.env` is not where Compose looks for it
+Expected: `.env` in `scaffold/` serves both `npm run …` and `docker compose -f deploy/compose.yml` · Found: Compose resolves `.env` relative to the first compose file's directory (`deploy/`), so every variable is missing · Done here: every compose invocation carries `--env-file .env` from `scaffold/` · Kit should: state it in the quickstart, or add `--project-directory .` to the documented commands.
+
+## 2026-09-08 · next.config.mjs · `eslint` key rejected by Next 16
+Expected: clean `next dev` · Found: "eslint configuration in next.config.mjs is no longer supported" · Done here: key removed · Kit should: remove it.

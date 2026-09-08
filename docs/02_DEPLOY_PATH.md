@@ -24,7 +24,7 @@ server — still git, still a commit, still no file copies.
 
 ```powershell
 Set-Location "C:\Avianca TMS"
-docker compose -f scaffold\deploy\compose.yml up -d db pdf     # project name ava, ports 5433 / 3101
+docker compose --env-file scaffold\.env -f scaffold\deploy\compose.yml up -d db pdf     # project name ava, ports 5433 / 3101
 npm --prefix scaffold run migrate
 npm --prefix scaffold run reset                                # config → framework → templates → synthetic → verify
 npm --prefix scaffold run dev                                  # http://localhost:3100
@@ -38,8 +38,8 @@ cd /opt/ava/repo && git pull --ff-only
 SHA=$(git rev-parse --short HEAD)
 docker build -t ava-demo:$SHA -f scaffold/Dockerfile scaffold
 sed -i "s/^APP_IMAGE_PROD=.*/APP_IMAGE_PROD=ava-demo:$SHA/" scaffold/.env
-docker compose -f scaffold/deploy/compose.yml -f scaffold/deploy/compose.prod.yml up -d
-docker compose -f scaffold/deploy/compose.yml exec app npm run migrate   # migrations only; reseed is a separate, deliberate step
+docker compose --env-file scaffold/.env -f scaffold/deploy/compose.yml -f scaffold/deploy/compose.prod.yml up -d
+docker compose --env-file scaffold/.env -f scaffold/deploy/compose.yml exec app npm run migrate   # migrations only; reseed is a separate, deliberate step
 curl -s http://127.0.0.1:3100/api/health
 ```
 

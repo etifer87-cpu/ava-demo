@@ -151,7 +151,7 @@ services:
   automation:
     # No default: the orchestrator is the operator's choice. Any runner that can call
     # HTTP, run code and read a mounted directory implements scaffold/automation/*.md.
-    image: ${AUTOMATION_IMAGE:?set AUTOMATION_IMAGE to your chosen orchestrator image}
+    image: ${AUTOMATION_IMAGE:-not-used-set-AUTOMATION_IMAGE-to-enable}
     container_name: ava-automation
     restart: unless-stopped
     profiles: [automation]
@@ -163,7 +163,7 @@ services:
       # equivalent of all three, under their own prefix.
       #
       # Required. Changing it orphans every stored credential in the runner.
-      AUTOMATION_ENCRYPTION_KEY: ${AUTOMATION_ENCRYPTION_KEY:?set AUTOMATION_ENCRYPTION_KEY}
+      AUTOMATION_ENCRYPTION_KEY: ${AUTOMATION_ENCRYPTION_KEY:-}
       # Filesystem allowlist for disk steps. Must include the shared data mount or file
       # reads fail silently. Use a SINGLE path: some builds do not split a delimited list.
       AUTOMATION_FILE_ALLOWLIST: ${AUTOMATION_FILE_ALLOWLIST:-/data}
@@ -205,7 +205,7 @@ services:
   inference:
     # No default: the runtime is the operator's choice. The only requirement is that it
     # serves an OpenAI-compatible /v1/chat/completions on INFERENCE_PORT.
-    image: ${INFERENCE_IMAGE:?set INFERENCE_IMAGE to your chosen local model runtime}
+    image: ${INFERENCE_IMAGE:-not-used-set-INFERENCE_IMAGE-to-enable}
     container_name: ava-inference
     restart: unless-stopped
     profiles: [inference]
