@@ -42,3 +42,6 @@ Expected: clean `next dev` · Found: "eslint configuration in next.config.mjs is
 
 ## 2026-09-08 · deploy/compose.yml · the base file cannot start db/pdf alone on a workstation
 Expected: runbook Phase 1 says `docker compose -f scaffold/deploy/compose.yml up -d db` · Found: the `app` service's `${APP_IMAGE:?…}` guard aborts interpolation for every service, so the documented command can never work without an overlay — and the overlays require a built image the workstation does not have · Done here: `deploy/compose.dev.yml`, a standalone db + pdf file with the same project/network/container names, used only on the PC · Kit should: ship the same, and point Phase 1 of the runbook at it. The guard on the base file is right and stays.
+
+## 2026-09-08 · scripts/seed-framework.mjs:37, scripts/build-framework-seed.py:26 · blueprint folder name is hard-coded
+Expected: the runbook lets the kit be copied "from this folder alone" into any layout · Found: both scripts resolve `<kit>/docs/03_COMPETENCY_FRAMEWORK.md` by literal name, so a replica that keeps its own `docs/` (as this one does — the blueprint lives in `kit-docs/`) fails at seed 3/6 · Done here: `KIT_DOCS_DIR` env var, default `kit-docs` · Kit should: read the folder from one place (env or a `kit.json`), default `docs`.

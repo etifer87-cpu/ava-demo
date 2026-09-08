@@ -16,6 +16,7 @@ Usage:
 Exit codes: 0 ok, 1 parse or assertion failure, 2 --check found the file stale.
 """
 
+import os
 import json
 import re
 import sys
@@ -23,7 +24,7 @@ from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
 KIT = HERE.parent.parent                       # .../tms-kit
-DOC = KIT / "docs" / "03_COMPETENCY_FRAMEWORK.md"
+DOC = KIT / os.environ.get("KIT_DOCS_DIR", "kit-docs") / "03_COMPETENCY_FRAMEWORK.md"
 OUT = KIT / "scaffold" / "db" / "seed" / "competency_framework.json"
 
 EXPECTED_OB_COUNTS = [7, 7, 10, 6, 7, 11, 9, 7, 9]

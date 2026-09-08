@@ -34,7 +34,7 @@ import { fileURLToPath } from 'node:url';
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const KIT = path.resolve(HERE, '..', '..');
 const SEED_FILE = path.resolve(KIT, 'scaffold', 'db', 'seed', 'competency_framework.json');
-const DOC_FILE = path.resolve(KIT, 'docs', '03_COMPETENCY_FRAMEWORK.md');
+const DOC_FILE = path.resolve(KIT, process.env.KIT_DOCS_DIR ?? 'kit-docs', '03_COMPETENCY_FRAMEWORK.md');
 
 const DRY_RUN = process.argv.includes('--dry-run');
 
