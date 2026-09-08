@@ -22,7 +22,7 @@ Both are fixed below and identical on the PC and on the server.
 | Service | PC (`.env`) | cvx-hel1 (`.env`) | Reason |
 |---|---|---|---|
 | app | `APP_PORT=3100` | `APP_PORT=3100` | 3000 is taken locally; on the server the corvanox demo stacks own their own ports |
-| db | `DB_PORT=5433` | `DB_PORT=5433` | 5432 is taken by another local Postgres |
+| db | `DB_PORT=5433` (compose.dev.yml) | `DB_PORT=5433` (compose.yml + prod overlay) | 5432 is taken by another local Postgres |
 | pdf | `PDF_PORT=3101` | `PDF_PORT=3101` | keep the 31xx block for Ava |
 | automation | not started | not started | out of scope |
 | inference | not started | not started | out of scope |

@@ -39,3 +39,6 @@ Expected: `.env` in `scaffold/` serves both `npm run …` and `docker compose -f
 
 ## 2026-09-08 · next.config.mjs · `eslint` key rejected by Next 16
 Expected: clean `next dev` · Found: "eslint configuration in next.config.mjs is no longer supported" · Done here: key removed · Kit should: remove it.
+
+## 2026-09-08 · deploy/compose.yml · the base file cannot start db/pdf alone on a workstation
+Expected: runbook Phase 1 says `docker compose -f scaffold/deploy/compose.yml up -d db` · Found: the `app` service's `${APP_IMAGE:?…}` guard aborts interpolation for every service, so the documented command can never work without an overlay — and the overlays require a built image the workstation does not have · Done here: `deploy/compose.dev.yml`, a standalone db + pdf file with the same project/network/container names, used only on the PC · Kit should: ship the same, and point Phase 1 of the runbook at it. The guard on the base file is right and stays.

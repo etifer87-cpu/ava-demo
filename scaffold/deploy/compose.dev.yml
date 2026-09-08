@@ -1,0 +1,70 @@
+# Local development stack - database and PDF renderer ONLY.
+#
+#   docker compose --env-file .env -f deploy/compose.dev.yml up -d
+#
+# The app is NOT a container here: on a workstation it runs as `npm run dev` on the host
+# (port 3100, see ../../docs/01_ISOLATION.md) and reaches these two services on their
+# published loopback ports (DB_PORT, PDF_PORT). deploy/compose.yml is the deployed shape and
+# deliberately refuses to start without an image variable; this file exists so that refusal
+# never has to be weakened for local work. Same project name, same network name, same
+# container names as the base file, so the two can never run side by side by accident.
+
+name: ava
+
+services:
+
+  db:
+    image: postgres:17-alpine
+    container_name: ava-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:?set POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB:?set POSTGRES_DB}
+      POSTGRES_INITDB_ARGS: "--data-checksums"
+    volumes:
+      - db_data:/var/lib/postgresql/data
+      - ./initdb:/docker-entrypoint-initdb.d:ro
+    ports:
+      - "127.0.0.1:${DB_PORT:-5433}:5432"
+    networks: [ava]
+    shm_size: 256mb
+    command:
+      - postgres
+      - -c
+      - max_connections=100
+      - -c
+      - shared_buffers=256MB
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 20s
+
+  pdf:
+    image: gotenberg/gotenberg:8
+    container_name: ava-pdf
+    restart: unless-stopped
+    command:
+      - gotenberg
+      - --chromium-disable-javascript=false
+      - --api-timeout=120s
+    ports:
+      - "127.0.0.1:${PDF_PORT:-3101}:3000"
+    networks: [ava]
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://127.0.0.1:3000/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 15s
+
+networks:
+  ava:
+    name: ava
+    driver: bridge
+
+volumes:
+  db_data:
+    name: ava-dev-db-data

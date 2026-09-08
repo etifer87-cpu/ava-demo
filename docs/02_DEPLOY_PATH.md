@@ -24,7 +24,7 @@ server — still git, still a commit, still no file copies.
 
 ```powershell
 Set-Location "C:\Avianca TMS"
-docker compose --env-file scaffold\.env -f scaffold\deploy\compose.yml up -d db pdf     # project name ava, ports 5433 / 3101
+docker compose --env-file scaffold\.env -f scaffold\deploy\compose.dev.yml up -d     # project name ava, ports 5433 / 3101
 npm --prefix scaffold run migrate
 npm --prefix scaffold run reset                                # config → framework → templates → synthetic → verify
 npm --prefix scaffold run dev                                  # http://localhost:3100
