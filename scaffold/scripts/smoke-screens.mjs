@@ -166,6 +166,10 @@ const SUBJECT_PAGES = [
 /* fetching                                                               */
 /* --------------------------------------------------------------------- */
 
+// Public routes are fetched WITHOUT the session: a signed-in visitor to /login is sent past the
+// form, and the form is what /login is being checked for.
+const ANONYMOUS = new Set(["/login"]);
+
 async function get(path) {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), TIMEOUT_MS);
@@ -175,7 +179,7 @@ async function get(path) {
       headers: {
         accept: "text/html,application/json",
         ...(TOKEN ? { "x-internal-token": TOKEN } : {}),
-        ...(COOKIE ? { cookie: COOKIE } : {}),
+        ...(COOKIE && !ANONYMOUS.has(path) ? { cookie: COOKIE } : {}),
       },
       redirect: "follow",
       signal: controller.signal,
