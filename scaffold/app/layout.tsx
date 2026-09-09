@@ -44,7 +44,10 @@ const MODULES: ReadonlyArray<NavItem & { capability: string }> = [
   { href: '/analytics', label: 'Analytics', capability: 'training.analytics.programme.view' },
   { href: '/qms/qualifications', label: 'Qualifications', capability: 'qms.qualifications.view' },
   { href: '/dms/documents', label: 'Documents', capability: 'dms.documents.view' },
-  { href: '/admin/people', label: 'Admin', capability: 'platform.settings.manage' },
+  // The admin area opens for anyone who may READ the account directory: the operator's
+  // administrator, the head of training and the training manager (docs/12; migrations 0142-0143).
+  // Each page inside re-checks its own, narrower capability.
+  { href: '/admin', label: 'Admin', capability: 'platform.users.view' },
 ];
 
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
@@ -71,6 +74,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
           logo={b.logo.path ? { path: b.logo.path, alt: b.logo.alt, heightPx: b.logo.height_px } : null}
           nav={nav}
           identityLabel={session ? (session.fullName ?? session.username) : null}
+          reportHref={session ? '/support/report' : null}
         />
         <main className="page">{children}</main>
       </body>

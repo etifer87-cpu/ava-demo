@@ -135,13 +135,16 @@ const ROUTES = [
   { path: "/planning",                  marker: 'data-testid="planning-overview"', state: "stub" },
 
   // admin
+  { path: "/admin",                     marker: 'data-testid="admin-hub"',        state: "built" },
+  { path: "/admin/users",               marker: 'data-testid="user-list"',        state: "built" },
+  { path: "/admin/users/new",           marker: 'data-testid="user-new"',         state: "built" },
+  { path: "/admin/audit",               marker: 'data-testid="audit-log"',        state: "built" },
+  { path: "/admin/tickets",             marker: 'data-testid="ticket-list"',      state: "built" },
+  { path: "/support/report",            marker: 'data-testid="support-report"',   state: "built" },
   { path: "/admin/people",              marker: 'data-testid="people-admin"',     state: "stub"  },
-  { path: "/admin/users",               marker: 'data-testid="user-list"',        state: "stub"  },
   { path: "/admin/roles",               marker: 'data-testid="role-matrix"',      state: "stub"  },
-  { path: "/admin/audit",               marker: 'data-testid="audit-log"',        state: "stub"  },
   { path: "/admin/config",              marker: 'data-testid="config-admin"',     state: "stub"  },
   { path: "/admin/org",                 marker: 'data-testid="org-admin"',        state: "stub"  },
-  { path: "/admin/tickets",             marker: 'data-testid="ticket-list"',      state: "stub"  },
 ];
 
 /**

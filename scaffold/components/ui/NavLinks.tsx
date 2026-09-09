@@ -17,7 +17,7 @@ export interface NavItem {
   readonly label: string;
 }
 
-export function NavLinks({ items }: { readonly items: readonly NavItem[] }) {
+export function NavLinks({ items, reportHref = null }: { readonly items: readonly NavItem[]; readonly reportHref?: string | null }) {
   const pathname = usePathname();
   return (
     <nav className="app-nav" aria-label="Modules">
@@ -29,6 +29,13 @@ export function NavLinks({ items }: { readonly items: readonly NavItem[] }) {
           </Link>
         );
       })}
+      {reportHref ? (
+        // The tech-log intake, carrying the page the reporter is on. Rendered here, not in the
+        // server header, for the same single reason this file is a client component: the path.
+        <Link href={`${reportHref}?from=${encodeURIComponent(pathname)}`} className="app-report" title="Report a problem with the application" aria-current={pathname.startsWith(reportHref) ? 'page' : undefined}>
+          Report a problem
+        </Link>
+      ) : null}
     </nav>
   );
 }

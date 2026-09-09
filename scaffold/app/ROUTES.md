@@ -97,13 +97,18 @@ Specified by `docs/12_ROLES_AND_PERMISSIONS.md` (gating) and `docs/02_DATA_MODEL
 
 | Route | File | Purpose | Gate | State | Test id |
 |---|---|---|---|---|---|
+| `/admin` | `app/admin/page.tsx` | Administration hub: stats, roles grid with holders, doors to the working screens | `platform.users.view` | built | `admin-hub` |
+| `/admin/users` | `app/admin/users/page.tsx` | Account directory with roles and fleet/base bindings | `platform.users.view` | built | `user-list` |
+| `/admin/users/new` | `app/admin/users/new/page.tsx` | Create an account (+ roster row, + grants); temporary password shown once | `platform.users.create` | built | `user-new` |
+| `/admin/users/[id]` | `app/admin/users/[id]/page.tsx` | One account: roster row, grants editor, reset/deactivate, audit trail | `platform.users.view` (actions re-check) | built | `user-detail` |
+| `/admin/audit` | `app/admin/audit/page.tsx` | App Log: audit_log with prefix tabs, text/actor/date filters, paging | `platform.audit.view` | built | `audit-log` |
+| `/admin/tickets` | `app/admin/tickets/page.tsx` | Tech Log queue: status tabs, filters | `platform.tickets.triage` | built | `ticket-list` |
+| `/admin/tickets/[id]` | `app/admin/tickets/[id]/page.tsx` | One ticket: report, response form, timeline | `platform.tickets.triage` | built | `ticket-detail` |
+| `/support/report` | `app/support/report/page.tsx` | Report a problem (tech-log intake) + the reporter's own tickets | `platform.tickets.create` | built | `support-report` |
 | `/admin/people` | `app/admin/people/page.tsx` | Roster administration | `people.manage` | stub | `people-admin` |
-| `/admin/users` | `app/admin/users/page.tsx` | Account directory. Profile only; role grants are a separate route | `platform.users.view` | stub | `user-list` |
 | `/admin/roles` | `app/admin/roles/page.tsx` | The role by capability matrix, read-only, generated from the database | `platform.roles.assign` | stub | `role-matrix` |
-| `/admin/audit` | `app/admin/audit/page.tsx` | Audit log with prefix filters: `auth.` `user.` `record.` `export.` | `platform.audit.view` | stub | `audit-log` |
 | `/admin/config` | `app/admin/config/page.tsx` | Config versions: what is active, what a bump would change | `platform.config.manage` | stub | `config-admin` |
 | `/admin/org` | `app/admin/org/page.tsx` | Org units and asset classes | `people.manage` | stub | `org-admin` |
-| `/admin/tickets` | `app/admin/tickets/page.tsx` | Support ticket triage | `platform.tickets.triage` | stub | `ticket-list` |
 
 ## Not routes
 
@@ -133,3 +138,12 @@ either: it is a group, and its parentheses are why.
 6. `runtime = 'nodejs'` on every route touching cookies, the filesystem or the renderer service.
 7. Adding a route means three edits in one commit: the file, this table, and the `ROUTES` list in
    `scripts/smoke-screens.mjs`.
+
+## Administration API (POST only, form or JSON)
+
+| Route | File | Purpose | Gate |
+|---|---|---|---|
+| `POST /api/admin/users` | `app/api/admin/users/route.ts` | Create account (+ roster row, + grants); password via one-time flash | `platform.users.create` (+ `platform.roles.assign`) |
+| `POST /api/admin/users/[id]` | `app/api/admin/users/[id]/route.ts` | `_action`: update_person, reset_password, unlock, deactivate, reactivate, grant, revoke | per action |
+| `POST /api/admin/tickets/[id]` | `app/api/admin/tickets/[id]/route.ts` | Administrator response; appends events | `platform.tickets.triage` |
+| `POST /api/tickets` | `app/api/tickets/route.ts` | File a ticket | `platform.tickets.create` |

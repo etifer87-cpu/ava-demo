@@ -18,6 +18,8 @@ export interface AppHeaderProps {
   readonly nav: readonly NavItem[];
   /** Display name of the acting user, or null when signed out. */
   readonly identityLabel: string | null;
+  /** Where "Report a problem" goes (the tech log intake), or null to hide it. */
+  readonly reportHref?: string | null;
 }
 
 export function AppHeader({
@@ -27,6 +29,7 @@ export function AppHeader({
   logo,
   nav,
   identityLabel,
+  reportHref,
 }: AppHeaderProps) {
   return (
     <header className="app-header">
@@ -45,7 +48,7 @@ export function AppHeader({
           </span>
         ) : null}
 
-        {nav.length > 0 ? <NavLinks items={nav} /> : null}
+        {nav.length > 0 || reportHref ? <NavLinks items={nav} reportHref={reportHref ?? null} /> : null}
 
         <span className="spacer" />
 

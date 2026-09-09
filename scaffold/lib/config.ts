@@ -183,6 +183,24 @@ export function gradeScale(): {
   return cfg.grade_scale;
 }
 
+/* ------------------------------------------------------------------ */
+/* policy.yaml - the operator's vocabularies                            */
+/* ------------------------------------------------------------------ */
+
+export interface PolicyConfig {
+  version: string;
+  positions: string[];
+  instructor_roles: string[];
+  assessor_role_codes: string[];
+  seats: { subject_roles: string[]; default_subject_role: string; pf_roles: string[]; max_subjects_per_session: number };
+  template_kinds: { kind: string; label: string }[];
+}
+
+/** The training policy, loose like analyticsConfig: only the vocabularies screens read are typed. */
+export function policy(): PolicyConfig {
+  return load<PolicyConfig>('policy.yaml');
+}
+
 /** Test seam: forget everything read so far. Never called from a request path. */
 export function resetConfigCache(): void {
   cache.clear();

@@ -245,3 +245,60 @@ table.data tbody tr:hover { background: var(--surface-sunken); }
   .page { max-width: none; padding: 0; }
   .card, .table-wrap { border-color: #999; }
 }
+
+/* --- administration module (2026-09-09) ------------------------------- */
+
+.app-report { margin-left: var(--space-2); color: var(--brand-accent); }
+.app-report[aria-current="page"] { border-bottom-color: var(--brand-accent); }
+
+.stat {
+  display: block; background: var(--surface-raised); border: 1px solid var(--border);
+  border-radius: var(--radius); padding: var(--space-3) var(--space-4); color: var(--ink);
+}
+.stat:hover { border-color: var(--border-strong); }
+.stat-value { font-family: var(--font-display); font-size: var(--text-xl, 1.6rem); font-weight: 700; line-height: 1.1; font-variant-numeric: tabular-nums; }
+.stat-label { font-size: var(--text-sm); margin-top: var(--space-1); }
+
+.role-grid { display: grid; gap: var(--space-3); grid-template-columns: repeat(auto-fill, minmax(15rem, 1fr)); }
+.role-card {
+  display: flex; flex-direction: column; gap: var(--space-1);
+  background: var(--surface); border: 1px solid var(--border); border-left: 4px solid var(--brand-accent);
+  border-radius: var(--radius); padding: var(--space-3);
+}
+.role-card-empty { border-left-color: var(--border-strong); }
+.role-count { font-family: var(--font-display); font-size: var(--text-xl, 1.6rem); font-weight: 700; line-height: 1; font-variant-numeric: tabular-nums; }
+.role-name { font-weight: 600; }
+.role-desc { margin: 0; flex: 1 1 auto; }
+.role-card .button { align-self: flex-start; margin-top: var(--space-2); }
+
+dialog.popup {
+  border: 1px solid var(--border-strong); border-radius: var(--radius); padding: 0;
+  max-width: min(56rem, 92vw); width: max-content; min-width: 24rem; background: var(--surface); color: var(--ink);
+  box-shadow: 0 12px 40px rgba(0,0,0,.18);
+}
+dialog.popup::backdrop { background: rgba(19,19,19,.45); }
+.popup-head { display: flex; align-items: center; gap: var(--space-3); padding: var(--space-3) var(--space-4); border-bottom: 1px solid var(--border); }
+.popup-body { padding: var(--space-4); max-height: 70vh; overflow: auto; }
+
+.tabs { display: flex; flex-wrap: wrap; gap: var(--space-1); border-bottom: 1px solid var(--border); }
+.tabs a { padding: var(--space-2) var(--space-3); text-decoration: none; color: var(--ink-muted); border-bottom: 2px solid transparent; margin-bottom: -1px; font-size: var(--text-sm); }
+.tabs a[aria-current="page"] { color: var(--ink); border-bottom-color: var(--brand-accent); font-weight: 600; }
+
+.form-grid { display: grid; gap: var(--space-3) var(--space-4); grid-template-columns: repeat(auto-fill, minmax(14rem, 1fr)); }
+.field textarea { font: inherit; padding: var(--space-2); border: 1px solid var(--border-strong); border-radius: var(--radius-sm); background: var(--surface); color: var(--ink); resize: vertical; }
+.field input[readonly] { background: var(--surface-sunken); color: var(--ink-muted); }
+.check-grid { display: grid; gap: var(--space-2) var(--space-4); grid-template-columns: repeat(auto-fill, minmax(18rem, 1fr)); }
+.check { display: flex; align-items: flex-start; gap: var(--space-2); font-size: var(--text-sm); cursor: pointer; }
+.check input { margin-top: 3px; }
+
+.props { display: grid; grid-template-columns: max-content 1fr; gap: var(--space-1) var(--space-4); margin: 0; }
+.props dt { color: var(--ink-muted); font-size: var(--text-sm); }
+.props dd { margin: 0; }
+
+.secret { font-size: var(--text-lg); letter-spacing: .04em; user-select: all; }
+.text-bad { color: var(--state-bad); }
+.pre { white-space: pre-wrap; overflow-wrap: anywhere; }
+.timeline { list-style: none; margin: 0; padding: 0; }
+.timeline li { padding: var(--space-2) 0; border-bottom: 1px solid var(--border); }
+.timeline li:last-child { border-bottom: 0; }
+.button.xs { font-size: var(--text-xs); padding: 2px var(--space-2); }
