@@ -31,7 +31,7 @@ import { verifySessionCookie, SESSION_COOKIE_NAME } from '@/lib/session';
 const PUBLIC_EXACT = new Set<string>(['/login', '/api/auth/login', '/api/health']);
 
 /** Static and framework paths that never carry data. */
-const PUBLIC_PREFIXES = ['/_next/', '/favicon', '/fonts/', '/images/', '/logo'];
+const PUBLIC_PREFIXES = ['/_next/', '/favicon', '/fonts/', '/images/', '/logo', '/brand/'];
 
 function isPublic(pathname: string): boolean {
   if (PUBLIC_EXACT.has(pathname)) return true;
