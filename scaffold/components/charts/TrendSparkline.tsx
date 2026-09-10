@@ -68,7 +68,7 @@ export function TrendSparkline({
   const runs: { i: number; v: number }[][] = [];
   let current: { i: number; v: number }[] = [];
   for (let i = 0; i < n; i += 1) {
-    const v = points[i].value;
+    const v = points[i]?.value ?? null;
     if (v === null) {
       if (current.length) runs.push(current);
       current = [];
@@ -122,7 +122,7 @@ export function TrendSparkline({
         run.length >= 2 ? (
           <g key={`run-${k}`}>
             <path
-              d={`${linePath(run)} L${px(run[run.length - 1].i).toFixed(2)} ${py(min).toFixed(2)} L${px(run[0].i).toFixed(2)} ${py(min).toFixed(2)} Z`}
+              d={`${linePath(run)} L${px(run[run.length - 1]?.i ?? 0).toFixed(2)} ${py(min).toFixed(2)} L${px(run[0]?.i ?? 0).toFixed(2)} ${py(min).toFixed(2)} Z`}
               fill={colour}
               opacity={0.07}
               stroke="none"
@@ -158,13 +158,13 @@ export function TrendSparkline({
             x={PAD.left} y={height - 4}
             fontSize={6} fill={tokens.surface.inkMuted} textAnchor="start"
           >
-            {points[0].on.slice(0, 7)}
+            {points[0]?.on.slice(0, 7)}
           </text>
           <text
             x={width - PAD.right} y={height - 4}
             fontSize={6} fill={tokens.surface.inkMuted} textAnchor="end"
           >
-            {points[n - 1].on.slice(0, 7)}
+            {points[n - 1]?.on.slice(0, 7)}
           </text>
         </>
       )}

@@ -54,7 +54,7 @@ export default async function AdminHub() {
              (SELECT count(*) FROM people WHERE deleted_at IS NULL AND is_active)::text     AS people_active,
              (SELECT count(*) FROM tech_tickets WHERE status IN ('open','in_progress'))::text AS tickets_open,
              (SELECT count(*) FROM audit_log WHERE occurred_at > now() - interval '24 hours')::text AS audit_24h
-    `).then((r) => r[0]),
+    `).then((r) => r[0] ?? { accounts_active: '0', accounts_inactive: '0', people_active: '0', tickets_open: '0', audit_24h: '0' }),
     roleSummaries(),
   ]);
 

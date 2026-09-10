@@ -85,8 +85,9 @@ export async function queryOne<T extends QueryResultRow>(
 export async function queryValue<V>(sql: Sql, params: Params = []): Promise<V | null> {
   const row = await queryOne<QueryResultRow>(sql, params);
   if (!row) return null;
-  const keys = Object.keys(row);
-  return (row[keys[0]] ?? null) as V | null;
+  const first = Object.keys(row)[0];
+  if (first === undefined) return null;
+  return (row[first] ?? null) as V | null;
 }
 
 /**

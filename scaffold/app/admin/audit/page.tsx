@@ -57,7 +57,7 @@ export default async function AuditPage({ searchParams }: { searchParams: Promis
 
   const sp = await searchParams;
   const tabKey = one(sp.tab) || 'all';
-  const tab = TABS.find((t) => t.key === tabKey) ?? TABS[0];
+  const tab = TABS.find((t) => t.key === tabKey) ?? { key: 'all', label: 'All', prefixes: [] as string[] };
   const q = one(sp.q);
   const actor = one(sp.actor);
   const from = one(sp.from);

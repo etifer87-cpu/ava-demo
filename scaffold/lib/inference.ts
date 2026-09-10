@@ -131,7 +131,7 @@ export function salvageJsonText(raw: string): { text: string; salvaged: boolean 
   let salvaged = false;
 
   const fenced = t.match(/^```(?:json)?\s*([\s\S]*?)\s*```$/i);
-  if (fenced) {
+  if (fenced && fenced[1] !== undefined) {
     t = fenced[1].trim();
     salvaged = true;
   }

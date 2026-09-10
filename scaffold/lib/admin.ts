@@ -61,7 +61,7 @@ export function temporaryPassword(): string {
   const bytes = randomBytes(16);
   let out = '';
   for (let i = 0; i < 16; i += 1) {
-    out += alphabet[bytes[i] % alphabet.length];
+    out += alphabet[(bytes[i] ?? 0) % alphabet.length] ?? 'x';
     if (i === 3 || i === 7 || i === 11) out += '-';
   }
   return out;

@@ -61,7 +61,7 @@ export async function POST(request: NextRequest) {
           const dup = await client.query(`SELECT 1 FROM roles WHERE code = $1`, [code]);
           if (dup.rows.length) throw new Error(`Role ${code} already exists.`);
           const pos = await client.query<{ p: number }>(`SELECT COALESCE(max(position), 0) + 10 AS p FROM roles WHERE position < 900`);
-          await client.query(`INSERT INTO roles (code, name, module, description, position) VALUES ($1, $2, $3, $4, $5)`, [code, name, module, description, pos.rows[0].p]);
+          await client.query(`INSERT INTO roles (code, name, module, description, position) VALUES ($1, $2, $3, $4, $5)`, [code, name, module, description, pos.rows[0]?.p ?? 10]);
           let copied = 0;
           if (copyFrom) {
             const r = await client.query(

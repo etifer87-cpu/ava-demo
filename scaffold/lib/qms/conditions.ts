@@ -313,8 +313,9 @@ export const CONDITION_TYPES: Record<string, ConditionTypeSpec> = {
           (results.length === 0 || results.includes((r.result ?? '').toLowerCase())) &&
           inWindow(r.event_date, floor, asOfDay))
         .sort((a, b) => (toDay(a.event_date) ?? 0) - (toDay(b.event_date) ?? 0));
-      if (hits.length < n) return { ...unmet('threshold_not_reached'), detail: { have: hits.length, need: n } };
-      return hit(hits[n - 1].event_date, hits.slice(0, n).map((h) => `record:${h.record_id}`),
+      const nth = hits[n - 1];
+      if (hits.length < n || !nth) return { ...unmet('threshold_not_reached'), detail: { have: hits.length, need: n } };
+      return hit(nth.event_date, hits.slice(0, n).map((h) => `record:${h.record_id}`),
         { have: hits.length, need: n });
     },
   },
@@ -343,8 +344,8 @@ export const CONDITION_TYPES: Record<string, ConditionTypeSpec> = {
         .filter((g) => g.competency_id === id && g.grade_num !== null &&
           inWindow(g.event_date, floor, asOfDay))
         .sort((a, b) => (toDay(b.event_date) ?? 0) - (toDay(a.event_date) ?? 0));
-      if (scoped.length === 0) return unmet('no_matching_evidence');
       const latest = scoped[0];
+      if (!latest) return unmet('no_matching_evidence');
       if ((latest.grade_num ?? 0) < min) {
         return { ...unmet('threshold_not_reached'), detail: { grade: latest.grade_num, minimum: min } };
       }
@@ -376,8 +377,9 @@ export const CONDITION_TYPES: Record<string, ConditionTypeSpec> = {
       const hits = e.obSelections
         .filter((o) => o.observable_behaviour_id === id && inWindow(o.event_date, floor, asOfDay))
         .sort((a, b) => (toDay(a.event_date) ?? 0) - (toDay(b.event_date) ?? 0));
-      if (hits.length < n) return { ...unmet('threshold_not_reached'), detail: { have: hits.length, need: n } };
-      return hit(hits[n - 1].event_date, hits.slice(0, n).map((h) => `record:${h.record_id}`));
+      const nth = hits[n - 1];
+      if (hits.length < n || !nth) return { ...unmet('threshold_not_reached'), detail: { have: hits.length, need: n } };
+      return hit(nth.event_date, hits.slice(0, n).map((h) => `record:${h.record_id}`));
     },
   },
 
@@ -461,8 +463,9 @@ export const CONDITION_TYPES: Record<string, ConditionTypeSpec> = {
           (p.requires_landing !== true || s.lnd_by_subject) &&
           inWindow(s.event_date, floor, asOfDay))
         .sort((a, b) => (toDay(a.event_date) ?? 0) - (toDay(b.event_date) ?? 0));
-      if (hits.length < n) return { ...unmet('threshold_not_reached'), detail: { have: hits.length, need: n } };
-      return hit(hits[n - 1].event_date, hits.slice(0, n).map((h) => `sector:${h.sector_id}`),
+      const nth = hits[n - 1];
+      if (hits.length < n || !nth) return { ...unmet('threshold_not_reached'), detail: { have: hits.length, need: n } };
+      return hit(nth.event_date, hits.slice(0, n).map((h) => `sector:${h.sector_id}`),
         { have: hits.length, need: n });
     },
   },

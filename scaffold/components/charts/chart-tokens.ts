@@ -83,7 +83,7 @@ export function contrastRatio(a: string, b: string): number {
 }
 
 function relativeLuminance(hex: string): number {
-  const [r, g, b] = parseHex(hex).map((c) => {
+  const [r = 0, g = 0, b = 0] = parseHex(hex).map((c) => {
     const s = c / 255;
     return s <= 0.03928 ? s / 12.92 : ((s + 0.055) / 1.055) ** 2.4;
   });

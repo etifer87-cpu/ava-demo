@@ -49,6 +49,7 @@ export async function POST(request: NextRequest) {
         [subject, description, category, priority, route.startsWith('/') ? route : '', session.userId, label],
       );
       const t = ins.rows[0];
+      if (!t) throw new Error('Could not file the report.');
       await client.query(
         `INSERT INTO tech_ticket_events (ticket_id, actor_user_id, actor_label, kind, status_to) VALUES ($1::uuid, $2::uuid, $3, 'created', 'open')`,
         [t.id, session.userId, label],

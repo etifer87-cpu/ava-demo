@@ -151,8 +151,9 @@ const satisfiedAt = (dates: (string | null)[], need: number): string | null => {
     .map((d) => toDay(d))
     .filter((d): d is number => d !== null)
     .sort((a, b) => a - b);
-  if (need <= 0 || days.length < need) return null;
-  return toISODate(days[need - 1]);
+  const day = days[need - 1];
+  if (need <= 0 || day === undefined) return null;
+  return toISODate(day);
 };
 
 /* -------------------------------------------------------------- evaluate */

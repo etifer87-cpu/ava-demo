@@ -175,11 +175,13 @@ export function extractNumbers(html: string): Array<{ value: number; text: strin
   const re = /(?<![\w.])(-?\d+(?:\.\d+)?)(?![\w.])/g;
   let m: RegExpExecArray | null;
   while ((m = re.exec(text)) !== null) {
-    const value = Number(m[1]);
+    const matched = m[1];
+    if (matched === undefined) continue;
+    const value = Number(matched);
     if (!Number.isFinite(value)) continue;
     const from = Math.max(0, m.index - 60);
-    const to = Math.min(text.length, m.index + m[1].length + 60);
-    out.push({ value, text: m[1], context: text.slice(from, to).trim() });
+    const to = Math.min(text.length, m.index + matched.length + 60);
+    out.push({ value, text: matched, context: text.slice(from, to).trim() });
   }
   return out;
 }

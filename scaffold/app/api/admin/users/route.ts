@@ -78,7 +78,9 @@ export async function POST(request: NextRequest) {
              VALUES ($1, $2, $3, $4::uuid, $5::uuid, $6, true, $7::date) RETURNING id`,
             [externalId, fullName, position, orgUnitId, assetClassId, instructorRole, joinedOn],
           );
-          personId = ins.rows[0].id;
+          const created = ins.rows[0];
+          if (!created) throw new Error('Could not create the roster row.');
+          personId = created.id;
           personCreated = true;
         }
       }
@@ -91,7 +93,9 @@ export async function POST(request: NextRequest) {
          VALUES ($1::uuid, $2, $3, crypt($4, gen_salt('bf', 12)), true, true) RETURNING id`,
         [personId, username, email, password],
       );
-      const userId = user.rows[0].id;
+      const userRow = user.rows[0];
+      if (!userRow) throw new Error('Could not create the account.');
+      const userId = userRow.id;
 
       const grantFleet = bind === 'fleet' || bind === 'fleet_base' ? assetClassId : null;
       const grantOrg = bind === 'base' || bind === 'fleet_base' ? orgUnitId : null;

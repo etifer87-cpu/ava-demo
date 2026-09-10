@@ -32,6 +32,10 @@
       {
         "name": "next"
       }
+    ],
+    "types": [
+      "node",
+      "vitest/globals"
     ]
   },
   "include": [

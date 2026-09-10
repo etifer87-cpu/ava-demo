@@ -57,7 +57,7 @@ const nameOf = (ctx: PhraseContext, id: unknown): string =>
 const joinList = (items: string[], conjunction: 'and' | 'or'): string => {
   const parts = items.filter((x) => x && x.length > 0);
   if (parts.length === 0) return '';
-  if (parts.length === 1) return parts[0];
+  if (parts.length === 1) return parts[0] ?? '';
   return `${parts.slice(0, -1).join(', ')} ${conjunction} ${parts[parts.length - 1]}`;
 };
 
