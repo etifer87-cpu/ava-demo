@@ -302,3 +302,17 @@ dialog.popup::backdrop { background: rgba(19,19,19,.45); }
 .timeline li { padding: var(--space-2) 0; border-bottom: 1px solid var(--border); }
 .timeline li:last-child { border-bottom: 0; }
 .button.xs { font-size: var(--text-xs); padding: 2px var(--space-2); }
+
+/* --- roles and permissions editor (2026-09-10) ------------------------ */
+.role-card-selected { border-color: var(--brand-accent); box-shadow: 0 0 0 2px var(--brand-accent) inset; }
+table.matrix caption { text-transform: capitalize; font-weight: 600; text-align: left; padding: var(--space-2) 0; }
+table.matrix select { font-size: var(--text-xs); padding: 2px var(--space-1); }
+table.matrix-wide th, table.matrix-wide td { font-size: var(--text-xs); padding: 2px var(--space-2); white-space: nowrap; }
+table.matrix-wide th:first-child, table.matrix-wide td:first-child { position: sticky; left: 0; background: var(--surface); z-index: 1; text-align: left; }
+table.matrix-wide .matrix-role a { writing-mode: vertical-rl; transform: rotate(180deg); text-decoration: none; padding: var(--space-2) 0; display: inline-block; }
+table.matrix-wide .matrix-module th { background: var(--surface-sunken); text-align: left; text-transform: capitalize; font-weight: 600; }
+.matrix-cell { text-align: center; color: var(--ink-muted); }
+.matrix-cell.scope-all { background: color-mix(in srgb, var(--state-good) 14%, transparent); color: var(--ink); font-weight: 600; }
+.matrix-cell.scope-org, .matrix-cell.scope-team { background: color-mix(in srgb, var(--state-info) 12%, transparent); color: var(--ink); }
+.matrix-cell.scope-assigned { background: color-mix(in srgb, var(--state-warn) 12%, transparent); color: var(--ink); }
+.matrix-cell.scope-own { background: var(--surface-sunken); }

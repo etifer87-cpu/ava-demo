@@ -106,7 +106,7 @@ Specified by `docs/12_ROLES_AND_PERMISSIONS.md` (gating) and `docs/02_DATA_MODEL
 | `/admin/tickets/[id]` | `app/admin/tickets/[id]/page.tsx` | One ticket: report, response form, timeline | `platform.tickets.triage` | built | `ticket-detail` |
 | `/support/report` | `app/support/report/page.tsx` | Report a problem (tech-log intake) + the reporter's own tickets | `platform.tickets.create` | built | `support-report` |
 | `/admin/people` | `app/admin/people/page.tsx` | Roster administration | `people.manage` | stub | `people-admin` |
-| `/admin/roles` | `app/admin/roles/page.tsx` | The role by capability matrix, read-only, generated from the database | `platform.roles.assign` | stub | `role-matrix` |
+| `/admin/roles` | `app/admin/roles/page.tsx` | Roles and permissions: the matrix from the database, a per-role editor (scope per capability), new role, label edit | `platform.roles.assign` | built | `role-matrix` |
 | `/admin/config` | `app/admin/config/page.tsx` | Config versions: what is active, what a bump would change | `platform.config.manage` | stub | `config-admin` |
 | `/admin/org` | `app/admin/org/page.tsx` | Org units and asset classes | `people.manage` | stub | `org-admin` |
 
@@ -145,5 +145,6 @@ either: it is a group, and its parentheses are why.
 |---|---|---|---|
 | `POST /api/admin/users` | `app/api/admin/users/route.ts` | Create account (+ roster row, + grants); password via one-time flash | `platform.users.create` (+ `platform.roles.assign`) |
 | `POST /api/admin/users/[id]` | `app/api/admin/users/[id]/route.ts` | `_action`: update_person, reset_password, unlock, deactivate, reactivate, grant, revoke | per action |
+| `POST /api/admin/roles` | `app/api/admin/roles/route.ts` | `_action`: create_role, update_role, set_grants; hard gates and operator_admin untouched | `platform.roles.assign` |
 | `POST /api/admin/tickets/[id]` | `app/api/admin/tickets/[id]/route.ts` | Administrator response; appends events | `platform.tickets.triage` |
 | `POST /api/tickets` | `app/api/tickets/route.ts` | File a ticket | `platform.tickets.create` |

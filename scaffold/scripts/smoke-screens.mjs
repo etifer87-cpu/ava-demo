@@ -142,7 +142,7 @@ const ROUTES = [
   { path: "/admin/tickets",             marker: 'data-testid="ticket-list"',      state: "built" },
   { path: "/support/report",            marker: 'data-testid="support-report"',   state: "built" },
   { path: "/admin/people",              marker: 'data-testid="people-admin"',     state: "stub"  },
-  { path: "/admin/roles",               marker: 'data-testid="role-matrix"',      state: "stub"  },
+  { path: "/admin/roles",               marker: 'data-testid="role-matrix"',      state: "built" },
   { path: "/admin/config",              marker: 'data-testid="config-admin"',     state: "stub"  },
   { path: "/admin/org",                 marker: 'data-testid="org-admin"',        state: "stub"  },
 ];
