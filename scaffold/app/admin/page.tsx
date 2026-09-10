@@ -81,7 +81,6 @@ export default async function AdminHub() {
                 <span className="xs muted">{r.module}</span>
               </div>
               <div className="role-name">{r.name}</div>
-              <div className="xs mono muted">{r.code}</div>
               <p className="xs muted role-desc">{r.description}</p>
               <Popup label={r.user_count === 0 ? 'No holders' : `View ${r.user_count}`} title={`${r.name} - ${r.user_count} holder${r.user_count === 1 ? '' : 's'}`} buttonClassName="button button-quiet xs" testId={`role-popup-${r.code}`}>
                 {r.users.length === 0 ? (

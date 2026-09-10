@@ -89,7 +89,7 @@ export default async function RolesPage({ searchParams }: { searchParams: Promis
                 {LOCKED_ROLES.has(r.code) ? <Chip tone="neutral">locked</Chip> : null}
               </div>
               <div className="role-name">{r.name}</div>
-              <div className="xs mono muted">{r.code}</div>
+              <p className="xs muted role-desc">{r.description}</p>
             </Link>
           ))}
         </div>
@@ -120,7 +120,7 @@ export default async function RolesPage({ searchParams }: { searchParams: Promis
       </Card>
 
       {role ? (
-        <Card title={`Edit: ${role.name}`} note={locked ? 'This role holds every capability at every scope and cannot be edited: it is how the administrator gets back in after any mistake on this screen.' : 'One row per capability. "none" removes the grant. Locked rows are hard gates: conferred only by the published matrix (a migration), never here. Changes apply on the next request for every holder.'} testId="role-editor">
+        <Card title={`Edit: ${role.name}`} note={locked ? 'This role holds every capability at every scope and cannot be edited: it is how the administrator gets back in after any mistake on this screen.' : 'One row per capability. "none" removes the grant. A row marked "fixed" is a hard gate: conferred only by the published matrix (a migration), never here. Changes apply on the next request for every holder.'} testId="role-editor">
           <form method="post" action="/api/admin/roles" className="stack">
             <input type="hidden" name="_action" value="update_role" />
             <input type="hidden" name="code" value={role.code} />
@@ -147,11 +147,14 @@ export default async function RolesPage({ searchParams }: { searchParams: Promis
                         const hard = !c.is_overridable;
                         return (
                           <tr key={c.code}>
-                            <td className="mono xs">{c.code}{hard ? <span className="muted" title="Hard gate - set by migration only"> 🔒</span> : null}</td>
+                            <td className="mono xs">{c.code}</td>
                             <td className="xs">{c.description}</td>
                             <td>
                               {hard ? (
-                                <span className="xs">{cur.length ? cur.join(' + ') : <span className="muted">none</span>}</span>
+                                <span className="xs">
+                                  {cur.length ? cur.join(' + ') : <span className="muted">none</span>}
+                                  <span className="muted" title="Conferred by the published matrix - a migration - and never by exception"> · fixed</span>
+                                </span>
                               ) : (
                                 <select name={`scope:${c.code}`} defaultValue={widest(cur)} aria-label={`Scope for ${c.code}`}>
                                   <option value="">none</option>
@@ -191,7 +194,7 @@ export default async function RolesPage({ searchParams }: { searchParams: Promis
                   <tr className="matrix-module"><th scope="rowgroup" colSpan={roles.length + 1}>{m}</th></tr>
                   {caps.filter((c) => c.module === m).map((c) => (
                     <tr key={c.code}>
-                      <th scope="row" className="mono xs">{c.code}{!c.is_overridable ? ' 🔒' : ''}</th>
+                      <th scope="row" className="mono xs">{c.code}</th>
                       {roles.map((r) => {
                         const s = widest(scopeOf(r.code, c.code));
                         return <td key={r.code} className={`matrix-cell${s ? ` scope-${s}` : ''}`}>{s || ''}</td>;
