@@ -26,8 +26,8 @@
 # the checker; docs/13 section 7 states the pairs that must be checked.
 # ---------------------------------------------------------------------------
 
-version: "1.1"
-updated: "2026-09-08"
+version: "1.2"
+updated: "2026-09-11"
 
 # Colour scheme. "light" pins the interface to the light palette regardless of the viewer's OS
 # setting; "auto" follows prefers-color-scheme and uses the dark set below. The Avianca demo is
@@ -128,6 +128,23 @@ grade_palette:
   "5": { colour: "#1D4ED8", label: "exemplary" }
 # Non-scoring codes render as muted ink with the code as text. They have no
 # colour of their own on purpose: they are an absence of a grade, not a value.
+
+# ---------------------------------------------------------------------------
+# 4a. Phase palette - the program builder, the instructor view and the report.
+#
+# Keyed by the phase codes of policy.yaml section 9. Rendered as a 3px rule
+# beside a section, never as a fill: the phase is read from the label, the
+# colour only helps the eye find it. A phase with no entry here renders with
+# the neutral border. Emitted as --phase-<code> on :root.
+# ---------------------------------------------------------------------------
+phase_palette:
+  brief:   { colour: "#6B7280", label: "Briefing" }
+  eval:    { colour: "#1D4ED8", label: "Evaluation" }
+  mt:      { colour: "#15803D", label: "Manoeuvres training" }
+  sbt:     { colour: "#C2410C", label: "Scenario-based training" }
+  transit: { colour: "#0E7490", label: "Transit" }
+  reinf:   { colour: "#7C3AED", label: "Reinforcement" }
+  debrief: { colour: "#6B7280", label: "Debriefing" }
 
 # ---------------------------------------------------------------------------
 # 5. Typography

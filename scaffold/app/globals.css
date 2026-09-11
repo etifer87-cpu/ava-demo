@@ -343,3 +343,17 @@ table.matrix-wide .matrix-module th { background: var(--surface-sunken); text-al
 .matrix-cell.scope-org, .matrix-cell.scope-team { background: color-mix(in srgb, var(--state-info) 12%, transparent); color: var(--ink); }
 .matrix-cell.scope-assigned { background: color-mix(in srgb, var(--state-warn) 12%, transparent); color: var(--ink); }
 .matrix-cell.scope-own { background: var(--surface-sunken); }
+
+/* Program builder - the outline and the findings bar (docs/06_PROGRAM_BUILDER.md). Phase colour is
+   a 3px rule beside the section, never a fill: the phase is read from its label. */
+.outline { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: var(--space-2); }
+.outline-section { border: 1px solid var(--border); border-left: 3px solid var(--border-strong); border-radius: var(--radius-sm); padding: var(--space-2) var(--space-3); background: var(--surface); }
+.outline-title { font-weight: 600; }
+.outline-item { display: flex; flex-wrap: wrap; align-items: baseline; gap: var(--space-2); padding: var(--space-1) var(--space-2); border-radius: var(--radius-sm); background: var(--surface-sunken); font-size: var(--text-sm); }
+.outline-kind { min-width: 4.5rem; }
+.findings { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: var(--space-2); }
+.finding { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-3); padding: var(--space-2) var(--space-3); border: 1px solid var(--border); border-left-width: 3px; border-radius: var(--radius-sm); font-size: var(--text-sm); }
+.finding-block { border-left-color: var(--state-bad); }
+.finding-warn { border-left-color: var(--state-warn); }
+.finding-text { flex: 1 1 20rem; }
+.finding-source { font-family: var(--font-mono); }

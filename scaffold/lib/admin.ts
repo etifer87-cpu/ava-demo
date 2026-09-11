@@ -27,7 +27,7 @@ export interface Flash {
   secretLabel?: string;
 }
 
-export function flashCookie(flash: Flash): { name: string; value: string; maxAge: number; httpOnly: true; sameSite: 'lax'; secure: boolean; path: string } {
+export function flashCookie(flash: Flash, path = '/admin'): { name: string; value: string; maxAge: number; httpOnly: true; sameSite: 'lax'; secure: boolean; path: string } {
   return {
     name: FLASH_COOKIE,
     value: Buffer.from(JSON.stringify(flash), 'utf8').toString('base64url'),
@@ -35,7 +35,7 @@ export function flashCookie(flash: Flash): { name: string; value: string; maxAge
     httpOnly: true,
     sameSite: 'lax',
     secure: process.env.NODE_ENV === 'production',
-    path: '/admin',
+    path,
   };
 }
 

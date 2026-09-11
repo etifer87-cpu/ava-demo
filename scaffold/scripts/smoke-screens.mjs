@@ -110,13 +110,11 @@ const ROUTES = [
 
   // ETR, route group (training), served flat
   { path: "/subjects",                  marker: 'data-testid="subject-list"',     state: "built" },
-  { path: "/subjects/status",           marker: 'data-testid="subject-status"',   state: "stub"  },
-  { path: "/instructors",               marker: 'data-testid="assessor-analytics"', state: "stub" },
   { path: "/sessions",                  marker: 'data-testid="session-list"',     state: "stub"  },
-  { path: "/sessions/mine",             marker: 'data-testid="my-session-list"',  state: "stub"  },
   { path: "/records",                   marker: 'data-testid="record-list"',      state: "built" },
-  { path: "/templates",                 marker: 'data-testid="template-list"',    state: "stub"  },
-  { path: "/templates/builder",         marker: 'data-testid="template-builder"', state: "stub"  },
+  { path: "/templates",                 marker: 'data-testid="template-list"',    state: "built" },
+  { path: "/templates/new",             marker: 'data-testid="template-new"',     state: "built" },
+  { path: "/templates/builder",         marker: 'data-testid="template-builder-stub"', state: "stub" },
   { path: "/analytics",                 marker: 'data-testid="analytics-overview"', state: "stub" },
   { path: "/analytics/competencies",    marker: 'data-testid="competency-matrix"', state: "stub" },
   { path: "/analytics/trends",          marker: 'data-testid="trend-charts"',     state: "stub"  },

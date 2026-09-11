@@ -34,31 +34,6 @@ Specified by `docs/12_ROLES_AND_PERMISSIONS.md` (gating) and `docs/02_DATA_MODEL
 
 ---
 
-## The header navigation
-
-Four entries, assembled in `app/layout.tsx` and drawn by `components/ui/NavLinks.tsx`. Two of them
-are groups; a group whose every child was filtered away is not rendered at all, and neither is a
-child the caller cannot enter — the filtering happens on the server, never in CSS.
-
-| Entry | Children | Visible when |
-|---|---|---|
-| *Pilots* (the `labels.subject_plural` word) | Trainees `/subjects` | `people.view` |
-| | Training status `/subjects/status` | `training.records.view` |
-| | Instructors `/instructors` | `training.analytics.assessor.view` |
-| *Programs* | Builder `/templates` | `training.templates.configure` |
-| | Sessions `/sessions` | `training.sessions.view` at `org` or `all` |
-| | My sessions `/sessions/mine` | `training.sessions.grade` |
-| *Qualifications* | — | `qms.qualifications.view` |
-| *Admin* | — | `platform.users.view` |
-| *Report a problem* | — | any session |
-
-"Sessions" and "My sessions" are separated by the SCOPE on the grant, not by a role name: the kit
-has no "is a manager" flag, and the scope already carries that fact. Records, Analytics and
-Documents keep their routes but are reached from the screens that own them: a header is a set of
-starting points, not an index.
-
----
-
 ## Public
 
 | Route | File | Purpose | Gate | State | Test id |
@@ -80,17 +55,17 @@ starting points, not an index.
 | Route | File | Purpose | Gate | State | Test id |
 |---|---|---|---|---|---|
 | `/subjects` | `app/(training)/subjects/page.tsx` | Subject roster, filterable, with concern and watch-list state | `people.view` | built | `subject-list` |
-| `/subjects/status` | `app/(training)/subjects/status/page.tsx` | Currency and due dates across the roster: current, due, overdue. A static segment, resolved before `[id]` | `training.records.view` | stub | `subject-status` |
 | `/subjects/[id]` | `app/(training)/subjects/[id]/page.tsx` | Subject profile: KPI tiles, competency radar, trend sparklines, record list | `people.view` (row-checked) | built | `subject-profile` |
 | `/subjects/[id]/records` | `app/(training)/subjects/[id]/records/page.tsx` | Record history for one subject, all sources, grouped by kind | `training.records.view` | stub | `subject-records` |
 | `/subjects/[id]/competencies` | `app/(training)/subjects/[id]/competencies/page.tsx` | Per-competency profile and trend for one subject | `training.analysis.view` | stub | `subject-competencies` |
 | `/subjects/[id]/analysis` | `app/(training)/subjects/[id]/analysis/page.tsx` | Analysis runs: figures, narrative, sources | `training.analysis.view` | stub | `subject-analysis` |
-| `/instructors` | `app/(training)/instructors/page.tsx` | Assessor analytics: residual, monthly movement, habits, coverage. Excludes the holder | `training.analytics.assessor.view` | stub | `assessor-analytics` |
-| `/sessions` | `app/(training)/sessions/page.tsx` | Every session flown: open, awaiting signature, finalised. Reached from the header only at `org` or `all` scope | `training.sessions.view` | stub | `session-list` |
-| `/sessions/mine` | `app/(training)/sessions/mine/page.tsx` | The sessions the caller is assigned to grade, and where a new one is started | `training.sessions.grade` | stub | `my-session-list` |
+| `/sessions` | `app/(training)/sessions/page.tsx` | Sessions open, awaiting signature and finalised; the grading surface | `training.sessions.view` | stub | `session-list` |
 | `/records` | `app/(training)/records/page.tsx` | Records across every source, with source counts. `source` is a grouping, never a filter | `training.records.view` | built | `record-list` |
-| `/templates` | `app/(training)/templates/page.tsx` | Template list with version and status | `training.templates.view` | stub | `template-list` |
-| `/templates/builder` | `app/(training)/templates/builder/page.tsx` | Element builder for a draft version | `training.templates.configure` | stub | `template-builder` |
+| `/templates` | `app/(training)/templates/page.tsx` | Programs: every template with kind, fleet, current version, status and what it holds; Create new program | `training.templates.view` | built | `template-list` |
+| `/templates/new` | `app/(training)/templates/new/page.tsx` | Create a program: identity that freezes at creation plus the version-level set-up; creates version 1 as a draft | `training.templates.configure` | built | `template-new` |
+| `/templates/[id]` | `app/(training)/templates/[id]/page.tsx` | One program on its current (or `?version=`) version: time budget, outline, content problems, findings. The builder's read side | `training.templates.view` | built | `template-builder` |
+| `/api/templates` | `app/api/templates/route.ts` | POST create: template + version 1 draft + audit, one transaction | `training.templates.configure` | built | - |
+| `/templates/builder` | `app/(training)/templates/builder/page.tsx` | Kit stub; superseded by `/templates/[id]`, kept until the smoke list drops it | `training.templates.configure` | stub | `template-builder-stub` |
 | `/analytics` | `app/(training)/analytics/page.tsx` | Programme indicator and cohort overview | `training.analytics.programme.view` | stub | `analytics-overview` |
 | `/analytics/competencies` | `app/(training)/analytics/competencies/page.tsx` | Per-competency distributions, keyed by `competency_id` | `training.analytics.programme.view` | stub | `competency-matrix` |
 | `/analytics/trends` | `app/(training)/analytics/trends/page.tsx` | Trend small multiples over the configured window | `training.analytics.programme.view` | stub | `trend-charts` |

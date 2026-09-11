@@ -80,6 +80,8 @@ export interface BrandConfig {
   colour: { light: ColourSet; dark: ColourSet };
   state: { light: StateSet; dark: StateSet };
   grade_palette: Record<string, { colour: string; label: string }>;
+  /** Keyed by policy.yaml program.phases codes; emitted as --phase-<code>. Optional. */
+  phase_palette?: Record<string, { colour: string; label?: string }>;
   font: { sans: string; mono: string; display: string; faces?: FontFace[] };
   shape: { radius_px: number; radius_small_px: number; focus_ring_px: number };
 }
@@ -137,7 +139,12 @@ export function brandCss(b: BrandConfig = brand()): string {
     )
     .join('\n');
 
-  const light = `:root{${vars(b.colour.light, b.state.light)};${shape}}`;
+  const phases = Object.entries(b.phase_palette ?? {})
+    .filter(([code, v]) => /^[a-z][a-z0-9_-]*$/.test(code) && typeof v?.colour === 'string')
+    .map(([code, v]) => `--phase-${code}:${v.colour}`)
+    .join(';');
+
+  const light = `:root{${vars(b.colour.light, b.state.light)};${shape}${phases ? `;${phases}` : ''}}`;
   // scheme "light" pins the palette: no dark override is emitted and the UA is told so.
   const dark =
     b.scheme === 'light'
@@ -145,6 +152,12 @@ export function brandCss(b: BrandConfig = brand()): string {
       : `@media (prefers-color-scheme: dark){:root{${vars(b.colour.dark, b.state.dark)}}}`;
 
   return [faces, light, dark].filter(Boolean).join('\n');
+}
+
+/** Phase colour for one code, or null when the palette has no entry - the caller draws the neutral border. */
+export function phaseColour(code: string | null, b: BrandConfig = brand()): string | null {
+  if (!code) return null;
+  return b.phase_palette?.[code]?.colour ?? null;
 }
 
 /** Grade colours for the chart token builder. Keyed by the numeric grade, sorted ascending. */
