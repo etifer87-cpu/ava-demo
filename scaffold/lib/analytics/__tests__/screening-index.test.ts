@@ -112,7 +112,9 @@ function event(grade: number, i: number, opts: Partial<GradeEvent> = {}): GradeE
   return {
     recordId: `DEMO-REC-${String(i + 1).padStart(3, '0')}`,
     competencyId: COMP,
-    occurredOn: `2030-${String((i % 12) + 1).padStart(2, '0')}-15`,
+    // One month apart, rolling into the next year past twelve: a series longer than a year must
+    // still sort in index order, or the window test reads events it thinks it discarded.
+    occurredOn: `${2030 + Math.floor(i / 12)}-${String((i % 12) + 1).padStart(2, '0')}-15`,
     gradeValue: grade,
     assessorId: 'DEMO-ASSESSOR-1',
     assessorDelta: 0,

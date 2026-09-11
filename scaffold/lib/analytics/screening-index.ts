@@ -180,6 +180,12 @@ function adjust(
   cfg: AnalyticsConfig,
 ): { adjustedGrade: number; wasAdjusted: boolean; contributionWeight: number } {
   const l = cfg.screening_index.leniency;
+  // The critical grade is never adjusted. Clamping at clamp_min would turn an awarded 1 into a 2,
+  // which SCORES - and a grade of 1 that enters the arithmetic is exactly the compensation this
+  // index exists to prevent. It drives the flag, at full weight, and nothing else.
+  if (e.gradeValue === cfg.grade_scale.critical_grade) {
+    return { adjustedGrade: e.gradeValue, wasAdjusted: false, contributionWeight: 1 };
+  }
   if (e.assessorId === null || !e.assessorQualifies || e.assessorDelta === null) {
     return { adjustedGrade: e.gradeValue, wasAdjusted: false, contributionWeight: l.reduced_weight };
   }

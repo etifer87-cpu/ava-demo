@@ -3,7 +3,7 @@ import { policy, rules } from '@/lib/config';
 import { query } from '@/lib/db';
 import { buildTree, type BuiltTree, type ElementRow } from './model';
 import { assertRegistryComplete, evaluate, type Finding, type RuleRegistry } from './rules';
-import type { ProgramVocab } from './shape';
+import type { ProgramVocab, SectionContent, TaskContent } from './shape';
 
 /**
  * lib/program/index.ts - the server seam for the program builder.
