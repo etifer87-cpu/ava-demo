@@ -3,7 +3,7 @@ import type { PoolClient } from 'pg';
 import { transaction } from '@/lib/db';
 import { policy } from '@/lib/config';
 import { audit, type AuditActor, type RequestContext } from '@/lib/audit';
-import { serialiseSectionContent, serialiseTaskContent, parseSectionContent, parseTaskContent, type ProgramVocab } from './shape';
+import { serialiseSectionContent, serialiseTaskContent, parseSectionContent, parseTaskContent, SETUP_KINDS, type ProgramVocab, type TaskContent } from './shape';
 import { programVocab } from './index';
 
 /**
@@ -168,10 +168,15 @@ export async function addFromLibrary(versionId: string, input: { parentKey: stri
         const ct = child.element_type && ['task', 'setup', 'event_option', 'note'].includes(child.element_type) ? child.element_type : 'task';
         const ctitle = child.title ?? ct;
         const ckey = await mintKey(client, versionId, key, ctitle);
+        // A child that names a library element takes that element's content, so a preset is a
+        // list of references and the task text lives once, in the library.
+        const ref = typeof child.content?.from_library === 'string' ? child.content.from_library : null;
+        const refRow = ref ? (await client.query<Lib>(`SELECT id, code, element_type, title, content, tags FROM element_library WHERE code = $1 AND deleted_at IS NULL AND is_active`, [ref])).rows[0] : undefined;
+        const ccontent = refRow ? { ...refRow.content, from_library: refRow.code } : { ...(child.content ?? {}), from_library: lib.code };
         await client.query(
           `INSERT INTO template_elements (template_version_id, element_key, parent_key, element_type, title, position, is_graded, content)
            VALUES ($1::uuid, $2, $3, $4, $5, $6, $7, $8::jsonb)`,
-          [versionId, ckey, key, ct, ctitle, pos, ct === 'task', JSON.stringify({ ...(child.content ?? {}), from_library: lib.code })]);
+          [versionId, ckey, key, ct, refRow?.title ?? ctitle, pos, ct === 'task', JSON.stringify(ccontent)]);
         pos += 1;
       }
     }
@@ -252,4 +257,72 @@ export async function updateSection(versionId: string, key: string, input: { sec
     await audit({ action: 'template.element.update', entityTable: 'template_elements', entityId: key, capabilityCode: 'training.templates.configure',
       details: { version_id: versionId, template_id: v.template_id, section_kind: parsed.value.section_kind, phase: parsed.value.phase, minutes: parsed.value.minutes, training_only: parsed.value.training_only } }, ctx.actor, ctx.request, client);
   });
+}
+
+/* ------------------------------------------------------------------ */
+/* Task content - the inspector's four tabs                             */
+/* ------------------------------------------------------------------ */
+
+export type TaskTab = 'setup' | 'conduct' | 'assessment' | 'aims';
+
+/**
+ * Applies one tab's form to a task. The current content is parsed, the tab's keys are replaced
+ * from the form, the result is serialised in canonical form and saved. Keys the tab does not own
+ * are untouched, so saving Set-up never disturbs Conduct. Refused with the parser's problems when
+ * a value is not valid - the form redisplays with the message, nothing is half-written.
+ */
+export async function updateTask(versionId: string, key: string, tab: TaskTab, form: (k: string) => string, formAll: (k: string) => string[], ctx: WriteContext): Promise<void> {
+  const vocab = programVocab();
+  const ref = (k: string) => { const r = form(`${k}_ref`); const o = form(`${k}_override`); return r ? { ref: r, override: o || null } : null; };
+  await transaction(async (client) => {
+    const v = await lockDraft(client, versionId);
+    const cur = (await client.query<{ element_type: string; content: Record<string, unknown> }>(`SELECT element_type, content FROM template_elements WHERE template_version_id = $1::uuid AND element_key = $2`, [versionId, key])).rows[0];
+    if (!cur) throw new WriteRefused('No such element.');
+    if (cur.element_type !== 'task') throw new WriteRefused('Only a task carries set-up, conduct, assessment and aims.');
+    const now = parseTaskContent(cur.content, vocab).value;
+    let next: TaskContent;
+    switch (tab) {
+      case 'setup':
+        next = { ...now, setup: Object.fromEntries(SETUP_KINDS.map((k) => [k, ref(k)])) as TaskContent['setup'] };
+        break;
+      case 'conduct': {
+        const slotGroup = form('slot_group');
+        next = { ...now,
+          automation: { ap: form('ap') as TaskContent['automation']['ap'], athr: form('athr') as TaskContent['automation']['athr'], fd: form('fd') as TaskContent['automation']['fd'] },
+          conduct: {
+            malfunction: slotGroup ? null : ref('malfunction'),
+            slot: slotGroup ? { group: slotGroup, policy: form('slot_policy') as NonNullable<TaskContent['conduct']['slot']>['policy'], no_repeat_within_modules: form('slot_no_repeat') ? Number(form('slot_no_repeat')) : null, cycle_coverage: form('slot_cycle') === 'on' } : null,
+            insertion: form('insertion') || null,
+            injects: formAll('injects').filter(Boolean).map((r) => ({ ref: r, override: null })),
+            instructor_notes: form('instructor_notes') || null,
+          } };
+        break;
+      }
+      case 'assessment':
+        next = { ...now,
+          minutes: form('time') ? (parseMinutesOrThrow(form('time'))) : null,
+          pf: form('pf') || null,
+          snapshot: (form('snapshot') || null) as TaskContent['snapshot'],
+          grading: { task_outcome_mode: form('task_outcome_mode') as TaskContent['grading']['task_outcome_mode'], competency_grade_mode: form('competency_grade_mode') as TaskContent['grading']['competency_grade_mode'], competencies: formAll('competencies').filter(Boolean) } };
+        break;
+      case 'aims':
+        next = { ...now, aims: { aims: form('aims') || null, competency_focus: form('competency_focus') || null, grading_criteria: form('grading_criteria') || null, visibility: (form('visibility') || 'instructor_only') as TaskContent['aims']['visibility'] } };
+        break;
+    }
+    // Round-trip through the parser: every enum and reference is checked the same way a read is.
+    const check = parseTaskContent(serialiseTaskContent(next), vocab);
+    if (check.problems.length) throw new WriteRefused(check.problems.map((p) => `${p.path}: ${p.message}`).join('; '));
+    const keep = Object.fromEntries(Object.entries(cur.content).filter(([k]) => !['time', 'minutes', 'pf', 'setup', 'conduct', 'automation', 'aims', 'grading', 'snapshot', 'variants'].includes(k)));
+    await client.query(`UPDATE template_elements SET content = $3::jsonb, is_graded = $4 WHERE template_version_id = $1::uuid AND element_key = $2`,
+      [versionId, key, JSON.stringify({ ...keep, ...serialiseTaskContent(check.value) }), check.value.grading.task_outcome_mode !== 'none' || check.value.grading.competency_grade_mode !== 'none']);
+    await bumpVersion(client, versionId);
+    await audit({ action: 'template.element.update', entityTable: 'template_elements', entityId: key, capabilityCode: 'training.templates.configure',
+      details: { version_id: versionId, template_id: v.template_id, tab } }, ctx.actor, ctx.request, client);
+  });
+}
+
+function parseMinutesOrThrow(s: string): number {
+  const m = /^(\d{1,2}):([0-5]\d)$/.exec(s.trim());
+  if (!m) throw new WriteRefused('Time must read like 0:45.');
+  return Number(m[1]) * 60 + Number(m[2]);
 }

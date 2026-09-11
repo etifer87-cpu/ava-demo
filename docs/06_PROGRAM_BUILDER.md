@@ -81,7 +81,7 @@ Two rules carried over from the reference decision, because they were paid for o
 
 | Thing | Why | How it appears meanwhile |
 |---|---|---|
-| Malfunction reference ingestion | You asked to defer it | The library create form is live: an author adds a malfunction by hand |
+| Malfunction reference text | The device vendor's effect and cue text is its owner's | **Done 2026-09-11 for the index only**: `data/library/a320-malfunctions.json` carries the IOS button titles, ATA chapter, engine applicability and options (218 rows, core baseline + option groups; customer-specific sets excluded). `npm run seed:library` loads it. Descriptions are never reproduced |
 | Approve / publish lifecycle beyond `published` | The kit's publish already freezes the version | Draft → Published → Retired, nothing more |
 | Cross-day program object | One template per sim day is the honest unit | `setup.program = { code, module, phase, day }` groups them |
 
@@ -187,6 +187,12 @@ That keeps 29 Sep intact. If the constraint engine has to be live for the demo, 
 the seed (step 9) and the seed becomes two templates instead of four — say so and I will reorder.
 
 ### 4.3 The library this produces
+
+**Seeded 2026-09-11** from `data/library/a320-guide-library.json`: 4 airports, 9 weather sets, 6 mass
+configurations, 11 positions, 4 resets, 8 ATC scripts, 12 injects, 19 tasks (each tagged with its
+IATA training elements), 3 notes, 6 block presets - and 6 equivalency groups over the malfunction
+index (engine at take-off, system after the IAF, A/THR channel, roll-out event, fuel leak, engine
+in descent). All values substituted per section 4.1.
 
 Roughly, from one module: ~18 tasks, ~14 malfunctions (A/THR channel fault, ENG bird strike + high
 vibration, fuel leak before / after the metering valve, fuel leak centre tank, ENG 1 stall at V1,

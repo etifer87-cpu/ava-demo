@@ -374,3 +374,10 @@ table.matrix-wide .matrix-module th { background: var(--surface-sunken); text-al
 .outline a { color: inherit; text-decoration: none; }
 .outline a:hover { text-decoration: underline; }
 .inspector .field label { font-size: var(--text-xs); }
+
+/* Task tabs in the inspector: automation is three selects in one row, always visible. */
+.automation { display: grid; grid-template-columns: repeat(3, 1fr); gap: var(--space-2); }
+.tabs > details > summary { font-weight: 600; }
+.inspector textarea, .inspector select, .inspector input { width: 100%; box-sizing: border-box; font-size: var(--text-sm); }
+.inspector input.xs { font-size: var(--text-xs); margin-top: 2px; }
+.inspector .check-grid { grid-template-columns: 1fr; gap: 2px; }

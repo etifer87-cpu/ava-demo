@@ -101,3 +101,33 @@ export async function createLibraryElement(input: LibraryCreate, actor: AuditAct
     return code;
   });
 }
+
+/* ------------------------------------------------------------------ */
+/* Pickers - what the inspector offers                                  */
+/* ------------------------------------------------------------------ */
+
+export interface PickOption { code: string; title: string; group: string | null }
+
+/** Library elements of one kind tag, for a select. Malfunctions group by ATA chapter. */
+export async function pickList(kind: LibraryKindTag, fleet: string | null): Promise<PickOption[]> {
+  const params: unknown[] = [kind];
+  let fleetClause = '';
+  if (fleet) { params.push(`fleet:${fleet}`); fleetClause = `AND (NOT EXISTS (SELECT 1 FROM unnest(l.tags) t WHERE t LIKE 'fleet:%') OR $2 = ANY (l.tags))`; }
+  return query<PickOption>(`
+    SELECT l.code, COALESCE(l.title, l.code) AS title,
+           CASE WHEN l.content->'ios'->>'ata' IS NOT NULL THEN 'ATA ' || (l.content->'ios'->>'ata') || ' · ' || COALESCE(l.content->'ios'->>'ata_label', '') ELSE NULL END AS "group"
+      FROM element_library l
+     WHERE l.deleted_at IS NULL AND l.is_active AND $1 = ANY (l.tags) ${fleetClause}
+     ORDER BY 3 NULLS FIRST, 2`, params);
+}
+
+export interface GroupOption { code: string; name: string; candidates: number }
+
+export async function equivalencyGroups(fleet: string | null): Promise<GroupOption[]> {
+  const params: unknown[] = [];
+  let fleetClause = '';
+  if (fleet) { params.push(fleet); fleetClause = `AND (g.asset_class_id IS NULL OR g.asset_class_id = (SELECT id FROM asset_classes WHERE code = $1 AND deleted_at IS NULL))`; }
+  return query<GroupOption>(`
+    SELECT g.code, g.name, (SELECT count(*)::int FROM equivalency_group_candidates c WHERE c.group_id = g.id AND c.is_active) AS candidates
+      FROM equivalency_groups g WHERE g.deleted_at IS NULL AND g.is_active ${fleetClause} ORDER BY g.name`, params);
+}

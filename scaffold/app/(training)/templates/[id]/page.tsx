@@ -7,7 +7,8 @@ import { loadProgramVersion, programVocab } from '@/lib/program';
 import { hasBlockers } from '@/lib/program/rules';
 import { formatMinutes } from '@/lib/program/shape';
 import { totalPlannedMinutes } from '@/lib/program/model';
-import { listLibrary } from '@/lib/program/library';
+import { listLibrary, pickList, equivalencyGroups } from '@/lib/program/library';
+import { SETUP_KINDS } from '@/lib/program/shape';
 import { fleetOptions } from '@/lib/templates';
 import { readFlash } from '@/lib/admin';
 import Breadcrumbs from '@/components/ui/Breadcrumbs';
@@ -53,6 +54,8 @@ export default async function ProgramPage({ params, searchParams }: { params: Pr
   const wantedVersion = UUID.test(one('version')) ? one('version') : null;
   const sel = KEY.test(one('sel')) ? one('sel') : null;
   const libQ = one('lib').slice(0, 80);
+  const tabRaw = one('tab');
+  const openTab = (tabRaw === 'setup' || tabRaw === 'conduct' || tabRaw === 'assessment' || tabRaw === 'aims') ? tabRaw : 'setup';
 
   const template = (await query<TemplateRow>(`
     SELECT t.id, t.code, t.name, t.template_kind, COALESCE(k.label, t.template_kind) AS kind_label, ac.code AS asset_class, t.current_version_id, t.is_active
@@ -76,6 +79,20 @@ export default async function ProgramPage({ params, searchParams }: { params: Pr
   const editable = canConfigure && program?.version.status === 'draft';
 
   const node = program && sel ? program.tree.byKey.get(sel) ?? null : null;
+
+  // Picker data is loaded only when a task is selected: six set-up lists, the malfunction and
+  // inject lists, the equivalency groups and the framework's competencies. Nothing selected,
+  // nothing fetched.
+  const picks = node?.content.type === 'task' ? await (async () => {
+    const fleet = template.asset_class;
+    const [airport, weather, mass_config, position, reset, atc_script, malfunctions, injects, groups, competencies] = await Promise.all([
+      pickList('airport', fleet), pickList('weather', fleet), pickList('mass_config', fleet), pickList('position', fleet), pickList('reset', fleet), pickList('atc_script', fleet),
+      pickList('malfunction', fleet), pickList('inject', fleet), equivalencyGroups(fleet),
+      query<{ code: string; name: string }>(`SELECT c.code, c.name FROM competencies c JOIN competency_frameworks f ON f.id = c.framework_id WHERE f.is_active AND c.is_active ORDER BY c.position, c."index"`),
+    ]);
+    const setupOptions = { airport, weather, mass_config, position, reset, atc_script } satisfies Record<(typeof SETUP_KINDS)[number], unknown>;
+    return { setupOptions, malfunctions, injects, groups, competencies };
+  })() : null;
   const target = node ? (node.content.type === 'section' ? node : node.parentKey ? program?.tree.byKey.get(node.parentKey) ?? null : null) : null;
 
   const base = `/templates/${template.id}`;
@@ -84,6 +101,7 @@ export default async function ProgramPage({ params, searchParams }: { params: Pr
     if (wantedVersion) u.set('version', wantedVersion);
     if (libQ) u.set('lib', libQ);
     u.set('sel', key);
+    if (key === sel && tabRaw) u.set('tab', tabRaw);
     return `${base}?${u.toString()}`;
   };
   const pathWith = (parts: Record<string, string | null>) => { const u = new URLSearchParams(); for (const [k, v] of Object.entries(parts)) if (v) u.set(k, v); const s = u.toString(); return s ? `${base}?${s}` : base; };
@@ -139,7 +157,7 @@ export default async function ProgramPage({ params, searchParams }: { params: Pr
               </div>
               <Outline tree={program.tree} phaseLabels={vocab.phases} selected={sel} hrefFor={hrefFor} />
             </section>
-            <Inspector tree={program.tree} node={node} templateId={template.id} versionId={program.version.id} editable={Boolean(editable)} vocab={vocab} />
+            <Inspector tree={program.tree} node={node} templateId={template.id} versionId={program.version.id} editable={Boolean(editable)} vocab={vocab} picks={picks} openTab={openTab} />
           </div>
 
           {program.problems.length ? (

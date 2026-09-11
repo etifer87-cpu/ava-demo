@@ -1,5 +1,6 @@
 import { formatMinutes } from '@/lib/program/shape';
 import { plannedMinutes, type ProgramNode, type ProgramTree } from '@/lib/program/model';
+import TaskTabs, { type TaskTabsProps } from './TaskTabs';
 
 /**
  * Inspector - the right pane of the builder. Server component.
@@ -17,12 +18,15 @@ export interface InspectorProps {
   readonly templateId: string;
   readonly versionId: string;
   readonly editable: boolean;
-  readonly vocab: { readonly sectionKinds: ReadonlySet<string>; readonly phases: ReadonlyMap<string, string> };
+  readonly vocab: { readonly sectionKinds: ReadonlySet<string>; readonly phases: ReadonlyMap<string, string>; readonly pfSeats: ReadonlySet<string> };
+  /** Picker data for the task tabs; null when the page did not load it (nothing selected). */
+  readonly picks: Pick<TaskTabsProps, 'setupOptions' | 'malfunctions' | 'injects' | 'groups' | 'competencies'> | null;
+  readonly openTab: TaskTabsProps['open'];
 }
 
 const BLANK_TYPES = [['task', 'Task'], ['setup', 'Set-up block'], ['event_option', 'Option group'], ['note', 'Note']] as const;
 
-export function Inspector({ tree, node, templateId, versionId, editable, vocab }: InspectorProps) {
+export function Inspector({ tree, node, templateId, versionId, editable, vocab, picks, openTab }: InspectorProps) {
   const action = `/api/templates/${templateId}/elements`;
   const parentSection = node ? (node.content.type === 'section' ? node : node.parentKey ? tree.byKey.get(node.parentKey) ?? null : null) : null;
   const siblings = node ? (node.parentKey ? tree.byKey.get(node.parentKey)?.children ?? [] : tree.roots) : [];
@@ -67,6 +71,10 @@ export function Inspector({ tree, node, templateId, versionId, editable, vocab }
               <label className="check"><input type="checkbox" name="training_only" defaultChecked={node.content.section.training_only} /><span>Training only - grades here do not count</span></label>
               <div><button className="button button-quiet xs" type="submit">Save section</button></div>
             </form>
+          ) : null}
+
+          {editable && node.content.type === 'task' && picks ? (
+            <TaskTabs task={node.content.task} elementKey={node.key} templateId={templateId} versionId={versionId} pfSeats={[...vocab.pfSeats]} open={openTab} {...picks} />
           ) : null}
 
           {editable ? (

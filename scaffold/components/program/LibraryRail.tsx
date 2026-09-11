@@ -48,7 +48,7 @@ export function LibraryRail({ rows, q, templateId, versionId, targetKey, targetT
       </p>
 
       {groups.map((g) => (
-        <details key={g.tag} className="collapse rail-group" open={g.rows.length > 0 && (q !== '' || g.placeable)}>
+        <details key={g.tag} className="collapse rail-group" open={g.rows.length > 0 && (q !== '' || (g.placeable && g.rows.length <= 40))}>
           <summary>{g.label} <span className="xs muted">{g.rows.length}</span></summary>
           {g.rows.length === 0 ? <p className="xs muted" style={{ margin: 'var(--space-1) 0 0' }}>Nothing here yet.</p> : (
             <ul className="rail-list">
