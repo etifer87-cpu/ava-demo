@@ -5,23 +5,25 @@ import { resolveAccess, requireCapability } from '@/lib/access';
 import { actorFromSession, requestContext } from '@/lib/audit';
 import { flashCookie } from '@/lib/admin';
 import { parseMinutes } from '@/lib/program/shape';
-import { addBlank, addFromLibrary, addSection, moveElement, removeElement, renameElement, updateSection, updateTask, WriteRefused, type TaskTab } from '@/lib/program/write';
+import { addBlank, addFromLibrary, addSection, isPaletteKind, moveElement, placeElement, removeElement, renameElement, updateSection, updateTask, WriteRefused, type TaskTab } from '@/lib/program/write';
 
 /**
- * POST /api/templates/[id]/elements - structural changes to the current draft. `_action`:
+ * POST /api/templates/[id]/elements - every change to a draft's structure and content. `_action`:
  *
- *   add_section    parent (key or ''), title, section_kind, phase, time, training_only
- *   add_blank      parent, element_type (task|setup|event_option|note), title
- *   add_library    parent, code
- *   move           key, direction (up|down)
+ *   add            kind (section|exercise|setup|comms|malfunction|event|note), parent, index, title?
+ *   add_library    code, parent, index                       a preset or a saved exercise
+ *   place          key, parent, index                        the drag gesture
+ *   move           key, direction (up|down)                  the keyboard fallback
  *   rename         key, title
+ *   remove         key
+ *   add_section    parent, title, section_kind, phase, time, training_only     (form fallback)
  *   set_section    key, section_kind, phase, time, training_only
  *   set_task       key, tab (setup|conduct|assessment|aims) + that tab's fields
- *   remove         key
  *
- * Every action redirects back to the builder with the changed element selected, and the message
- * in the flash. Gate: training.templates.configure. The version is the template's CURRENT one
- * unless `version` names another draft of the same template.
+ * Speaks both dialects: a form post is answered with a redirect back to the builder and a flash;
+ * a JSON body (the canvas) is answered with JSON `{ ok, key?, message }`. Gate:
+ * training.templates.configure. The version is the template's current one unless `version`
+ * names another draft of the same template.
  */
 
 export const runtime = 'nodejs';
@@ -38,8 +40,17 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
   const access = await resolveAccess(session);
   requireCapability(access, 'training.templates.configure');
 
-  const form = await request.formData();
-  const str = (k: string, max = 200) => String(form.get(k) ?? '').trim().slice(0, max);
+  // One reader over both bodies.
+  const isJson = (request.headers.get('content-type') ?? '').includes('application/json');
+  const body: Record<string, unknown> = isJson ? ((await request.json().catch(() => ({}))) as Record<string, unknown>) : {};
+  const form = isJson ? null : await request.formData();
+  const str = (k: string, max = 200) => {
+    const v = form ? form.get(k) : body[k];
+    return v === undefined || v === null ? '' : String(v).trim().slice(0, max);
+  };
+  const all = (k: string) => (form ? form.getAll(k).map((v) => String(v)) : Array.isArray(body[k]) ? (body[k] as unknown[]).map(String) : []).map((v) => v.trim().slice(0, 200));
+  const intOrNull = (k: string) => { const v = str(k, 6); if (v === '') return null; const n = Number(v); return Number.isInteger(n) && n >= 0 ? n : null; };
+
   const action = str('_action', 20);
   const requested = str('version', 40);
   const ctx = { actor: actorFromSession(session), request: requestContext(request.headers) };
@@ -51,7 +62,8 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     requested && UUID.test(requested) ? [id, requested] : [id]))[0];
   const versionId = versionRow?.id ?? null;
 
-  const back = (flash: Parameters<typeof flashCookie>[0], sel: string | null, tab: string | null = null) => {
+  const reply = (flash: Parameters<typeof flashCookie>[0], sel: string | null, tab: string | null = null) => {
+    if (isJson) return NextResponse.json({ ok: flash.kind !== 'bad', key: sel, message: flash.message }, { status: flash.kind === 'bad' ? 400 : 200 });
     const url = new URL(`/templates/${id}`, request.nextUrl.origin);
     if (requested) url.searchParams.set('version', requested);
     if (sel) url.searchParams.set('sel', sel);
@@ -61,47 +73,51 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     return res;
   };
 
-  if (!versionId) return back({ kind: 'bad', message: 'This program has no version to edit.' }, null);
+  if (!versionId) return reply({ kind: 'bad', message: 'This program has no version to edit.' }, null);
 
   const parent = str('parent', 63);
   const key = str('key', 63);
   const title = str('title', 200);
-  if (parent && !KEY.test(parent)) return back({ kind: 'bad', message: 'Bad parent key.' }, null);
-  if (key && !KEY.test(key)) return back({ kind: 'bad', message: 'Bad element key.' }, null);
+  const index = intOrNull('index');
+  if (parent && !KEY.test(parent)) return reply({ kind: 'bad', message: 'Bad parent key.' }, null);
+  if (key && !KEY.test(key)) return reply({ kind: 'bad', message: 'Bad element key.' }, null);
 
   try {
     switch (action) {
+      case 'add': {
+        const kind = str('kind', 20);
+        if (!isPaletteKind(kind)) throw new WriteRefused('Choose what to add.');
+        const k = await addBlank(versionId, { parentKey: parent || null, kind, title: title || null, index }, ctx);
+        return reply({ kind: 'ok', message: 'Added.' }, k);
+      }
+      case 'add_library': {
+        const code = str('code', 63);
+        if (!KEY.test(code)) throw new WriteRefused('Bad library code.');
+        const k = await addFromLibrary(versionId, { parentKey: parent || null, libraryCode: code, index }, ctx);
+        return reply({ kind: 'ok', message: 'Placed from the library.' }, k);
+      }
+      case 'place': {
+        if (!key) throw new WriteRefused('No element.');
+        await placeElement(versionId, key, parent || null, index, ctx);
+        return reply({ kind: 'ok', message: 'Moved.' }, key);
+      }
       case 'add_section': {
         const timeRaw = str('time', 10);
         const minutes = timeRaw ? parseMinutes(timeRaw) : null;
         if (timeRaw && minutes === null) throw new WriteRefused('Time must read like 0:50.');
-        const k = await addSection(versionId, { parentKey: parent || null, title, sectionKind: str('section_kind', 20) || null, phase: str('phase', 20) || null, minutes, trainingOnly: str('training_only', 5) === 'on' }, ctx);
-        return back({ kind: 'ok', message: `Section "${title}" added.` }, k);
-      }
-      case 'add_blank': {
-        const type = str('element_type', 20);
-        if (type !== 'task' && type !== 'setup' && type !== 'event_option' && type !== 'note') throw new WriteRefused('Choose an element type.');
-        if (!parent) throw new WriteRefused('Choose the section to add it to.');
-        const k = await addBlank(versionId, { parentKey: parent, elementType: type, title }, ctx);
-        return back({ kind: 'ok', message: `"${title}" added.` }, k);
-      }
-      case 'add_library': {
-        if (!parent) throw new WriteRefused('Select a section first, then add from the library.');
-        const code = str('code', 63);
-        if (!KEY.test(code)) throw new WriteRefused('Bad library code.');
-        const k = await addFromLibrary(versionId, { parentKey: parent, libraryCode: code }, ctx);
-        return back({ kind: 'ok', message: `Placed from the library.` }, k);
+        const k = await addSection(versionId, { parentKey: parent || null, title, sectionKind: str('section_kind', 20) || null, phase: str('phase', 20) || null, minutes, trainingOnly: str('training_only', 5) === 'on', index }, ctx);
+        return reply({ kind: 'ok', message: `Section "${title}" added.` }, k);
       }
       case 'move': {
         const direction = str('direction', 5);
         if (!key || (direction !== 'up' && direction !== 'down')) throw new WriteRefused('Bad move.');
         await moveElement(versionId, key, direction, ctx);
-        return back({ kind: 'ok', message: `Moved ${direction}.` }, key);
+        return reply({ kind: 'ok', message: `Moved ${direction}.` }, key);
       }
       case 'rename': {
         if (!key) throw new WriteRefused('No element.');
         await renameElement(versionId, key, title, ctx);
-        return back({ kind: 'ok', message: 'Title saved.' }, key);
+        return reply({ kind: 'ok', message: 'Title saved.' }, key);
       }
       case 'set_section': {
         if (!key) throw new WriteRefused('No element.');
@@ -109,26 +125,25 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
         const minutes = timeRaw ? parseMinutes(timeRaw) : null;
         if (timeRaw && minutes === null) throw new WriteRefused('Time must read like 0:50.');
         await updateSection(versionId, key, { sectionKind: str('section_kind', 20) || null, phase: str('phase', 20) || null, minutes, trainingOnly: str('training_only', 5) === 'on' }, ctx);
-        return back({ kind: 'ok', message: 'Section saved.' }, key);
+        return reply({ kind: 'ok', message: 'Section saved.' }, key);
       }
       case 'set_task': {
         if (!key) throw new WriteRefused('No element.');
         const tab = str('tab', 12);
         if (tab !== 'setup' && tab !== 'conduct' && tab !== 'assessment' && tab !== 'aims') throw new WriteRefused('Unknown tab.');
-        const all = (k: string) => form.getAll(k).map((v) => String(v).trim().slice(0, 200));
         await updateTask(versionId, key, tab as TaskTab, (k) => str(k, 4000), all, ctx);
-        return back({ kind: 'ok', message: `${tab[0]?.toUpperCase()}${tab.slice(1)} saved.` }, key, tab);
+        return reply({ kind: 'ok', message: `${tab[0]?.toUpperCase()}${tab.slice(1)} saved.` }, key, tab);
       }
       case 'remove': {
         if (!key) throw new WriteRefused('No element.');
         const n = await removeElement(versionId, key, ctx);
-        return back({ kind: 'ok', message: n === 1 ? 'Element removed.' : `Removed ${n} elements.` }, null);
+        return reply({ kind: 'ok', message: n === 1 ? 'Element removed.' : `Removed ${n} elements.` }, null);
       }
       default:
         return NextResponse.json({ ok: false, error: 'unknown_action' }, { status: 400 });
     }
   } catch (err) {
     const tab = str('tab', 12) || null;
-    return back({ kind: 'bad', message: err instanceof Error ? err.message : 'The change was not made.' }, key || null, tab);
+    return reply({ kind: 'bad', message: err instanceof Error ? err.message : 'The change was not made.' }, key || null, tab);
   }
 }

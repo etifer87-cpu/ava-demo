@@ -6,8 +6,8 @@ import TaskTabs, { type TaskTabsProps } from './TaskTabs';
  * Inspector - the right pane of the builder. Server component.
  *
  * Renders the one selected element's forms, and the forms that add beneath it. This slice carries
- * STRUCTURE: title, section fields (kind, phase, time, training-only), move, remove, add section,
- * add blank element. The task tabs - Set-up, Conduct, Assessment, Aims - are the next step and
+ * STRUCTURE: title (also editable inline on the canvas), section fields (kind, phase, time,
+ * training-only), move, remove. Adding is the palette's job. The task tabs - Set-up, Conduct, Assessment, Aims - are the next step and
  * slot into the same pane. Every form posts to the elements route and returns here with the
  * changed element selected. Save is a button per form, not per field: the pane has at most one
  * form open at a time and the change is a full round trip anyway.
@@ -24,11 +24,8 @@ export interface InspectorProps {
   readonly openTab: TaskTabsProps['open'];
 }
 
-const BLANK_TYPES = [['task', 'Task'], ['setup', 'Set-up block'], ['event_option', 'Option group'], ['note', 'Note']] as const;
-
 export function Inspector({ tree, node, templateId, versionId, editable, vocab, picks, openTab }: InspectorProps) {
   const action = `/api/templates/${templateId}/elements`;
-  const parentSection = node ? (node.content.type === 'section' ? node : node.parentKey ? tree.byKey.get(node.parentKey) ?? null : null) : null;
   const siblings = node ? (node.parentKey ? tree.byKey.get(node.parentKey)?.children ?? [] : tree.roots) : [];
   const idx = node ? siblings.findIndex((s) => s.key === node.key) : -1;
   const descendants = node ? countDescendants(node) : 0;
@@ -95,36 +92,8 @@ export function Inspector({ tree, node, templateId, versionId, editable, vocab, 
             </details>
           ) : null}
         </>
-      ) : <p className="small muted" style={{ margin: 0 }}>Nothing selected. Choose a section or a task in the program, or add a section below.</p>}
+      ) : <p className="small muted" style={{ margin: 0 }}>Nothing selected. Click an element in the program, or drag one in from the left.</p>}
 
-      {editable ? (
-        <>
-          <hr style={{ border: 0, borderTop: '1px solid var(--border)', margin: 0 }} />
-          <details className="collapse" open={tree.roots.length === 0}>
-            <summary>Add a section{parentSection ? ` inside ${parentSection.title || parentSection.key}` : ' at the top level'}</summary>
-            <form method="post" action={action} className="stack" style={{ gap: 'var(--space-2)', marginTop: 'var(--space-2)' }} data-testid="inspector-add-section">
-              <input type="hidden" name="_action" value="add_section" /><input type="hidden" name="version" value={versionId} /><input type="hidden" name="parent" value={parentSection?.key ?? ''} />
-              <div className="field"><label htmlFor="s-title">Title *</label><input id="s-title" name="title" required minLength={2} maxLength={200} placeholder="e.g. EVAL 1" /></div>
-              <div className="field"><label htmlFor="s-kind">Level</label><select id="s-kind" name="section_kind" defaultValue="block"><option value="">-</option>{[...vocab.sectionKinds].map((k) => <option key={k} value={k}>{k}</option>)}</select></div>
-              <div className="field"><label htmlFor="s-phase">Phase</label><select id="s-phase" name="phase" defaultValue=""><option value="">none</option>{[...vocab.phases].map(([code, label]) => <option key={code} value={code}>{label}</option>)}</select></div>
-              <div className="field"><label htmlFor="s-time">Time (H:MM)</label><input id="s-time" name="time" pattern="\d{1,2}:[0-5]\d" className="mono" placeholder="0:50" /></div>
-              <label className="check"><input type="checkbox" name="training_only" /><span>Training only</span></label>
-              <div><button className="button xs" type="submit">Add section</button></div>
-            </form>
-          </details>
-          {parentSection ? (
-            <details className="collapse">
-              <summary>Add a blank element to {parentSection.title || parentSection.key}</summary>
-              <form method="post" action={action} className="stack" style={{ gap: 'var(--space-2)', marginTop: 'var(--space-2)' }} data-testid="inspector-add-blank">
-                <input type="hidden" name="_action" value="add_blank" /><input type="hidden" name="version" value={versionId} /><input type="hidden" name="parent" value={parentSection.key} />
-                <div className="field"><label htmlFor="b-type">Type</label><select id="b-type" name="element_type" defaultValue="task">{BLANK_TYPES.map(([v, l]) => <option key={v} value={v}>{l}</option>)}</select></div>
-                <div className="field"><label htmlFor="b-title">Title *</label><input id="b-title" name="title" required minLength={2} maxLength={200} /></div>
-                <div><button className="button xs" type="submit">Add</button></div>
-              </form>
-            </details>
-          ) : null}
-        </>
-      ) : null}
     </aside>
   );
 }

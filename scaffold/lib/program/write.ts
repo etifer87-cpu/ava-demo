@@ -59,14 +59,6 @@ function refuseReserved(title: string): void {
   }
 }
 
-async function requireParentSection(client: PoolClient, versionId: string, parentKey: string | null): Promise<void> {
-  if (parentKey === null) return;
-  const r = await client.query<{ element_type: string }>(`SELECT element_type FROM template_elements WHERE template_version_id = $1::uuid AND element_key = $2`, [versionId, parentKey]);
-  const p = r.rows[0];
-  if (!p) throw new WriteRefused('The chosen section no longer exists.');
-  if (p.element_type !== 'section' && p.element_type !== 'group') throw new WriteRefused('Elements can only be placed inside a section.');
-}
-
 async function nextPosition(client: PoolClient, versionId: string, parentKey: string | null): Promise<number> {
   const r = await client.query<{ n: number }>(
     `SELECT COALESCE(max(position), -1) + 1 AS n FROM template_elements WHERE template_version_id = $1::uuid AND parent_key IS NOT DISTINCT FROM $2`, [versionId, parentKey]);
@@ -82,6 +74,36 @@ async function renumber(client: PoolClient, versionId: string, parentKey: string
     [versionId, parentKey]);
 }
 
+/**
+ * Puts `key` at `index` among the children of `parentKey` (0 = first; null/over-length = last),
+ * renumbering the siblings contiguously. The element must already have parent_key = parentKey.
+ */
+async function setOrder(client: PoolClient, versionId: string, parentKey: string | null, key: string, index: number | null): Promise<void> {
+  const sibs = (await client.query<{ element_key: string }>(
+    `SELECT element_key FROM template_elements WHERE template_version_id = $1::uuid AND parent_key IS NOT DISTINCT FROM $2 AND element_key <> $3 ORDER BY position, element_key`,
+    [versionId, parentKey, key])).rows.map((r) => r.element_key);
+  const at = index === null || index < 0 || index > sibs.length ? sibs.length : index;
+  sibs.splice(at, 0, key);
+  for (const [i, k] of sibs.entries()) {
+    await client.query(`UPDATE template_elements SET position = $3 WHERE template_version_id = $1::uuid AND element_key = $2 AND position <> $3`, [versionId, k, i]);
+  }
+}
+
+/** Where an element type may live. Sections at the root only; a note anywhere; everything else inside a section. */
+function checkPlacement(elementType: string, parentType: string | null): void {
+  if (elementType === 'section' && parentType !== null) throw new WriteRefused('A section lives at the top level, not inside another section.');
+  if (elementType !== 'section' && elementType !== 'note' && parentType === null) throw new WriteRefused('Only a section or a note can sit at the top level; drop this inside a section.');
+  if (parentType !== null && parentType !== 'section' && parentType !== 'group') throw new WriteRefused('Elements can only be placed inside a section.');
+}
+
+async function parentTypeOf(client: PoolClient, versionId: string, parentKey: string | null): Promise<string | null> {
+  if (parentKey === null) return null;
+  const r = await client.query<{ element_type: string }>(`SELECT element_type FROM template_elements WHERE template_version_id = $1::uuid AND element_key = $2`, [versionId, parentKey]);
+  const p = r.rows[0];
+  if (!p) throw new WriteRefused('The chosen section no longer exists.');
+  return p.element_type;
+}
+
 async function bumpVersion(client: PoolClient, versionId: string): Promise<void> {
   await client.query(`UPDATE session_template_versions SET updated_at = now() WHERE id = $1::uuid`, [versionId]);
 }
@@ -90,7 +112,7 @@ export interface WriteContext { actor: AuditActor; request: RequestContext }
 
 /* ------------------------------------------------------------------ */
 
-export async function addSection(versionId: string, input: { parentKey: string | null; title: string; sectionKind: string | null; phase: string | null; minutes: number | null; trainingOnly: boolean }, ctx: WriteContext): Promise<string> {
+export async function addSection(versionId: string, input: { parentKey: string | null; title: string; sectionKind: string | null; phase: string | null; minutes: number | null; trainingOnly: boolean; index?: number | null }, ctx: WriteContext): Promise<string> {
   const vocab: ProgramVocab = programVocab();
   const title = input.title.trim();
   if (title.length < 2) throw new WriteRefused('A section needs a title.');
@@ -99,13 +121,14 @@ export async function addSection(versionId: string, input: { parentKey: string |
   if (parsed.problems.length) throw new WriteRefused(parsed.problems.map((p) => `${p.path}: ${p.message}`).join('; '));
   return transaction(async (client) => {
     const v = await lockDraft(client, versionId);
-    await requireParentSection(client, versionId, input.parentKey);
+    checkPlacement('section', await parentTypeOf(client, versionId, input.parentKey));
     const key = await mintKey(client, versionId, input.parentKey, title);
     const position = await nextPosition(client, versionId, input.parentKey);
     await client.query(
       `INSERT INTO template_elements (template_version_id, element_key, parent_key, element_type, title, position, is_graded, content)
        VALUES ($1::uuid, $2, $3, 'section', $4, $5, false, $6::jsonb)`,
       [versionId, key, input.parentKey, title, position, JSON.stringify(serialiseSectionContent(parsed.value))]);
+    if (input.index !== undefined && input.index !== null) await setOrder(client, versionId, input.parentKey, key, input.index);
     await bumpVersion(client, versionId);
     await audit({ action: 'template.element.add', entityTable: 'template_elements', entityId: key, capabilityCode: 'training.templates.configure',
       details: { version_id: versionId, template_id: v.template_id, element_type: 'section', parent_key: input.parentKey, title, phase: parsed.value.phase } }, ctx.actor, ctx.request, client);
@@ -113,25 +136,72 @@ export async function addSection(versionId: string, input: { parentKey: string |
   });
 }
 
-/** A blank element of a given type under a section. Tasks start with empty content; the inspector fills them. */
-export async function addBlank(versionId: string, input: { parentKey: string; elementType: 'task' | 'setup' | 'event_option' | 'note'; title: string }, ctx: WriteContext): Promise<string> {
-  const title = input.title.trim();
-  if (title.length < 2) throw new WriteRefused('An element needs a title.');
+/**
+ * The palette's kinds. On screen an author drags an Exercise, a Set-up, a Malfunction, an Event,
+ * a Note or a Comms block; in storage those are the kit's element types with a `kind` in content
+ * where one type serves two palette items. The screen word never reaches the database.
+ */
+export const PALETTE = {
+  section:     { element_type: 'section',      title: 'New section',  content: () => serialiseSectionContent(parseSectionContent({ section_kind: 'block' }, programVocab()).value) },
+  exercise:    { element_type: 'task',         title: 'New exercise', content: () => serialiseTaskContent(parseTaskContent({}, programVocab()).value) },
+  setup:       { element_type: 'setup',        title: 'Set-up',       content: () => ({ rows: [] }) },
+  comms:       { element_type: 'setup',        title: 'Comms',        content: () => ({ rows: [{ label: 'Comms', value: '' }] }) },
+  malfunction: { element_type: 'event_option', title: 'Malfunction',  content: () => ({ kind: 'malfunction', mode: 'sequence', options: [] }) },
+  event:       { element_type: 'event_option', title: 'Event',        content: () => ({ kind: 'event', mode: 'sequence', options: [] }) },
+  note:        { element_type: 'note',         title: 'Note',         content: () => ({ text: '' }) },
+} as const;
+export type PaletteKind = keyof typeof PALETTE;
+export function isPaletteKind(k: string): k is PaletteKind { return Object.prototype.hasOwnProperty.call(PALETTE, k); }
+
+/** A blank element from the palette, at an index among its new siblings (null = last). */
+export async function addBlank(versionId: string, input: { parentKey: string | null; kind: PaletteKind; title?: string | null; index?: number | null }, ctx: WriteContext): Promise<string> {
+  const p = PALETTE[input.kind];
+  const title = (input.title ?? '').trim() || p.title;
   refuseReserved(title);
-  const content = input.elementType === 'task' ? serialiseTaskContent(parseTaskContent({}, programVocab()).value) : input.elementType === 'note' ? { text: title } : {};
+  const content = p.content();
   return transaction(async (client) => {
     const v = await lockDraft(client, versionId);
-    await requireParentSection(client, versionId, input.parentKey);
+    checkPlacement(p.element_type, await parentTypeOf(client, versionId, input.parentKey));
     const key = await mintKey(client, versionId, input.parentKey, title);
     const position = await nextPosition(client, versionId, input.parentKey);
     await client.query(
       `INSERT INTO template_elements (template_version_id, element_key, parent_key, element_type, title, position, is_graded, content)
-       VALUES ($1::uuid, $2, $3, $4, $5, $6, $7, $8::jsonb)`,
-      [versionId, key, input.parentKey, input.elementType, title, position, input.elementType === 'task', JSON.stringify(content)]);
+       VALUES ($1::uuid, $2, $3, $4, $5, $6, false, $7::jsonb)`,
+      [versionId, key, input.parentKey, p.element_type, title, position, JSON.stringify(content)]);
+    if (input.index !== undefined && input.index !== null) await setOrder(client, versionId, input.parentKey, key, input.index);
     await bumpVersion(client, versionId);
     await audit({ action: 'template.element.add', entityTable: 'template_elements', entityId: key, capabilityCode: 'training.templates.configure',
-      details: { version_id: versionId, template_id: v.template_id, element_type: input.elementType, parent_key: input.parentKey, title } }, ctx.actor, ctx.request, client);
+      details: { version_id: versionId, template_id: v.template_id, element_type: p.element_type, kind: input.kind, parent_key: input.parentKey, title } }, ctx.actor, ctx.request, client);
     return key;
+  });
+}
+
+/**
+ * Moves an element to a parent and an index: the drag gesture. A section stays at the root; a
+ * section cannot be dropped into its own subtree; everything else needs a section parent except
+ * a note. Children travel with their parent because they reference it by key.
+ */
+export async function placeElement(versionId: string, key: string, parentKey: string | null, index: number | null, ctx: WriteContext): Promise<void> {
+  await transaction(async (client) => {
+    const v = await lockDraft(client, versionId);
+    const me = (await client.query<{ element_type: string; parent_key: string | null }>(`SELECT element_type, parent_key FROM template_elements WHERE template_version_id = $1::uuid AND element_key = $2`, [versionId, key])).rows[0];
+    if (!me) throw new WriteRefused('No such element.');
+    if (parentKey === key) throw new WriteRefused('An element cannot be placed inside itself.');
+    if (parentKey !== null) {
+      const chain = await client.query<{ element_key: string }>(
+        `WITH RECURSIVE up AS (SELECT element_key, parent_key FROM template_elements WHERE template_version_id = $1::uuid AND element_key = $2
+                             UNION ALL SELECT e.element_key, e.parent_key FROM template_elements e JOIN up ON e.element_key = up.parent_key WHERE e.template_version_id = $1::uuid)
+         SELECT element_key FROM up`, [versionId, parentKey]);
+      if (chain.rows.some((r) => r.element_key === key)) throw new WriteRefused('An element cannot be placed inside its own subtree.');
+    }
+    checkPlacement(me.element_type, await parentTypeOf(client, versionId, parentKey));
+    const from = me.parent_key;
+    await client.query(`UPDATE template_elements SET parent_key = $3 WHERE template_version_id = $1::uuid AND element_key = $2`, [versionId, key, parentKey]);
+    await setOrder(client, versionId, parentKey, key, index);
+    if (from !== parentKey) await renumber(client, versionId, from);
+    await bumpVersion(client, versionId);
+    await audit({ action: 'template.element.move', entityTable: 'template_elements', entityId: key, capabilityCode: 'training.templates.configure',
+      details: { version_id: versionId, template_id: v.template_id, from_parent: from, to_parent: parentKey, index } }, ctx.actor, ctx.request, client);
   });
 }
 
@@ -141,15 +211,16 @@ export async function addBlank(versionId: string, input: { parentKey: string; el
  * for the badge and nothing else. A library `section` (a block preset) is placed with its own
  * children, if it carries any in content.children.
  */
-export async function addFromLibrary(versionId: string, input: { parentKey: string; libraryCode: string }, ctx: WriteContext): Promise<string> {
+export async function addFromLibrary(versionId: string, input: { parentKey: string | null; libraryCode: string; index?: number | null }, ctx: WriteContext): Promise<string> {
   interface Lib { id: string; code: string; element_type: string; title: string | null; content: Record<string, unknown>; tags: string[] }
   return transaction(async (client) => {
     const v = await lockDraft(client, versionId);
-    await requireParentSection(client, versionId, input.parentKey);
+    const parentType = await parentTypeOf(client, versionId, input.parentKey);
     const lib = (await client.query<Lib>(`SELECT id, code, element_type, title, content, tags FROM element_library WHERE code = $1 AND deleted_at IS NULL AND is_active`, [input.libraryCode])).rows[0];
     if (!lib) throw new WriteRefused('That library element does not exist or is retired.');
     const type = lib.element_type === 'reset' ? 'setup' : lib.element_type === 'malfunction' ? 'event_option' : lib.element_type === 'text' ? 'note' : lib.element_type;
     if (!['section', 'task', 'setup', 'event_option', 'note', 'field', 'computed', 'group'].includes(type)) throw new WriteRefused(`Library type ${lib.element_type} cannot be placed.`);
+    checkPlacement(type, parentType);
     const title = lib.title ?? lib.code;
     const key = await mintKey(client, versionId, input.parentKey, title);
     const position = await nextPosition(client, versionId, input.parentKey);
@@ -180,6 +251,7 @@ export async function addFromLibrary(versionId: string, input: { parentKey: stri
         pos += 1;
       }
     }
+    if (input.index !== undefined && input.index !== null) await setOrder(client, versionId, input.parentKey, key, input.index);
     await bumpVersion(client, versionId);
     await audit({ action: 'template.element.add', entityTable: 'template_elements', entityId: key, capabilityCode: 'training.templates.configure',
       details: { version_id: versionId, template_id: v.template_id, element_type: type, parent_key: input.parentKey, title, from_library: lib.code } }, ctx.actor, ctx.request, client);

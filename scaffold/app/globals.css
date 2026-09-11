@@ -381,3 +381,25 @@ table.matrix-wide .matrix-module th { background: var(--surface-sunken); text-al
 .inspector textarea, .inspector select, .inspector input { width: 100%; box-sizing: border-box; font-size: var(--text-sm); }
 .inspector input.xs { font-size: var(--text-xs); margin-top: 2px; }
 .inspector .check-grid { grid-template-columns: 1fr; gap: 2px; }
+
+/* Palette + drag-and-drop canvas (slice 1 of the builder rework). */
+.builder-main { display: contents; }
+.palette-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: var(--space-1); }
+.palette-item { display: flex; align-items: center; gap: var(--space-2); padding: var(--space-2); border: 1px solid var(--border); border-radius: var(--radius-sm); background: var(--surface); cursor: grab; }
+.palette-item:active { cursor: grabbing; }
+.palette-item[draggable="false"] { cursor: default; }
+.palette-label { flex: 1 1 auto; font-weight: 600; font-size: var(--text-sm); }
+.palette-grip, .grip { color: var(--ink-muted); font-size: var(--text-xs); letter-spacing: -2px; user-select: none; }
+.outline-section, .outline-item { cursor: pointer; }
+.outline-section[draggable="true"] .grip, .outline-item[draggable="true"] .grip { cursor: grab; }
+.is-busy { opacity: 0.55; pointer-events: none; }
+.drop-gap { height: 4px; margin: 0; border-radius: 2px; transition: height 80ms ease, background 80ms ease; list-style: none; }
+.outline.is-dragging .drop-gap.is-live { height: 12px; background: var(--surface-sunken); }
+.drop-gap.is-over { height: 22px; background: color-mix(in srgb, var(--brand-accent) 25%, transparent); outline: 2px dashed var(--brand-accent); }
+.drop-gap.is-refused { background: transparent; opacity: 0.35; }
+.title-button { font: inherit; color: inherit; background: none; border: 0; padding: 0; cursor: text; text-align: left; }
+.title-button:hover { text-decoration: underline dotted; }
+.title-input { font: inherit; padding: 0 var(--space-1); border: 1px solid var(--brand-accent); border-radius: var(--radius-sm); min-width: 12rem; }
+.outline-section .outline-title, .outline-section .title-button.outline-title { font-weight: 600; }
+.outline-malfunction .outline-kind { color: var(--state-bad); }
+.outline-event .outline-kind { color: var(--state-info); }

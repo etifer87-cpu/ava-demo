@@ -20,6 +20,7 @@ export const LIBRARY_KINDS = [
   { tag: 'weather',     label: 'Weather',      element_type: 'setup',        placeable: false },
   { tag: 'mass_config', label: 'Mass & config', element_type: 'setup',       placeable: false },
   { tag: 'position',    label: 'Positions',    element_type: 'setup',        placeable: false },
+  { tag: 'comms',       label: 'Comms',        element_type: 'setup',        placeable: false },
   { tag: 'reset',       label: 'Resets',       element_type: 'setup',        placeable: true },
   { tag: 'atc_script',  label: 'ATC scripts',  element_type: 'setup',        placeable: false },
   { tag: 'note',        label: 'Notes',        element_type: 'note',         placeable: true },

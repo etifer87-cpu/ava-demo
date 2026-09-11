@@ -47,8 +47,8 @@ export type SelectionPolicy = (typeof SELECTION_POLICIES)[number];
 export const SNAPSHOT_ACTIONS = ['take', 'recall'] as const;
 export type SnapshotAction = (typeof SNAPSHOT_ACTIONS)[number];
 
-/** The six set-up condition kinds. A key, so a picker can enumerate them in order. */
-export const SETUP_KINDS = ['airport', 'weather', 'mass_config', 'position', 'reset', 'atc_script'] as const;
+/** The seven set-up condition kinds. A key, so a picker can enumerate them in order. */
+export const SETUP_KINDS = ['airport', 'weather', 'mass_config', 'position', 'comms', 'reset', 'atc_script'] as const;
 export type SetupKind = (typeof SETUP_KINDS)[number];
 
 /* ------------------------------------------------------------------ */
@@ -81,6 +81,7 @@ export interface SetupConditions {
   readonly weather: LibraryRef | null;
   readonly mass_config: LibraryRef | null;
   readonly position: LibraryRef | null;
+  readonly comms: LibraryRef | null;
   readonly reset: LibraryRef | null;
   readonly atc_script: LibraryRef | null;
 }
@@ -160,8 +161,23 @@ export interface SetupContent {
   readonly snapshot: SnapshotAction | null;
 }
 
+export const OPTION_GROUP_KINDS = ['malfunction', 'event'] as const;
+export type OptionGroupKind = (typeof OPTION_GROUP_KINDS)[number];
+export const OPTION_GROUP_MODES = ['sequence', 'choose_one'] as const;
+export type OptionGroupMode = (typeof OPTION_GROUP_MODES)[number];
+
+/**
+ * An option group is a Malfunction or an Event element on the canvas: one or more items, run in
+ * sequence or offered as a grid for the instructor to choose one at delivery (the chosen one is
+ * what the record stores). `kind` separates a failure of an aircraft component from everything
+ * else that happens to the crew (TCAS, windshear, an ATC call). `fleet` is the aircraft type the
+ * malfunction list was searched under; null means the program's fleet.
+ */
 export interface OptionGroupContent {
-  readonly options: readonly { readonly key: string; readonly name: string; readonly trigger: string | null }[];
+  readonly kind: OptionGroupKind;
+  readonly mode: OptionGroupMode;
+  readonly fleet: string | null;
+  readonly options: readonly { readonly key: string; readonly name: string; readonly trigger: string | null; readonly ref: string | null; readonly option: string | null; readonly category: string | null }[];
   readonly slot: SlotRef | null;
 }
 
@@ -333,6 +349,7 @@ export function parseTaskContent(raw: unknown, vocab: ProgramVocab): Parsed<Task
     weather: libraryRef(c, setupRaw.weather, 'setup.weather'),
     mass_config: libraryRef(c, setupRaw.mass_config, 'setup.mass_config'),
     position: libraryRef(c, setupRaw.position, 'setup.position'),
+    comms: libraryRef(c, setupRaw.comms, 'setup.comms'),
     reset: libraryRef(c, setupRaw.reset, 'setup.reset'),
     atc_script: libraryRef(c, setupRaw.atc_script, 'setup.atc_script'),
   };
@@ -446,7 +463,7 @@ export function parseOptionGroupContent(raw: unknown): Parsed<OptionGroupContent
   const c = new Collector('');
   const o: Obj = isObj(raw) ? raw : {};
   if (raw !== undefined && raw !== null && !isObj(raw)) c.add('', 'content must be an object');
-  const options: { key: string; name: string; trigger: string | null }[] = [];
+  const options: OptionGroupContent['options'][number][] = [];
   const seen = new Set<string>();
   if (o.options !== undefined && o.options !== null) {
     if (!Array.isArray(o.options)) c.add('options', 'must be a list');
@@ -454,10 +471,22 @@ export function parseOptionGroupContent(raw: unknown): Parsed<OptionGroupContent
       if (!isObj(r) || typeof r.key !== 'string' || !r.key || typeof r.name !== 'string' || !r.name) { c.add(`options[${i}]`, 'must be {key, name, trigger?}'); return; }
       if (seen.has(r.key)) { c.add(`options[${i}].key`, `option key "${r.key}" is used twice`); return; }
       seen.add(r.key);
-      options.push({ key: r.key, name: r.name, trigger: typeof r.trigger === 'string' && r.trigger ? r.trigger : null });
+      options.push({
+        key: r.key, name: r.name,
+        trigger: typeof r.trigger === 'string' && r.trigger ? r.trigger : null,
+        ref: typeof r.ref === 'string' && r.ref ? r.ref : null,
+        option: typeof r.option === 'string' && r.option ? r.option : null,
+        category: typeof r.category === 'string' && r.category ? r.category : null,
+      });
     });
   }
-  const value: OptionGroupContent = { options, slot: slotRef(c, o.slot, 'slot') };
+  const value: OptionGroupContent = {
+    kind: oneOf(c, o, 'kind', OPTION_GROUP_KINDS, 'malfunction') ?? 'malfunction',
+    mode: oneOf(c, o, 'mode', OPTION_GROUP_MODES, 'sequence') ?? 'sequence',
+    fleet: str(c, o, 'fleet', 40),
+    options,
+    slot: slotRef(c, o.slot, 'slot'),
+  };
   return { value, problems: c.problems };
 }
 

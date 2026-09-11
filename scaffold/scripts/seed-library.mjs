@@ -27,9 +27,9 @@ const DATA_DIR = process.env.LIBRARY_DATA_DIR ?? path.resolve(KIT_ROOT, 'data', 
 /** Mirrors lib/program/library.ts LIBRARY_KINDS - kind tag -> element_type. */
 const KIND_TYPE = {
   task: 'task', block: 'section', malfunction: 'event_option', inject: 'event_option',
-  airport: 'setup', weather: 'setup', mass_config: 'setup', position: 'setup', reset: 'setup', atc_script: 'setup', note: 'note',
+  airport: 'setup', weather: 'setup', mass_config: 'setup', position: 'setup', comms: 'setup', reset: 'setup', atc_script: 'setup', note: 'note',
 };
-const KIND_LABEL = { airport: 'Airport', weather: 'Weather', mass_config: 'Mass & config', position: 'Position', reset: 'Reset', atc_script: 'ATC' };
+const KIND_LABEL = { airport: 'Airport', weather: 'Weather', mass_config: 'Mass & config', position: 'Position', comms: 'Comms', reset: 'Reset', atc_script: 'ATC' };
 
 const slug = (s) => s.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
 

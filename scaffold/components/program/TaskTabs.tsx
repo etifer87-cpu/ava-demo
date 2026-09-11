@@ -25,7 +25,7 @@ export interface TaskTabsProps {
   readonly open: 'setup' | 'conduct' | 'assessment' | 'aims';
 }
 
-const SETUP_LABELS: Record<(typeof SETUP_KINDS)[number], string> = { airport: 'Airport', weather: 'Weather', mass_config: 'Mass & config', position: 'Position', reset: 'Reset', atc_script: 'ATC script' };
+const SETUP_LABELS: Record<(typeof SETUP_KINDS)[number], string> = { airport: 'Airport', weather: 'Weather', mass_config: 'Mass & config', position: 'Position', comms: 'Comms', reset: 'Reset', atc_script: 'ATC script' };
 const AUTOMATION_LABELS: Record<(typeof AUTOMATION_STATES)[number], string> = { required_on: 'Required ON', required_off: 'Required OFF', crew_discretion: 'Crew discretion', not_applicable: 'N/A' };
 const OUTCOME_LABELS: Record<(typeof TASK_OUTCOME_MODES)[number], string> = { none: 'No task result', pass_fail: 'Pass / fail', scale_1_5: 'Scale 1-5' };
 const GRADE_LABELS: Record<(typeof COMPETENCY_GRADE_MODES)[number], string> = { none: 'No competency grade', scale_1_5: 'Scale 1-5 per competency', competent_not_competent: 'Competent / not competent' };
@@ -53,7 +53,7 @@ export function TaskTabs({ task, elementKey, templateId, versionId, setupOptions
   return (
     <div className="stack tabs" data-testid="task-tabs">
       <details className="collapse" open={open === 'setup'}>
-        <summary>Set-up <span className="xs muted">{SETUP_KINDS.filter((k) => task.setup[k]).length} of 6 set</span></summary>
+        <summary>Set-up <span className="xs muted">{SETUP_KINDS.filter((k) => task.setup[k]).length} of {SETUP_KINDS.length} set</span></summary>
         <form method="post" action={action} className="stack" style={{ gap: 'var(--space-2)', marginTop: 'var(--space-2)' }} data-testid="tab-setup">
           {hidden('setup')}
           {SETUP_KINDS.map((k) => (

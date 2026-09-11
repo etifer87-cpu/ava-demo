@@ -5,27 +5,27 @@ import { requireSession } from '@/lib/session';
 import { resolveAccess, requireCapability, can } from '@/lib/access';
 import { loadProgramVersion, programVocab } from '@/lib/program';
 import { hasBlockers } from '@/lib/program/rules';
-import { formatMinutes } from '@/lib/program/shape';
 import { totalPlannedMinutes } from '@/lib/program/model';
 import { listLibrary, pickList, equivalencyGroups } from '@/lib/program/library';
 import { SETUP_KINDS } from '@/lib/program/shape';
-import { fleetOptions } from '@/lib/templates';
 import { readFlash } from '@/lib/admin';
 import Breadcrumbs from '@/components/ui/Breadcrumbs';
 import Card from '@/components/ui/Card';
 import Chip from '@/components/ui/Chip';
-import Outline from '@/components/program/Outline';
-import LibraryRail from '@/components/program/LibraryRail';
+import BuilderCanvas from '@/components/program/BuilderCanvas';
 import Inspector from '@/components/program/Inspector';
+import type { CanvasNode, PresetItem } from '@/components/program/canvas-types';
+import { plannedMinutes, type ProgramNode } from '@/lib/program/model';
+import { phaseColour } from '@/lib/config';
+import { formatMinutes } from '@/lib/program/shape';
 
 /**
  * /templates/[id] - the builder. docs/06_PROGRAM_BUILDER.md section 5.2.
  *
- * Three panes: the library rail, the program canvas, the inspector. Everything is server-rendered
- * and every state is a URL: `?sel=<key>` selects, `?lib=<text>` searches the rail, `?version=`
- * opens another version of the same program. The inspector renders the selected element's forms
- * only - one form, not thirty-four - and every change is a POST to the elements route that comes
- * back here with the changed element selected. Gate: training.templates.view to read;
+ * Three panes: the palette (what can be added), the program canvas (drag, drop, rename inline),
+ * the inspector (the selected element's content). The canvas is the one client component; it
+ * posts JSON to the elements route and refreshes this page, so the tree on screen is always the
+ * tree in the database. Selection is `?sel=<key>`; `?version=` opens another version. Gate: training.templates.view to read;
  * training.templates.configure for every form, checked again in the route.
  */
 
@@ -53,7 +53,6 @@ export default async function ProgramPage({ params, searchParams }: { params: Pr
   const one = (k: string) => (typeof sp[k] === 'string' ? (sp[k] as string).trim() : '');
   const wantedVersion = UUID.test(one('version')) ? one('version') : null;
   const sel = KEY.test(one('sel')) ? one('sel') : null;
-  const libQ = one('lib').slice(0, 80);
   const tabRaw = one('tab');
   const openTab = (tabRaw === 'setup' || tabRaw === 'conduct' || tabRaw === 'assessment' || tabRaw === 'aims') ? tabRaw : 'setup';
 
@@ -64,13 +63,16 @@ export default async function ProgramPage({ params, searchParams }: { params: Pr
   if (!template) notFound();
 
   const versionId = wantedVersion ?? template.current_version_id;
-  const [program, versions, library, fleets, flash] = await Promise.all([
+  const [program, versions, library, flash] = await Promise.all([
     versionId ? loadProgramVersion(versionId) : Promise.resolve(null),
     query<{ id: string; version: number; status: string }>(`SELECT id, version, status FROM session_template_versions WHERE template_id = $1::uuid AND deleted_at IS NULL ORDER BY version DESC`, [id]),
-    listLibrary({ q: libQ, fleet: template.asset_class }),
-    fleetOptions(),
+    listLibrary({ q: '', fleet: template.asset_class }),
     readFlash(),
   ]);
+  // Presets: block presets and saved exercises from the library, for the palette's second group.
+  const presets: PresetItem[] = library
+    .filter((r) => r.kind === 'block' || r.kind === 'task')
+    .map((r) => ({ code: r.code, title: r.title, kind: r.kind === 'block' ? 'block' : 'exercise', phase: null, summary: r.summary }));
   if (program && program.version.template_id !== template.id) notFound();
 
   const vocab = programVocab();
@@ -85,12 +87,12 @@ export default async function ProgramPage({ params, searchParams }: { params: Pr
   // nothing fetched.
   const picks = node?.content.type === 'task' ? await (async () => {
     const fleet = template.asset_class;
-    const [airport, weather, mass_config, position, reset, atc_script, malfunctions, injects, groups, competencies] = await Promise.all([
-      pickList('airport', fleet), pickList('weather', fleet), pickList('mass_config', fleet), pickList('position', fleet), pickList('reset', fleet), pickList('atc_script', fleet),
+    const [airport, weather, mass_config, position, comms, reset, atc_script, malfunctions, injects, groups, competencies] = await Promise.all([
+      pickList('airport', fleet), pickList('weather', fleet), pickList('mass_config', fleet), pickList('position', fleet), pickList('comms', fleet), pickList('reset', fleet), pickList('atc_script', fleet),
       pickList('malfunction', fleet), pickList('inject', fleet), equivalencyGroups(fleet),
       query<{ code: string; name: string }>(`SELECT c.code, c.name FROM competencies c JOIN competency_frameworks f ON f.id = c.framework_id WHERE f.is_active AND c.is_active ORDER BY c.position, c."index"`),
     ]);
-    const setupOptions = { airport, weather, mass_config, position, reset, atc_script } satisfies Record<(typeof SETUP_KINDS)[number], unknown>;
+    const setupOptions = { airport, weather, mass_config, position, comms, reset, atc_script } satisfies Record<(typeof SETUP_KINDS)[number], unknown>;
     return { setupOptions, malfunctions, injects, groups, competencies };
   })() : null;
   const target = node ? (node.content.type === 'section' ? node : node.parentKey ? program?.tree.byKey.get(node.parentKey) ?? null : null) : null;
@@ -99,14 +101,42 @@ export default async function ProgramPage({ params, searchParams }: { params: Pr
   const hrefFor = (key: string) => {
     const u = new URLSearchParams();
     if (wantedVersion) u.set('version', wantedVersion);
-    if (libQ) u.set('lib', libQ);
     u.set('sel', key);
     if (key === sel && tabRaw) u.set('tab', tabRaw);
     return `${base}?${u.toString()}`;
   };
-  const pathWith = (parts: Record<string, string | null>) => { const u = new URLSearchParams(); for (const [k, v] of Object.entries(parts)) if (v) u.set(k, v); const s = u.toString(); return s ? `${base}?${s}` : base; };
-  const currentPath = pathWith({ version: wantedVersion, sel, lib: libQ || null });
-  const clearHref = pathWith({ version: wantedVersion, lib: libQ || null });
+
+
+  const toCanvas = (n: ProgramNode): CanvasNode => {
+    const c = n.content;
+    const kind: CanvasNode['kind'] = c.type === 'section' ? 'section' : c.type === 'task' ? 'exercise' : c.type === 'setup' ? 'setup' : c.type === 'event_option' ? c.options.kind : c.type === 'note' ? 'note' : 'other';
+    const badges: string[] = [];
+    if (c.type === 'task') {
+      if (c.task.pf) badges.push(`PF ${c.task.pf}`);
+      if (c.task.grading.competencies.length) badges.push(c.task.grading.competencies.join(' · '));
+      if (c.task.grading.task_outcome_mode !== 'none' || c.task.grading.competency_grade_mode !== 'none') badges.push('graded');
+      if (c.task.conduct.slot) badges.push('slot');
+    }
+    if (c.type === 'event_option') {
+      const n2 = c.options.options.length;
+      badges.push(n2 === 0 ? 'empty' : `${n2} ${c.options.kind === 'malfunction' ? (n2 === 1 ? 'failure' : 'failures') : (n2 === 1 ? 'item' : 'items')}`);
+      if (n2 > 1) badges.push(c.options.mode === 'choose_one' ? 'choose one' : 'in sequence');
+    }
+    if (c.type === 'setup') badges.push(`${c.setup.rows.length} row${c.setup.rows.length === 1 ? '' : 's'}`);
+    const m = plannedMinutes(n);
+    return {
+      key: n.key, parentKey: n.parentKey, kind, title: n.title,
+      phase: c.type === 'section' ? c.section.phase : null,
+      phaseLabel: c.type === 'section' && c.section.phase ? vocab.phases.get(c.section.phase) ?? c.section.phase : null,
+      phaseColour: c.type === 'section' ? phaseColour(c.section.phase) : null,
+      minutes: m === null ? null : formatMinutes(m),
+      trainingOnly: c.type === 'section' && c.section.training_only,
+      badges, children: n.children.map(toCanvas),
+    };
+  };
+  const canvasRoots = program ? program.tree.roots.map(toCanvas) : [];
+  const carry: Record<string, string> = {};
+  if (wantedVersion) carry.version = wantedVersion;
 
   const planned = program ? totalPlannedMinutes(program.tree) : null;
   const period = program?.tree.setup.period_minutes ?? null;
@@ -142,21 +172,7 @@ export default async function ProgramPage({ params, searchParams }: { params: Pr
       ) : (
         <>
           <div className="builder" data-testid="builder">
-            <LibraryRail
-              rows={library} q={libQ} templateId={template.id} versionId={program.version.id}
-              targetKey={editable && target ? target.key : null} targetTitle={target?.title ?? null}
-              canPlace={editable} canCreate={canLibrary} fleets={fleets.map((f) => ({ value: f.value, label: f.label }))}
-              basePath={base} carry={{ version: wantedVersion ?? undefined, sel: sel ?? undefined }}
-              currentPath={currentPath} highlight={libQ && KEY.test(libQ) ? libQ : null}
-            />
-            <section className="canvas" data-testid="program-outline" aria-label="Program">
-              <div className="row" style={{ alignItems: 'baseline' }}>
-                <h2 className="card-title" style={{ margin: 0 }}>Program</h2>
-                <span className="spacer" />
-                {sel ? <Link href={clearHref} className="xs">Clear selection</Link> : null}
-              </div>
-              <Outline tree={program.tree} phaseLabels={vocab.phases} selected={sel} hrefFor={hrefFor} />
-            </section>
+            <BuilderCanvas templateId={template.id} versionId={program.version.id} roots={canvasRoots} presets={presets} selected={sel} editable={Boolean(editable)} basePath={base} carry={carry} />
             <Inspector tree={program.tree} node={node} templateId={template.id} versionId={program.version.id} editable={Boolean(editable)} vocab={vocab} picks={picks} openTab={openTab} />
           </div>
 
