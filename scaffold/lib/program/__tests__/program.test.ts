@@ -8,7 +8,7 @@
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
 import { parse as parseYaml } from 'yaml';
-import { formatMinutes, isModifiedFromLibrary, parseMinutes, parseTaskContent, parseSectionContent, serialiseTaskContent, type ProgramVocab } from '../shape';
+import { formatMinutes, isModifiedFromLibrary, parseMinutes, parseTaskContent, parseSectionContent, parseSetupContent, parseOptionGroupContent, serialiseTaskContent, serialiseSetupContent, type ProgramVocab } from '../shape';
 import { buildTree, plannedMinutes, totalPlannedMinutes, type ElementRow } from '../model';
 import { assertRegistryComplete, evaluate, RULE_IMPLEMENTATIONS, type RuleRegistry } from '../rules';
 
@@ -105,6 +105,43 @@ describe('section content', () => {
     const bad = parseSectionContent({ section_kind: 'chapter', phase: 'lunch' }, vocab);
     expect(bad.value.phase).toBeNull();
     expect(bad.problems.map((p) => p.path).sort()).toEqual(['phase', 'section_kind']);
+  });
+});
+
+describe('set-up content', () => {
+  it('folds the older {rows:[{label,value}]} shape into entries by label, so seeded blocks still read', () => {
+    const { value, problems } = parseSetupContent({ rows: [{ label: 'Airport', value: 'SKBO' }, { label: 'Weather', value: '29008KT 4000 -RA' }, { label: 'Comms', value: '118.7' }] });
+    expect(problems).toEqual([]);
+    expect(value.entries.airport).toEqual(['SKBO']);
+    expect(value.entries.comms).toEqual(['118.7']);
+  });
+  it('keeps mass as three fields and round-trips', () => {
+    const first = parseSetupContent({ entries: { airport: ['SKCL', ' '], position: ['12 NM final'] }, mass: { zfw: '60.4', zfwcg: '28', fuel: '6.0' } }).value;
+    expect(first.entries.airport).toEqual(['SKCL']);            // blank lines dropped
+    const again = parseSetupContent(serialiseSetupContent(first));
+    expect(again.problems).toEqual([]);
+    expect(again.value).toEqual(first);
+  });
+});
+
+describe('option group content', () => {
+  it('defaults to a malfunction in sequence, and keeps the row references the pane writes', () => {
+    const { value, problems } = parseOptionGroupContent({ kind: 'event', mode: 'choose_one', options: [{ key: 'a', name: 'TCAS RA', category: 'TCAS', trigger: 'in the descent' }] });
+    expect(problems).toEqual([]);
+    expect(value.kind).toBe('event');
+    expect(value.mode).toBe('choose_one');
+    expect(value.options[0]?.category).toBe('TCAS');
+    expect(parseOptionGroupContent({}).value).toMatchObject({ kind: 'malfunction', mode: 'sequence', options: [] });
+  });
+});
+
+describe('section grading', () => {
+  it('a section can carry its own grade controls, and a graded section reports competencies it needs', () => {
+    const ok = parseSectionContent({ phase: 'eval', grading: { competency_grade_mode: 'scale_1_5', competencies: ['FPM'] } }, vocab);
+    expect(ok.problems).toEqual([]);
+    expect(ok.value.grading.competency_grade_mode).toBe('scale_1_5');
+    const bad = parseSectionContent({ grading: { competency_grade_mode: 'scale_1_5' } }, vocab);
+    expect(bad.problems.some((p) => p.path === 'grading.competencies')).toBe(true);
   });
 });
 

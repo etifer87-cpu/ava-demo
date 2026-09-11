@@ -5,7 +5,7 @@ import { resolveAccess, requireCapability } from '@/lib/access';
 import { actorFromSession, requestContext } from '@/lib/audit';
 import { flashCookie } from '@/lib/admin';
 import { parseMinutes } from '@/lib/program/shape';
-import { addBlank, addFromLibrary, addSection, isPaletteKind, moveElement, placeElement, removeElement, renameElement, updateSection, updateTask, WriteRefused, type TaskTab } from '@/lib/program/write';
+import { addBlank, addFromLibrary, addSection, isPaletteKind, moveElement, placeElement, removeElement, renameElement, updateContent, updateSection, updateTask, WriteRefused, type TaskTab } from '@/lib/program/write';
 
 /**
  * POST /api/templates/[id]/elements - every change to a draft's structure and content. `_action`:
@@ -18,7 +18,8 @@ import { addBlank, addFromLibrary, addSection, isPaletteKind, moveElement, place
  *   remove         key
  *   add_section    parent, title, section_kind, phase, time, training_only     (form fallback)
  *   set_section    key, section_kind, phase, time, training_only
- *   set_task       key, tab (setup|conduct|assessment|aims) + that tab's fields
+ *   set_task       key, tab (setup|conduct|assessment|aims) + that tab's fields   (form fallback)
+ *   set_content    key, content (JSON)                       the inspector panes: whole content, parsed by type
  *
  * Speaks both dialects: a form post is answered with a redirect back to the builder and a flash;
  * a JSON body (the canvas) is answered with JSON `{ ok, key?, message }`. Gate:
@@ -133,6 +134,12 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
         if (tab !== 'setup' && tab !== 'conduct' && tab !== 'assessment' && tab !== 'aims') throw new WriteRefused('Unknown tab.');
         await updateTask(versionId, key, tab as TaskTab, (k) => str(k, 4000), all, ctx);
         return reply({ kind: 'ok', message: `${tab[0]?.toUpperCase()}${tab.slice(1)} saved.` }, key, tab);
+      }
+      case 'set_content': {
+        if (!key) throw new WriteRefused('No element.');
+        if (!isJson || typeof body.content !== 'object' || body.content === null) throw new WriteRefused('set_content needs a JSON body with a content object.');
+        await updateContent(versionId, key, body.content, ctx);
+        return reply({ kind: 'ok', message: 'Saved.' }, key);
       }
       case 'remove': {
         if (!key) throw new WriteRefused('No element.');

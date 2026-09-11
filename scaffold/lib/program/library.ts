@@ -132,3 +132,58 @@ export async function equivalencyGroups(fleet: string | null): Promise<GroupOpti
     SELECT g.code, g.name, (SELECT count(*)::int FROM equivalency_group_candidates c WHERE c.group_id = g.id AND c.is_active) AS candidates
       FROM equivalency_groups g WHERE g.deleted_at IS NULL AND g.is_active ${fleetClause} ORDER BY g.name`, params);
 }
+
+/* ------------------------------------------------------------------ */
+/* Inspector pane data                                                  */
+/* ------------------------------------------------------------------ */
+
+export interface MalfunctionIndexRow { code: string; title: string; ata: string | null; system: string | null; options: string[] }
+
+/** The malfunction index for one aircraft type: what the Malfunction pane searches. */
+export async function malfunctionIndex(fleet: string | null): Promise<MalfunctionIndexRow[]> {
+  if (!fleet) return [];
+  return query<MalfunctionIndexRow>(`
+    SELECT l.code, COALESCE(l.title, l.code) AS title, l.content->'ios'->>'ata' AS ata, l.content->'ios'->>'ata_label' AS system,
+           COALESCE((SELECT array_agg(o->>'option' ORDER BY ord) FROM jsonb_array_elements(l.content->'options') WITH ORDINALITY AS t(o, ord) WHERE o->>'option' IS NOT NULL), '{}')::text[] AS options
+      FROM element_library l
+     WHERE l.deleted_at IS NULL AND l.is_active AND 'malfunction' = ANY (l.tags) AND $1 = ANY (l.tags)
+     ORDER BY (l.content->'ios'->>'ata'), 2`, [`fleet:${fleet}`]);
+}
+
+export interface EventLibraryRow { code: string; title: string; category: string | null; trigger: string | null }
+
+/** Pre-created events (the library's `event` kind), for the Event pane's picker. */
+export async function eventLibrary(fleet: string | null): Promise<EventLibraryRow[]> {
+  const params: unknown[] = [];
+  let fleetClause = '';
+  if (fleet) { params.push(`fleet:${fleet}`); fleetClause = `AND (NOT EXISTS (SELECT 1 FROM unnest(l.tags) t WHERE t LIKE 'fleet:%') OR $1 = ANY (l.tags))`; }
+  return query<EventLibraryRow>(`
+    SELECT l.code, COALESCE(l.title, l.code) AS title, l.content->>'category' AS category, l.content->'options'->0->>'trigger' AS trigger
+      FROM element_library l
+     WHERE l.deleted_at IS NULL AND l.is_active AND ('event' = ANY (l.tags) OR 'inject' = ANY (l.tags)) ${fleetClause}
+     ORDER BY 3 NULLS LAST, 2`, params);
+}
+
+export interface GroupWithCandidates { code: string; name: string; candidates: { code: string; title: string; options: string[] }[] }
+
+/** Equivalency groups with their candidates, for "load a group" in the Malfunction pane. */
+export async function groupsWithCandidates(fleet: string | null): Promise<GroupWithCandidates[]> {
+  const params: unknown[] = [];
+  let fleetClause = '';
+  if (fleet) { params.push(fleet); fleetClause = `AND (g.asset_class_id IS NULL OR g.asset_class_id = (SELECT id FROM asset_classes WHERE code = $1 AND deleted_at IS NULL))`; }
+  const rows = await query<{ gcode: string; gname: string; code: string | null; title: string | null; options: string[] | null }>(`
+    SELECT g.code AS gcode, g.name AS gname, l.code, COALESCE(l.title, l.code) AS title,
+           (SELECT array_agg(o->>'option' ORDER BY ord) FROM jsonb_array_elements(l.content->'options') WITH ORDINALITY AS t(o, ord) WHERE o->>'option' IS NOT NULL)::text[] AS options
+      FROM equivalency_groups g
+      LEFT JOIN equivalency_group_candidates c ON c.group_id = g.id AND c.is_active
+      LEFT JOIN element_library l ON l.id = c.library_id AND l.deleted_at IS NULL AND l.is_active
+     WHERE g.deleted_at IS NULL AND g.is_active ${fleetClause}
+     ORDER BY g.name, c.position`, params);
+  const out = new Map<string, GroupWithCandidates>();
+  for (const r of rows) {
+    const g = out.get(r.gcode) ?? { code: r.gcode, name: r.gname, candidates: [] };
+    if (r.code) g.candidates.push({ code: r.code, title: r.title ?? r.code, options: r.options ?? [] });
+    out.set(r.gcode, g);
+  }
+  return [...out.values()];
+}

@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useRef, useState, type DragEvent, type KeyboardEvent, type LiHTMLAttributes, type MouseEvent } from 'react';
+import { useCallback, useEffect, useRef, useState, type DragEvent, type KeyboardEvent, type LiHTMLAttributes, type MouseEvent, type PointerEvent, type ReactNode } from 'react';
 import { useRouter } from 'next/navigation';
 import { PALETTE_ITEMS, type CanvasNode, type PaletteKind, type PresetItem } from './canvas-types';
 
@@ -33,6 +33,8 @@ export interface BuilderCanvasProps {
   /** The page path, and the query parameters to keep when the selection changes (version, lib). */
   readonly basePath: string;
   readonly carry: Readonly<Record<string, string>>;
+  /** The right pane, rendered by the page. Placed here so the three panes share one resizable grid. */
+  readonly inspector: ReactNode;
 }
 
 function canDrop(p: Payload, parentKind: 'root' | 'section'): boolean {
@@ -43,7 +45,8 @@ function canDrop(p: Payload, parentKind: 'root' | 'section'): boolean {
   return parentKind === 'section';
 }
 
-export function BuilderCanvas({ templateId, versionId, roots, presets, selected, editable, basePath, carry }: BuilderCanvasProps) {
+export function BuilderCanvas({ templateId, versionId, roots, presets, selected, editable, basePath, carry, inspector }: BuilderCanvasProps) {
+  const { widths, startResize } = useResizablePanes();
   const selectHref = useCallback((key: string | null) => {
     const u = new URLSearchParams(carry);
     if (key) u.set('sel', key); else u.delete('sel');
@@ -98,6 +101,7 @@ export function BuilderCanvas({ templateId, versionId, roots, presets, selected,
   }, [editable, post, refreshTo]);
 
   const dragStart = (p: Payload) => (e: DragEvent) => {
+    e.stopPropagation();
     if (!editable) { e.preventDefault(); return; }
     e.dataTransfer.setData(MIME, JSON.stringify(p));
     e.dataTransfer.effectAllowed = p.source === 'node' ? 'move' : 'copy';
@@ -145,7 +149,7 @@ export function BuilderCanvas({ templateId, versionId, roots, presets, selected,
   useEffect(() => { if (error) { const t = setTimeout(() => setError(null), 8000); return () => clearTimeout(t); } return undefined; }, [error]);
 
   return (
-    <div className="builder-main" data-testid="builder-canvas">
+    <div className="builder" data-testid="builder-canvas" style={{ gridTemplateColumns: `${widths[0]}px 6px minmax(0, 1fr) 6px ${widths[1]}px` }}>
       <aside className="rail palette" aria-label="Palette" data-testid="palette">
         <h2 className="card-title" style={{ margin: 0 }}>Add</h2>
         <p className="xs muted" style={{ margin: 0 }}>{editable ? 'Drag into the program, or select a section and press Add.' : 'This version is not a draft; nothing can be added.'}</p>
@@ -173,6 +177,7 @@ export function BuilderCanvas({ templateId, versionId, roots, presets, selected,
           </details>
         ) : null}
       </aside>
+      <div className="splitter" role="separator" aria-orientation="vertical" aria-label="Resize palette" onPointerDown={startResize(0)} />
 
       <section className="canvas" aria-label="Program" data-testid="program-outline" aria-busy={busyKey !== null}>
         <div className="row" style={{ alignItems: 'baseline' }}>
@@ -191,9 +196,40 @@ export function BuilderCanvas({ templateId, versionId, roots, presets, selected,
           ))}
         </ol>
       </section>
+      <div className="splitter" role="separator" aria-orientation="vertical" aria-label="Resize inspector" onPointerDown={startResize(1)} />
+      {inspector}
     </div>
   );
 }
+
+/**
+ * The three panes are a grid with two draggable splitters. Widths live in this browser only
+ * (localStorage) - a layout preference, not program data.
+ */
+function useResizablePanes() {
+  const KEY = 'ava.builder.panes';
+  const [widths, setWidths] = useState<[number, number]>([260, 360]);
+  useEffect(() => {
+    try { const raw = localStorage.getItem(KEY); if (raw) { const w = JSON.parse(raw) as [number, number]; if (Array.isArray(w) && w.length === 2) setWidths([clamp(w[0]), clamp(w[1])]); } } catch { /* a preference, not data */ }
+  }, []);
+  const startResize = (side: 0 | 1) => (e: PointerEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    const startX = e.clientX;
+    const start = widths[side];
+    const onMove = (ev: globalThis.PointerEvent) => {
+      const delta = ev.clientX - startX;
+      const next: [number, number] = side === 0 ? [clamp(start + delta), widths[1]] : [widths[0], clamp(start - delta)];
+      setWidths(next);
+    };
+    const onUp = () => {
+      window.removeEventListener('pointermove', onMove); window.removeEventListener('pointerup', onUp);
+      setWidths((w) => { try { localStorage.setItem(KEY, JSON.stringify(w)); } catch { /* ignore */ } return w; });
+    };
+    window.addEventListener('pointermove', onMove); window.addEventListener('pointerup', onUp);
+  };
+  return { widths, startResize };
+}
+function clamp(n: number): number { return Math.max(180, Math.min(640, Math.round(n))); }
 
 function find(nodes: readonly CanvasNode[], key: string): CanvasNode | null {
   for (const n of nodes) { if (n.key === key) return n; const c = find(n.children, key); if (c) return c; }
@@ -215,7 +251,7 @@ function Node({ node, index, selected, editable, busyKey, dragging, dragStart, d
     onDragStart: dragStart({ source: 'node', key: node.key, kind: node.kind }),
     onDragEnd: dragEnd,
     'data-key': node.key,
-    onClick: (e: MouseEvent<HTMLLIElement>) => { if ((e.target as HTMLElement).closest('input,button,a')) return; onSelect(node.key); },
+    onClick: (e: MouseEvent<HTMLLIElement>) => { e.stopPropagation(); if ((e.target as HTMLElement).closest('input,button,a')) return; onSelect(node.key); },
   };
   if (node.kind === 'section') {
     return (

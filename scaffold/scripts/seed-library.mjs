@@ -6,10 +6,11 @@
  *                                          chapter, engine applicability, options. Names only -
  *                                          the source document's effect and cue text is its
  *                                          owner's and is not reproduced.
- *   data/library/a320-guide-library.json   tasks, blocks, injects, set-up conditions, notes and
- *                                          equivalency groups derived from the STRUCTURE of the
- *                                          operator's instructor guide, every identifying value
- *                                          substituted (docs/06_PROGRAM_BUILDER.md section 4.1).
+ *   data/library/standard-library.json     the neutral starter library: the phases, exercises
+ *                                          and events an EBT / LPC / OPC program is expected to
+ *                                          contain under ICAO Doc 9995, PANS-TRG, EASA ORO.FC.231
+ *                                          and Part-FCL Appendix 9, plus equivalency groups over
+ *                                          the malfunction index. From no operator's document.
  *
  * Idempotent: upsert by code (the live partial unique index), never a DELETE; a code that stops
  * appearing in the file stays in the library, inactive by hand if wanted. Element kind is a tag,
@@ -26,7 +27,7 @@ const DATA_DIR = process.env.LIBRARY_DATA_DIR ?? path.resolve(KIT_ROOT, 'data', 
 
 /** Mirrors lib/program/library.ts LIBRARY_KINDS - kind tag -> element_type. */
 const KIND_TYPE = {
-  task: 'task', block: 'section', malfunction: 'event_option', inject: 'event_option',
+  task: 'task', block: 'section', malfunction: 'event_option', inject: 'event_option', event: 'event_option',
   airport: 'setup', weather: 'setup', mass_config: 'setup', position: 'setup', comms: 'setup', reset: 'setup', atc_script: 'setup', note: 'note',
 };
 const KIND_LABEL = { airport: 'Airport', weather: 'Weather', mass_config: 'Mass & config', position: 'Position', comms: 'Comms', reset: 'Reset', atc_script: 'ATC' };
@@ -41,8 +42,8 @@ async function readJson(name) {
 
 function malfunctionRow(m, fleet) {
   const options = m.options.length
-    ? m.options.map((o) => ({ key: slug(o) || 'opt', name: `${m.title} · ${o}`, trigger: null }))
-    : [{ key: 'set', name: m.title, trigger: null }];
+    ? m.options.map((o) => ({ key: slug(o) || 'opt', name: `${m.title} · ${o}`, trigger: null, ref: m.code, option: o, category: null }))
+    : [{ key: 'set', name: m.title, trigger: null, ref: m.code, option: null, category: null }];
   const tags = ['malfunction', `fleet:${fleet}`, ...(m.ata ? [`ata:${m.ata}`] : []), `group:${m.group}`];
   const summary = [m.ata ? `ATA ${m.ata} ${m.ata_label}` : m.ata_label, m.engines.join(', ') === 'ALL' ? null : m.engines.join(', '), m.options.length ? `options ${m.options.join(', ')}` : null].filter(Boolean).join(' · ');
   return { code: m.code, element_type: 'event_option', title: m.title, tags, content: { summary, ios: { title: m.title, ata: m.ata, ata_label: m.ata_label, engines: m.engines, group: m.group }, options } };
@@ -56,7 +57,7 @@ function guideRow(e, fleet) {
   switch (type) {
     case 'task': content.time = e.time ?? null; content.aims = { aims: e.text ?? null, competency_focus: null, grading_criteria: null, visibility: 'instructor_only' }; content.training_elements = e.te ?? []; break;
     case 'section': content.section_kind = 'block'; content.phase = e.phase ?? null; content.time = e.time ?? null; content.training_only = e.training_only === true; content.children = e.children ?? []; break;
-    case 'event_option': content.options = [{ key: slug(e.title).slice(0, 40) || 'option', name: e.title, trigger: e.text ?? null }]; break;
+    case 'event_option': content.kind = 'event'; content.mode = 'sequence'; content.category = e.category ?? null; content.options = [{ key: slug(e.title).slice(0, 40) || 'option', name: e.title, trigger: e.text ?? null, ref: null, option: null, category: e.category ?? null }]; break;
     case 'setup': content.rows = [{ label: KIND_LABEL[e.kind] ?? e.kind, value: e.text ?? e.title }]; break;
     case 'note': content.text = e.text ?? e.title; break;
   }
@@ -64,7 +65,7 @@ function guideRow(e, fleet) {
 }
 
 const malf = await readJson('a320-malfunctions.json');
-const guide = await readJson('a320-guide-library.json');
+const guide = await readJson('standard-library.json');
 const rows = [...malf.malfunctions.map((m) => malfunctionRow(m, malf.fleet)), ...guide.elements.map((e) => guideRow(e, guide.fleet))];
 
 const client = await connect();
@@ -102,7 +103,19 @@ try {
       candidates += 1;
     }
   }
+  // The first seed came from an operator's document and was withdrawn. Anything it wrote that this
+  // file no longer names is retired here - inactive, never deleted - so the rail shows only the
+  // standard library. Idempotent: a code named in the files stays active.
+  const keep = rows.map((r) => r.code);
+  const retired = await client.query(
+    `UPDATE element_library SET is_active = false
+      WHERE deleted_at IS NULL AND is_active AND code <> ALL($1::text[])
+        AND code ~ '^(apt|wx|mass|pos|reset|atc|inj|task\\.a320|note|block\\.a320|eg\\.a320)\\.'`, [keep]);
+  const retiredGroups = await client.query(
+    `UPDATE equivalency_groups SET is_active = false WHERE deleted_at IS NULL AND is_active AND code <> ALL($1::text[]) AND code LIKE 'eg.a320.%'`,
+    [(guide.equivalency_groups ?? []).map((g) => g.code)]);
   await client.query('COMMIT');
+  if (retired.rowCount || retiredGroups.rowCount) console.log(`retired ${retired.rowCount} library element(s) and ${retiredGroups.rowCount} group(s) from the withdrawn seed`);
   const byKind = {};
   for (const r of rows) { const k = r.tags[0]; byKind[k] = (byKind[k] ?? 0) + 1; }
   console.log(`library seeded: ${rows.length} elements (${Object.entries(byKind).map(([k, n]) => `${k} ${n}`).join(', ')}); ${groups} equivalency groups, ${candidates} candidates`);

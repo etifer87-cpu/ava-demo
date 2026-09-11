@@ -3,7 +3,7 @@ import type { PoolClient } from 'pg';
 import { transaction } from '@/lib/db';
 import { policy } from '@/lib/config';
 import { audit, type AuditActor, type RequestContext } from '@/lib/audit';
-import { serialiseSectionContent, serialiseTaskContent, parseSectionContent, parseTaskContent, SETUP_KINDS, type ProgramVocab, type TaskContent } from './shape';
+import { serialiseSectionContent, serialiseTaskContent, serialiseSetupContent, serialiseOptionGroupContent, serialiseNoteContent, parseSectionContent, parseTaskContent, parseSetupContent, parseOptionGroupContent, parseNoteContent, SETUP_KINDS, type ProgramVocab, type TaskContent } from './shape';
 import { programVocab } from './index';
 
 /**
@@ -144,8 +144,8 @@ export async function addSection(versionId: string, input: { parentKey: string |
 export const PALETTE = {
   section:     { element_type: 'section',      title: 'New section',  content: () => serialiseSectionContent(parseSectionContent({ section_kind: 'block' }, programVocab()).value) },
   exercise:    { element_type: 'task',         title: 'New exercise', content: () => serialiseTaskContent(parseTaskContent({}, programVocab()).value) },
-  setup:       { element_type: 'setup',        title: 'Set-up',       content: () => ({ rows: [] }) },
-  comms:       { element_type: 'setup',        title: 'Comms',        content: () => ({ rows: [{ label: 'Comms', value: '' }] }) },
+  setup:       { element_type: 'setup',        title: 'Set-up',       content: () => serialiseSetupContent(parseSetupContent({}).value) },
+  comms:       { element_type: 'setup',        title: 'Comms',        content: () => serialiseSetupContent(parseSetupContent({ entries: { comms: [''] } }).value) },
   malfunction: { element_type: 'event_option', title: 'Malfunction',  content: () => ({ kind: 'malfunction', mode: 'sequence', options: [] }) },
   event:       { element_type: 'event_option', title: 'Event',        content: () => ({ kind: 'event', mode: 'sequence', options: [] }) },
   note:        { element_type: 'note',         title: 'Note',         content: () => ({ text: '' }) },
@@ -397,4 +397,42 @@ function parseMinutesOrThrow(s: string): number {
   const m = /^(\d{1,2}):([0-5]\d)$/.exec(s.trim());
   if (!m) throw new WriteRefused('Time must read like 0:45.');
   return Number(m[1]) * 60 + Number(m[2]);
+}
+
+/* ------------------------------------------------------------------ */
+/* Whole-content save - the inspector panes                             */
+/* ------------------------------------------------------------------ */
+
+/**
+ * Replaces an element's content with what the pane sends, parsed by the element's own type. The
+ * pane sends the whole content every time (small objects, one round trip), so there is no merge
+ * to get wrong; keys the parser does not know (from_library, training_elements, ios) are kept.
+ * Refused with the parser's problems; nothing is half-written.
+ */
+export async function updateContent(versionId: string, key: string, content: unknown, ctx: WriteContext): Promise<void> {
+  const vocab = programVocab();
+  await transaction(async (client) => {
+    const v = await lockDraft(client, versionId);
+    const cur = (await client.query<{ element_type: string; content: Record<string, unknown> }>(`SELECT element_type, content FROM template_elements WHERE template_version_id = $1::uuid AND element_key = $2`, [versionId, key])).rows[0];
+    if (!cur) throw new WriteRefused('No such element.');
+    let canonical: Record<string, unknown>;
+    let problems: readonly { path: string; message: string }[];
+    let graded = false;
+    switch (cur.element_type) {
+      case 'section': { const p = parseSectionContent(content, vocab); canonical = serialiseSectionContent(p.value); problems = p.problems; graded = p.value.grading.task_outcome_mode !== 'none' || p.value.grading.competency_grade_mode !== 'none'; break; }
+      case 'task': { const p = parseTaskContent(content, vocab); canonical = serialiseTaskContent(p.value); problems = p.problems; graded = p.value.grading.task_outcome_mode !== 'none' || p.value.grading.competency_grade_mode !== 'none'; break; }
+      case 'setup': case 'reset': { const p = parseSetupContent(content); canonical = serialiseSetupContent(p.value); problems = p.problems; break; }
+      case 'event_option': case 'malfunction': { const p = parseOptionGroupContent(content); canonical = serialiseOptionGroupContent(p.value); problems = p.problems; break; }
+      case 'note': case 'text': { const p = parseNoteContent(content); canonical = serialiseNoteContent(p.value); problems = p.problems.filter((x) => x.path !== 'text'); break; }   // an empty note is allowed while typing
+      default: throw new WriteRefused(`Elements of type ${cur.element_type} have no pane yet.`);
+    }
+    if (problems.length) throw new WriteRefused(problems.map((x) => `${x.path}: ${x.message}`).join('; '));
+    const known = new Set(Object.keys(canonical));
+    const keep = Object.fromEntries(Object.entries(cur.content).filter(([k]) => !known.has(k) && !['rows', 'time', 'minutes'].includes(k)));
+    await client.query(`UPDATE template_elements SET content = $3::jsonb, is_graded = $4 WHERE template_version_id = $1::uuid AND element_key = $2`,
+      [versionId, key, JSON.stringify({ ...keep, ...canonical }), graded]);
+    await bumpVersion(client, versionId);
+    await audit({ action: 'template.element.update', entityTable: 'template_elements', entityId: key, capabilityCode: 'training.templates.configure',
+      details: { version_id: versionId, template_id: v.template_id, element_type: cur.element_type } }, ctx.actor, ctx.request, client);
+  });
 }

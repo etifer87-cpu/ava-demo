@@ -403,3 +403,25 @@ table.matrix-wide .matrix-module th { background: var(--surface-sunken); text-al
 .outline-section .outline-title, .outline-section .title-button.outline-title { font-weight: 600; }
 .outline-malfunction .outline-kind { color: var(--state-bad); }
 .outline-event .outline-kind { color: var(--state-info); }
+
+/* Builder rework slice 2: full-width page, resizable panes, aligned inspector fields. */
+.page:has(.builder-page) { max-width: none; }
+.builder { display: grid; gap: 0 var(--space-3); align-items: start; }
+@media (max-width: 70rem) { .builder { grid-template-columns: 1fr !important; } .splitter { display: none; } }
+.splitter { width: 6px; align-self: stretch; cursor: col-resize; border-radius: 3px; background: transparent; }
+.splitter:hover, .splitter:active { background: var(--brand-accent); opacity: 0.6; }
+.inspector .field input, .inspector .field select, .inspector .field textarea, .inspector input, .inspector select, .inspector textarea { min-width: 0; width: 100%; box-sizing: border-box; font-size: var(--text-sm); }
+.inspector input[type="checkbox"], .inspector input[type="radio"] { width: auto; min-width: 0; margin-top: 3px; }
+.inspector .check { align-items: flex-start; gap: var(--space-2); }
+.inspector .two { display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-2); }
+.inspector .three { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: var(--space-2); }
+.inspector .pane .field > label { margin-bottom: 2px; }
+.comp-list { border: 0; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 2px; }
+.comp-list legend { padding: 0; margin-bottom: var(--space-1); }
+.pick-list { list-style: none; margin: 0; padding: 0; max-height: 14rem; overflow: auto; border: 1px solid var(--border); border-radius: var(--radius-sm); }
+.pick { display: flex; gap: var(--space-2); align-items: baseline; width: 100%; text-align: left; font: inherit; font-size: var(--text-sm); background: none; border: 0; border-bottom: 1px solid var(--border); padding: var(--space-1) var(--space-2); cursor: pointer; }
+.pick:hover { background: var(--surface-sunken); }
+.option-rows { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: var(--space-2); }
+.option-row { display: flex; flex-direction: column; gap: 2px; padding: var(--space-2); border: 1px solid var(--border); border-radius: var(--radius-sm); background: var(--surface-sunken); }
+.option-row input.xs { font-size: var(--text-xs); }
+.rail.inspector { position: sticky; top: var(--space-3); max-height: calc(100vh - 2 * var(--space-3)); overflow: auto; }

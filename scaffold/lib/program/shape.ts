@@ -153,10 +153,23 @@ export interface SectionContent {
   readonly aims: Aims;
   /** Whether grades in this section count towards the session outcome. */
   readonly training_only: boolean;
+  /** The section's own grade controls, when the phase as a whole carries an outcome. */
+  readonly grading: Grading;
 }
 
+/** The set-up element's entry kinds, in the order the pane shows them. Free text, "+" for more. */
+export const SETUP_ENTRY_KINDS = ['airport', 'weather', 'position', 'comms', 'reset', 'atc', 'performance'] as const;
+export type SetupEntryKind = (typeof SETUP_ENTRY_KINDS)[number];
+
+/**
+ * A Set-up element: what the simulator is set to before an exercise. Every kind is a list of free
+ * text lines (an author types the ICAO code, the METAR, the frequency); mass & config is three
+ * numbers. This is the element the author drags in; the older per-task `setup` references stay in
+ * TaskContent for compatibility and are not shown.
+ */
 export interface SetupContent {
-  readonly rows: readonly { readonly label: string; readonly value: string }[];
+  readonly entries: Readonly<Record<SetupEntryKind, readonly string[]>>;
+  readonly mass: { readonly zfw: string | null; readonly zfwcg: string | null; readonly fuel: string | null };
   readonly notes: string | null;
   readonly snapshot: SnapshotAction | null;
 }
@@ -316,6 +329,26 @@ function aims(c: Collector, v: unknown, path: string): Aims {
   return out;
 }
 
+function gradingOf(c: Collector, v: unknown, path: string): Grading {
+  const gradingRaw: Obj = isObj(v) ? v : {};
+  if (v !== undefined && v !== null && !isObj(v)) c.add(path, 'must be an object');
+  const gc = new Collector(c.at(path));
+  const compsRaw = gradingRaw.competencies;
+  const competencies: string[] = [];
+  if (compsRaw !== undefined && compsRaw !== null) {
+    if (!Array.isArray(compsRaw)) gc.add('competencies', 'must be a list of competency codes');
+    else compsRaw.forEach((x, i) => { if (typeof x === 'string' && x) { if (!competencies.includes(x)) competencies.push(x); } else gc.add(`competencies[${i}]`, 'must be a competency code'); });
+  }
+  const out: Grading = {
+    task_outcome_mode: oneOf(gc, gradingRaw, 'task_outcome_mode', TASK_OUTCOME_MODES, 'none') ?? 'none',
+    competency_grade_mode: oneOf(gc, gradingRaw, 'competency_grade_mode', COMPETENCY_GRADE_MODES, 'none') ?? 'none',
+    competencies,
+  };
+  if (out.competency_grade_mode !== 'none' && competencies.length === 0) gc.add('competencies', 'competency grading is on but no competency is targeted');
+  c.problems.push(...gc.problems);
+  return out;
+}
+
 function slotRef(c: Collector, v: unknown, path: string): SlotRef | null {
   if (v === undefined || v === null) return null;
   if (!isObj(v)) { c.add(path, 'must be a slot reference'); return null; }
@@ -387,23 +420,7 @@ export function parseTaskContent(raw: unknown, vocab: ProgramVocab): Parsed<Task
   };
   c.problems.push(...ac.problems);
 
-  // grading: the two switches
-  const gradingRaw: Obj = isObj(o.grading) ? o.grading : {};
-  if (o.grading !== undefined && o.grading !== null && !isObj(o.grading)) c.add('grading', 'must be an object');
-  const gc = new Collector('grading');
-  const compsRaw = gradingRaw.competencies;
-  const competencies: string[] = [];
-  if (compsRaw !== undefined && compsRaw !== null) {
-    if (!Array.isArray(compsRaw)) gc.add('competencies', 'must be a list of competency codes');
-    else compsRaw.forEach((x, i) => { if (typeof x === 'string' && x) { if (!competencies.includes(x)) competencies.push(x); } else gc.add(`competencies[${i}]`, 'must be a competency code'); });
-  }
-  const grading: Grading = {
-    task_outcome_mode: oneOf(gc, gradingRaw, 'task_outcome_mode', TASK_OUTCOME_MODES, 'none') ?? 'none',
-    competency_grade_mode: oneOf(gc, gradingRaw, 'competency_grade_mode', COMPETENCY_GRADE_MODES, 'none') ?? 'none',
-    competencies,
-  };
-  if (grading.competency_grade_mode !== 'none' && competencies.length === 0) gc.add('competencies', 'competency grading is on but no competency is targeted');
-  c.problems.push(...gc.problems);
+  const grading = gradingOf(c, o.grading, 'grading');
 
   // variants: keyed by device code, shallow objects
   const variants: Record<string, Readonly<Record<string, unknown>>> = {};
@@ -439,24 +456,50 @@ export function parseSectionContent(raw: unknown, vocab: ProgramVocab): Parsed<S
     from_preset: str(c, o, 'from_preset', 200),
     aims: aims(c, o.aims, 'aims'),
     training_only: bool(c, o, 'training_only', false),
+    grading: gradingOf(c, o.grading, 'grading'),
   };
   return { value, problems: c.problems };
 }
+
+const EMPTY_ENTRIES: Record<SetupEntryKind, string[]> = { airport: [], weather: [], position: [], comms: [], reset: [], atc: [], performance: [] };
 
 export function parseSetupContent(raw: unknown): Parsed<SetupContent> {
   const c = new Collector('');
   const o: Obj = isObj(raw) ? raw : {};
   if (raw !== undefined && raw !== null && !isObj(raw)) c.add('', 'content must be an object');
-  const rows: { label: string; value: string }[] = [];
-  if (o.rows !== undefined && o.rows !== null) {
-    if (!Array.isArray(o.rows)) c.add('rows', 'must be a list of {label, value}');
-    else o.rows.forEach((r, i) => {
-      if (isObj(r) && typeof r.label === 'string' && typeof r.value === 'string') rows.push({ label: r.label, value: r.value });
-      else c.add(`rows[${i}]`, 'must be {label, value}');
-    });
+  const entries: Record<SetupEntryKind, string[]> = { airport: [], weather: [], position: [], comms: [], reset: [], atc: [], performance: [] };
+  const e: Obj = isObj(o.entries) ? o.entries : {};
+  if (o.entries !== undefined && o.entries !== null && !isObj(o.entries)) c.add('entries', 'must be an object');
+  for (const k of SETUP_ENTRY_KINDS) {
+    const v = e[k];
+    if (v === undefined || v === null) continue;
+    if (!Array.isArray(v)) { c.add(`entries.${k}`, 'must be a list of text'); continue; }
+    entries[k] = v.filter((x): x is string => typeof x === 'string').map((x) => x.trim()).filter(Boolean).slice(0, 20);
   }
-  const value: SetupContent = { rows, notes: str(c, o, 'notes'), snapshot: oneOf(c, o, 'snapshot', SNAPSHOT_ACTIONS, null) };
+  // Older rows: { rows: [{label, value}] } from the library seed and the first builder. Folded in by label.
+  if (Array.isArray(o.rows)) {
+    for (const r of o.rows) {
+      if (!isObj(r) || typeof r.value !== 'string' || !r.value.trim()) continue;
+      const label = String(r.label ?? '').toLowerCase();
+      const kind: SetupEntryKind = label.startsWith('airport') ? 'airport' : label.startsWith('weather') ? 'weather' : label.startsWith('position') ? 'position' : label.startsWith('comms') ? 'comms' : label.startsWith('reset') ? 'reset' : label.startsWith('atc') ? 'atc' : 'performance';
+      if (!entries[kind].includes(r.value.trim())) entries[kind].push(r.value.trim());
+    }
+  }
+  const m: Obj = isObj(o.mass) ? o.mass : {};
+  if (o.mass !== undefined && o.mass !== null && !isObj(o.mass)) c.add('mass', 'must be an object');
+  const mc = new Collector('mass');
+  const value: SetupContent = {
+    entries,
+    mass: { zfw: str(mc, m, 'zfw', 40), zfwcg: str(mc, m, 'zfwcg', 40), fuel: str(mc, m, 'fuel', 40) },
+    notes: str(c, o, 'notes'),
+    snapshot: oneOf(c, o, 'snapshot', SNAPSHOT_ACTIONS, null),
+  };
+  c.problems.push(...mc.problems);
   return { value, problems: c.problems };
+}
+
+export function serialiseSetupContent(v: SetupContent): Record<string, unknown> {
+  return { entries: v.entries, mass: v.mass, notes: v.notes, snapshot: v.snapshot };
 }
 
 export function parseOptionGroupContent(raw: unknown): Parsed<OptionGroupContent> {
@@ -556,7 +599,16 @@ export function serialiseSectionContent(s: SectionContent): Record<string, unkno
     from_preset: s.from_preset,
     aims: s.aims,
     training_only: s.training_only,
+    grading: s.grading,
   };
+}
+
+export function serialiseOptionGroupContent(v: OptionGroupContent): Record<string, unknown> {
+  return { kind: v.kind, mode: v.mode, fleet: v.fleet, options: v.options, slot: v.slot };
+}
+
+export function serialiseNoteContent(v: NoteContent): Record<string, unknown> {
+  return { text: v.text };
 }
 
 /** True when any set-up or conduct field departs from its library text. Drives the "modified" badge. */

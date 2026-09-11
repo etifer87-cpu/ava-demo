@@ -186,22 +186,15 @@ shown as authored; the evaluation is a stated gap on the screen until the histor
 That keeps 29 Sep intact. If the constraint engine has to be live for the demo, it moves ahead of
 the seed (step 9) and the seed becomes two templates instead of four — say so and I will reorder.
 
-### 4.3 The library this produces
+### 4.3 The library
 
-**Seeded 2026-09-11** from `data/library/a320-guide-library.json`: 4 airports, 9 weather sets, 6 mass
-configurations, 11 positions, 4 resets, 8 ATC scripts, 12 injects, 19 tasks (each tagged with its
-IATA training elements), 3 notes, 6 block presets - and 6 equivalency groups over the malfunction
-index (engine at take-off, system after the IAF, A/THR channel, roll-out event, fuel leak, engine
-in descent). All values substituted per section 4.1.
-
-Roughly, from one module: ~18 tasks, ~14 malfunctions (A/THR channel fault, ENG bird strike + high
-vibration, fuel leak before / after the metering valve, fuel leak centre tank, ENG 1 stall at V1,
-system component failure after IAF, A/P failure below 200 ft, N/W steering fault, REV fault, GEN 1
-off …), ~8 injects (TCAS TA/RA, traffic in descent, ATC re-clearance, bird report, breakout
-instruction), ~10 set-up conditions (airport, weather, mass, position, reset, ATC script), and ~6
-block presets (EVAL, SBT, MT, UPRT, brief, debrief).
-
----
+**Decided 2026-09-12: the starter library is neutral.** `data/library/standard-library.json` carries
+the phases, exercises and events an EBT / LPC / OPC program is expected to contain under ICAO Doc
+9995, PANS-TRG, EASA ORO.FC.231 and Part-FCL Appendix 9 - 5 block presets, 28 exercises, 14 events -
+plus 7 equivalency groups over the A320 malfunction index. Nothing in it comes from any operator's
+document; the earlier guide-derived seed was withdrawn and its rows retired (inactive, never
+deleted) by `npm run seed:library`. Set-up values (airports, weather, positions, comms) are typed
+by the author in the Set-up element, not picked from a list.
 
 ## 5. The screens
 
@@ -217,14 +210,19 @@ current version; a published version opens read-only with **Clone to draft** as 
 
 Three panes, matching the reference layout in Avianca dress:
 
-- **Left — Library.** Collapsible groups: Tasks, Blocks, Malfunctions, Injects, Set-ups, Presets.
-  Search. **+ New** on every group (this is where a malfunction is created by hand).
-- **Centre — Program.** One section expanded, the rest one-line summaries, expansion driven by
-  `?section=<key>` so it stays server-rendered. Phase colour as a 3px left rule, never a fill.
-  Per-section time budget: *3:45 of 4:00 · 0:15 free*. **Preview as instructor** top right.
-- **Right — Inspector.** The selected element only, `?sel=<element_key>`. Tabs: Set-up · Conduct ·
-  Assessment · Aims. Automation is three segmented controls, always visible, never behind a
-  disclosure. Save on blur.
+- **Left — Palette.** What can be added: Section · Exercise · Set-up · Malfunction · Event · Note ·
+  Comms, dragged in or added with a button, plus a collapsed *Presets* group (the standard blocks
+  and exercises). The content is chosen on the right, not here.
+- **Centre — Program.** Drag to reorder and between sections, click a title to rename inline.
+  Sections at the top level, notes anywhere, everything else inside a section. Phase colour as a
+  3px left rule, never a fill. Every drop and rename is saved at once and the page re-renders from
+  the database.
+- **Right — Inspector.** One pane per element kind, saving on blur: Exercise (time, PF, snapshot,
+  automation, **gradable and how**, aims, instructor notes), Section (level, phase, time,
+  training-only, gradable), Set-up (airport, weather, position, comms, reset, ATC and performance
+  as free-text lines with **+**; mass as ZFW / ZFWCG / fuel), Malfunction (aircraft type, search by
+  ATA / system / name, option, **+**, run in sequence or **choose one at delivery** - the instructor's
+  grid), Event (category, pre-created or typed, **+**), Note. The three panes are resizable.
 - **Foot — Findings bar.** Green checks, amber warnings, red blockers, each with a jump link. See §6.
 
 ### 5.3 As instructor — `/templates/[id]?view=instructor`
