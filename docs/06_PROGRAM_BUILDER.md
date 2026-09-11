@@ -1,0 +1,321 @@
+# 06 — Program Builder
+
+**Status: plan, not built.** Written 2026-09-11 against the running instance (79 migrations,
+`verify:clean` green). Nothing in here has been implemented. It settles the model, the screens, the
+seed content and the vocabulary so that the build is mechanical.
+
+Sources read: `EBT A Guide` (Avianca Baseline EBT M1 PII A320 Instructor Guide, Rev. 2, 35 pp),
+`PROGRAM_BUILDER_CONTENT_AND_VIEWS_v1_0.md`, `CVX_DECISION_stated_gaps_and_inspector_editing.md`,
+and the kit's own `docs/05_TEMPLATES_AND_BUILDER.md` schema as migrated (0020-0023, 0032-0035, 0141).
+
+---
+
+## 1. What gets built
+
+Three screens, in this order:
+
+| # | Screen | Route | Who |
+|---|---|---|---|
+| 1 | **Programs** — every template, its kind, fleet, version and status, plus **Create new program** | `/templates` | Admin · Head of Training · Training Manager |
+| 2 | **Builder** — three panes: library rail, programme canvas, inspector | `/templates/[id]` | same |
+| 3 | **As instructor** — the instructor projection of the same programme, read-only, with a **task rail on the left to navigate** | `/templates/[id]?view=instructor` | same |
+
+Review & Sign (the third reference screen) is the *delivery* module's output, not the builder's. It
+is the step after this one and is specified in `docs/04_ETR.md`; it is named here only so nobody
+expects it in this slice.
+
+---
+
+## 2. The model — reuse, do not fork
+
+The reference documents describe a `prog.*` / `lib.*` schema (programme · module · session · block ·
+event). **We are not porting those tables.** The kit already carries an equivalent model, every
+grade in the system keys on it, the published-version immutability triggers already guard it, and
+the 26-assertion gate suite already asserts against it. A second model would fork the product.
+
+The mapping is exact enough to be boring:
+
+| Reference concept | This build |
+|---|---|
+| Programme | `session_templates` + `session_template_versions` (one template = one gradable session) |
+| Module / Session / Block | `template_elements` with `element_type='section'`, nested by `parent_key`, kind in `content.section_kind` |
+| Event | `template_elements` with `element_type='task'` |
+| Set-up panel | `element_type='setup'` |
+| Failure chosen at delivery (slot) | `element_type='event_option'` |
+| Instructor prose | `element_type='note'` |
+| `lib.tasks`, malfunctions, injects, presets | `element_library`, separated by `element_type` + `tags` |
+| `event_targets` | `template_competencies` (version level) + `content.grading.competencies` (element level) |
+| `programme_type` | `template_kinds` (0032, 0141) — `ebt_recurrent`, `proficiency_check` = "OPC / LPC", `type_rating`, `line_check` |
+
+**Consequence: the builder needs no new tables.** It needs one new migration at most — for the
+library-kind tags and any missing index — plus screens, a content shape and a validator.
+
+### 2.1 The content shape
+
+`template_elements.content` is JSONB and today free-form. The builder makes it a **documented,
+versioned shape**, declared once in `lib/templates/shape.ts` and validated on every write:
+
+```
+task:
+  time            "0:50"
+  pf              "CM1" | "CM2" | null      (null renders blank, never "both")
+  setup           { airport, weather, mass_config, position, reset, atc_script }   each { ref, override }
+  conduct         { malfunction, insertion, injects[], instructor_notes, option_group_key }
+  automation      { ap, athr, fd }          each required_on | required_off | crew_discretion | n/a
+  aims            { aims, competency_focus, grading_criteria, visibility }
+  grading         { task_outcome_mode, competency_grade_mode, competencies[] }
+  snapshot        "take" | "recall" | null
+  variants        { "<device_code>": { ...overrides } }
+```
+
+Two rules carried over from the reference decision, because they were paid for once already:
+
+- **Set-up and conduct are references into the library, chosen with a picker — never free text.**
+  The override field exists for the local variation and sits one click further away. The moment
+  somebody can type an airport into an event, the library stops being the library.
+- **Save on blur, per field, one transaction each. No Save button.** Everything the builder touches
+  is a *draft*; a published version is immutable by trigger. A gate on a draft edit is ceremony.
+  Confirmation gates stay on delete and on publish, where they mean something.
+
+### 2.2 What is deliberately deferred
+
+| Thing | Why | How it appears meanwhile |
+|---|---|---|
+| Malfunction reference ingestion | You asked to defer it | The library create form is live: an author adds a malfunction by hand |
+| Approve / publish lifecycle beyond `published` | The kit's publish already freezes the version | Draft → Published → Retired, nothing more |
+| Cross-day programme object | One template per sim day is the honest unit | `setup.programme = { code, module, phase, day }` groups them |
+
+---
+
+## 3. Vocabulary
+
+The kit ships the ICAO/IATA framework: nine competencies, 73 observable behaviours, verbatim. The
+guide uses the same nine and differs in **exactly one code**:
+
+**Decision: the code stays `PRO`.** The guide writes `APK` in that slot; we keep the ICAO spelling
+so the framework stays the published one, unmodified, and the guide's `APK` is read as the same
+competency. Nothing else differs.
+
+| Kit | Guide | Competency |
+|---|---|---|
+| `KNO` | `KNO` | Application of Knowledge |
+| **`PRO`** | *(`APK` in the guide)* | Application of Procedures and Compliance with Regulations |
+| `COM` | `COM` | Communication |
+| `FPA` | `FPA` | Flight Path Management, automation |
+| `FPM` | `FPM` | Flight Path Management, manual control |
+| `LTW` | `LTW` | Leadership and Teamwork |
+| `PSD` | `PSD` | Problem Solving and Decision-Making |
+| `SAW` | `SAW` | Situation Awareness and Management of Information |
+| `WLM` | `WLM` | Workload Management |
+
+No migration, no relabel, no fork: the framework ships as published. If their instructors ask, the
+answer is that `PRO` is the ICAO code for the competency their guide abbreviates `APK`.
+
+Other guide vocabulary adopted as-is: **CM1 / CM2** (not CP / FO, which stay the roster positions),
+**PF / PM**, **TE** (training element), **MV** (manoeuvre validation), **REINF**, **SBT**, **EVAL**,
+**LPC**, **MTV**, **UPRT**, **HPS**, **ISI**, **GAPPRI / GAPPRE**, **AWO**, **FICON**, **RWCC**.
+
+---
+
+## 4. Seed content — the guide, taken apart
+
+The guide is one document holding a two-day module. The demo needs **separate templates**, because
+that is the argument the product makes: a programme is structured data, not a PDF.
+
+**Decided: all four.** Three come out of the guide; the line check is invented against
+`docs/04_ETR.md` and exists to exercise `one_record_per_sector` — one record per leg, not one per
+day. It is the only seeded template whose content is ours rather than theirs, and it is labelled as
+such on screen.
+
+| # | Template | Kind | Sections |
+|---|---|---|---|
+| 1 | EBT M1 Phase II — Day 1 (A320) | `ebt_recurrent` | EVAL 1 · Transit · EVAL 2 · SBT 1 GAPPRI · SBT 2 / ISI · HPS · REINF |
+| 2 | EBT M1 Phase II — Day 2 (A320) | `ebt_recurrent` | SBT 3 Cold WX · LPC / MV / AWO · MTV · UPRT · SBT 4 Fuel Leak · SBT 5 · REINF |
+| 3 | OPC / LPC — A320 | `proficiency_check` | the LPC manoeuvre set, standalone |
+| 4 | Line check — A320 | `line_check` | one record per sector |
+
+Time budgets come straight from the guide's Main Menu (Day 1: 0:50 · 0:40 · 1:00 · break 0:15 ·
+0:35 · 0:25 · 0:10 · 0:05; Day 2: 1:15 · 0:10 · 0:50 · 1:10 · 0:05 · 0:15) so the builder's ruler
+has real numbers to show against a 4:00 period.
+
+### 4.1 Substitution rules — no real operational data
+
+The guide is a live operational document. **None of its identifying data is reproduced.** The
+demo is built on the same *structure* with substituted values:
+
+| Kind | In the guide | In the demo |
+|---|---|---|
+| Domestic airports | SKBO, SKPE, SKEJ, SKYP, SKRG, SKMR, AXM | **SKBO, SKCL, SKRG only** |
+| International | KBOS | **KJFK only** |
+| Flight numbers | real AV numbers | **AV 7001-7099**, a block outside live ranges |
+| Aircraft registration | a real fleet tail | **N320AV** (A320), **N330AV** (A330), **N787AV** (B787) |
+| Callsign | the live callsign | **AVA 7xx**, matching the flight block |
+| Dates | 31 JAN 2027 | relative to the demo date |
+| Runways, frequencies, speeds, weights | real | recomputed for the substituted airports |
+
+The AV / AVA shape is kept so the screens read as native to them. Every seeded page carries the
+`DEMO` environment chip from `brand.yaml`, and the numbers sit outside their live ranges, so a
+printed page cannot be mistaken for an operational one.
+
+Anything not on that list — phase structure, TEM framing, LOSA-driven design, competency focus,
+instructor technique, the GAPPRI teaching points — is *method*, not operator data, and is what makes
+the demo recognisable to them. That distinction is the whole point: **their process, none of their
+numbers.** The neutrality scan (`npm run scan`) already blocks the other direction.
+
+### 4.2 Slots and equivalency groups — in scope
+
+**Decided: build them.** Instructor choice from an equivalency group is the thing that separates a
+programme builder from a form designer, and the guide relies on it in practice — the same EVAL slot
+takes any of several engine malfunctions, and the crew must not meet the same one twice in a cycle.
+
+What that means concretely, and where the cost is:
+
+| Piece | Effort | Note |
+|---|---|---|
+| `equivalency_groups` + `group_candidates` (library side) | small | two tables, a picker, a create form |
+| `content.conduct.slot` on a task | small | replaces the malfunction picker with a slot summary when set |
+| `selection_policy` | small | `instructor_choice · rotation · random · manager_assigned` — an enum and four code paths |
+| Constraints (no repeat within N modules, cycle coverage) | **large** | needs the delivery side and a history to read; the builder alone cannot evaluate it |
+
+So the build splits at the honest line: **the group, the candidates, the policy and the slot render
+in the builder and the instructor view in this slice.** The *constraint engine* — which reads a
+pilot's history to say "this candidate was flown in module 2" — lands with the delivery module,
+because there is nothing to read until sessions exist. The constraint fields are authored now and
+shown as authored; the evaluation is a stated gap on the screen until the history is there.
+
+That keeps 29 Sep intact. If the constraint engine has to be live for the demo, it moves ahead of
+the seed (step 9) and the seed becomes two templates instead of four — say so and I will reorder.
+
+### 4.3 The library this produces
+
+Roughly, from one module: ~18 tasks, ~14 malfunctions (A/THR channel fault, ENG bird strike + high
+vibration, fuel leak before / after the metering valve, fuel leak centre tank, ENG 1 stall at V1,
+system component failure after IAF, A/P failure below 200 ft, N/W steering fault, REV fault, GEN 1
+off …), ~8 injects (TCAS TA/RA, traffic in descent, ATC re-clearance, bird report, breakout
+instruction), ~10 set-up conditions (airport, weather, mass, position, reset, ATC script), and ~6
+block presets (EVAL, SBT, MT, UPRT, brief, debrief).
+
+---
+
+## 5. The screens
+
+### 5.1 Programs — `/templates`
+
+A table, not cards: code, name, kind, fleet, version, status chip, competencies targeted, last
+edited, holder of the draft. Filters by kind and fleet. One primary button, **Create new program**,
+which asks for the four things that freeze at creation — name, kind, fleet, framework + grading
+scheme — and lands in the builder on an empty draft. Clicking any row opens the builder on its
+current version; a published version opens read-only with **Clone to draft** as the only action.
+
+### 5.2 Builder — `/templates/[id]`
+
+Three panes, matching the reference layout in Avianca dress:
+
+- **Left — Library.** Collapsible groups: Tasks, Blocks, Malfunctions, Injects, Set-ups, Presets.
+  Search. **+ New** on every group (this is where a malfunction is created by hand).
+- **Centre — Programme.** One section expanded, the rest one-line summaries, expansion driven by
+  `?section=<key>` so it stays server-rendered. Phase colour as a 3px left rule, never a fill.
+  Per-section time budget: *3:45 of 4:00 · 0:15 free*. **Preview as instructor** top right.
+- **Right — Inspector.** The selected element only, `?sel=<element_key>`. Tabs: Set-up · Conduct ·
+  Assessment · Aims. Automation is three segmented controls, always visible, never behind a
+  disclosure. Save on blur.
+- **Foot — Findings bar.** Green checks, amber warnings, red blockers, each with a jump link. See §6.
+
+### 5.3 As instructor — `/templates/[id]?view=instructor`
+
+The same content through the **instructor projection**, read-only, with no write path at all —
+not a disabled one. Runtime values render as placeholders: no pilot, no grades, clocks at zero, no
+signature block.
+
+Your one modification to the reference layout: **a left rail listing the sections and tasks**, so
+the instructor navigates the session rather than scrolling it. It shows phase colour, task number,
+title, and a dot when a task carries a grade control.
+
+The rule that makes this worth building: `view=instructor` calls the *same* projection function the
+delivery screen will call. If it renders through its own template it drifts within a month, and a
+preview that lies is worse than no preview.
+
+---
+
+## 6. New idea — a findings bar with real rules
+
+The reference builder shows a compliance bar and states that no engine is behind it. We can have a
+small honest one, because the guide itself states its rules in plain words. Six checks, declared in
+`config/rules.yaml`, read by one predicate:
+
+| Check | Source | Severity |
+|---|---|---|
+| An EBT module carries all three phases (EVAL, MT, SBT) | IATA EBT / the guide's structure | blocker |
+| Section times sum to the declared period | Main Menu, 4:00 per day | warning |
+| REINF time is present and not zero | "under no circumstances should this time be cut" | blocker |
+| Training-only sections are not graded | "SBT1 and HPS are TRAINING ONLY" | blocker |
+| A task targets no more than N competencies | operator policy, default 3 | warning |
+| Every graded task names its grading criteria | `aims.grading_criteria` empty | warning |
+
+Each rendered finding carries `data-rule="<id>"` and the test asserts that the set rendered equals
+the set in the registry — so a rule that stops firing, and a finding with no rule behind it, both
+fail loudly. A rule that cannot yet be evaluated is **not rendered at all**; a warning that fires on
+every action is a yellow line people learn to walk past.
+
+## 6.1 Three smaller ideas, cheap and authentic
+
+1. **Snapshot / Recall as first-class.** The guide takes or recalls a snapshot about a dozen times
+   and has nowhere to record it. One enum on the task; it renders as a camera chip in both views.
+2. **Device variants.** The guide carries a parallel 012FSTD variant in green throughout. Model it
+   as `content.variants` with a device toggle in the builder and the instructor view. No other
+   vendor's builder does this, and it is exactly the thing their training managers maintain by hand.
+3. **Time ruler against the real period.** The data is already there; it makes "3:45 of 4:00" true
+   rather than decorative.
+
+---
+
+## 7. Design
+
+The reference screenshots are the Corvanox dark theme. This build is Avianca: white header,
+`#DA291C` accent, `#1B1B1B` ink, Red Hat Display, 10px / 6px radii — all already in `brand.yaml`,
+nothing hardcoded. The builder needs **one addition to `brand.yaml`: a phase palette** (brief,
+evaluation, manoeuvres training, scenario-based training, debrief, reinforcement), used as a 3px
+rule in the builder, the instructor view and later the report. Data-state colour stays as decided:
+ember for monitor, `#A8321E` priority, `#2F7D32` at standard, as a rule and never a fill.
+
+---
+
+## 8. Build order
+
+Each step ends green on `typecheck` + `verify:clean` + `smoke`, and is one commit.
+
+1. Content shape + validator + `config/rules.yaml` (no screens) — the foundation everything reads.
+2. Migration: library tags, phase palette in `brand.yaml`, the `APK` relabel.
+3. `/templates` list + Create new program.
+4. Builder canvas, read-only: sections, tasks, phase rules, time ruler.
+5. Library rail + drag/place + **New malfunction** form.
+6. Inspector: Set-up · Conduct · Assessment · Aims, save on blur.
+7. Findings bar.
+8. Equivalency groups, candidates, selection policy, and the slot on a task (§4.2).
+9. Instructor projection + left task rail + device toggle.
+10. Seed: the four templates and the library, from the guide, substituted per §4.1.
+11. Publish / clone-to-draft, and the gate assertions.
+
+Steps 1-4 are the demo's spine; 10 is what makes it look like theirs. Step 8 is the largest single
+item and the one to watch against 29 Sep; its constraint engine is deliberately out (§4.2).
+
+---
+
+## 9. Decisions taken
+
+2026-09-11, before any code:
+
+1. **Four templates** — EBT M1 PII Day 1, Day 2, OPC / LPC, and a Line check. §4.
+2. **`PRO` stays `PRO`** — the ICAO framework ships unmodified; the guide's `APK` is the same
+   competency. §3.
+3. **AV / AVA identifiers outside live ranges** — AV 7001-7099, AVA 7xx, N320AV / N330AV / N787AV,
+   and the `DEMO` chip on every page. §4.1.
+4. **Slots are in** — group, candidates, selection policy and the slot on a task. The constraint
+   engine ships with the delivery module, and is a stated gap until then. §4.2.
+
+### Still open
+
+- Is the constraint engine (no repeat within N modules, cycle coverage) needed *on the day*? If yes,
+  it moves ahead of the seed and the seed drops to two templates.
+- The guide's SKBO runway designators are the old ones. The demo uses the published 13L/31R and
+  13R/31L unless you want their spelling kept.
