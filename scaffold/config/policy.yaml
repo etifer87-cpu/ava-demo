@@ -20,9 +20,9 @@
 # No operator content. Every vocabulary below is a neutral starter list.
 # ---------------------------------------------------------------------------
 
-version: "1.2"
-updated: "2026-09-08"
-note: "v1.2: Avianca operator context. Vocabularies replaced with the operator's own (bases, fleets, seats, instructor roles, EBT session kinds, outcome terms). v1.1: the db_kind mapping and the element-catalogue db_type mapping are gone - migrations 0032 and 0033 widened the schema to carry the real vocabulary, so both levels collapsed into one."
+version: "1.3"
+updated: "2026-09-10"
+note: "v1.3: display labels (subject reads as Pilot). v1.2: Avianca operator context. Vocabularies replaced with the operator's own (bases, fleets, seats, instructor roles, EBT session kinds, outcome terms). v1.1: the db_kind mapping and the element-catalogue db_type mapping are gone - migrations 0032 and 0033 widened the schema to carry the real vocabulary, so both levels collapsed into one."
 
 # ---------------------------------------------------------------------------
 # 1. Template kinds - docs/04_ETR.md section 4.
@@ -176,6 +176,23 @@ seats:
 # TRE/TRI type-rating examiner/instructor, SFE/SFI synthetic-flight examiner/instructor,
 # LTC line training captain, CRMI CRM instructor, GI ground instructor.
 instructor_roles: ["TRE", "TRI", "SFE", "SFI", "LTC", "CRMI", "GI"]
+
+# ---------------------------------------------------------------------------
+# 3a. Display labels.
+#
+#    The STORED entity is a `subject` - tables, columns, routes and test ids all
+#    say so, and none of them change. What an operator's people READ is theirs:
+#    this airline trains pilots, an academy trains cadets, a maintenance
+#    organisation trains engineers. One word, one place, read by the navigation,
+#    the roster screen and its breadcrumbs.
+#
+#    Nothing may hardcode these strings, same rule as every other vocabulary here.
+# ---------------------------------------------------------------------------
+labels:
+  subject: "Pilot"
+  subject_plural: "Pilots"
+  assessor: "Instructor"
+  assessor_plural: "Instructors"
 
 # Role codes that may be an assessor of record. Re-validated server-side on
 # session creation against session_template_versions.allowed_assessor_roles: a

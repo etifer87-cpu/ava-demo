@@ -3,7 +3,7 @@ import { notFound } from 'next/navigation';
 import { query, queryOne } from '@/lib/db';
 import { requireSession } from '@/lib/session';
 import { resolveAccess, can, canOnPerson, visiblePersonIds, ALL_PEOPLE } from '@/lib/access';
-import { analyticsConfig, gradeScale, gradePalette } from '@/lib/config';
+import { analyticsConfig, gradeScale, gradePalette, labels } from '@/lib/config';
 import { buildChartTokens } from '@/components/charts/chart-tokens';
 import { CompetencyRadar } from '@/components/charts/CompetencyRadar';
 import { TrendSparkline } from '@/components/charts/TrendSparkline';
@@ -213,7 +213,7 @@ export default async function SubjectProfilePage({ params }: { params: Promise<{
       <Breadcrumbs
         items={[
           { label: 'Overview', href: '/' },
-          { label: 'Subjects', href: '/subjects' },
+          { label: labels().subject_plural, href: '/subjects' },
           { label: person.external_id },
         ]}
       />
@@ -325,7 +325,7 @@ export default async function SubjectProfilePage({ params }: { params: Promise<{
         rows={records}
         rowKey={(r) => r.id}
         emptyTitle="No records"
-        emptyReason="Nothing has been recorded for this subject from any source yet."
+        emptyReason={`Nothing has been recorded for this ${labels().subject.toLowerCase()} from any source yet.`}
       />
     </div>
   );

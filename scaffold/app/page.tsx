@@ -3,6 +3,7 @@ import { redirect } from 'next/navigation';
 import { query } from '@/lib/db';
 import { getSession } from '@/lib/session';
 import { resolveAccess, can, visiblePersonIds, ALL_PEOPLE, type ResolvedAccess } from '@/lib/access';
+import { labels } from '@/lib/config';
 import Card from '@/components/ui/Card';
 import EmptyState from '@/components/ui/EmptyState';
 
@@ -76,7 +77,7 @@ async function frameworkSummary(): Promise<{ name: string; competencies: number;
 }
 
 const TILES: ReadonlyArray<{ href: string; title: string; body: string; capability: string }> = [
-  { href: '/subjects', title: 'Subjects', body: 'The roster, with concern state and competency profiles.', capability: 'people.view' },
+  { href: '/subjects', title: labels().subject_plural, body: 'The roster, with concern state and competency profiles.', capability: 'people.view' },
   { href: '/sessions', title: 'Sessions', body: 'Training events open for grading, and the ones awaiting signature.', capability: 'training.sessions.view' },
   { href: '/records', title: 'Records', body: 'Signed records from every source: in-app, imported and ingested.', capability: 'training.records.view' },
   { href: '/templates', title: 'Templates', body: 'Form definitions and their published versions.', capability: 'training.templates.view' },
@@ -119,7 +120,7 @@ export default async function LandingPage() {
       </p>
 
       <div className="grid grid-kpi">
-        {people !== null ? <Stat label="Subjects" value={String(people)} note="active on the roster, in scope" /> : null}
+        {people !== null ? <Stat label={labels().subject_plural} value={String(people)} note="active on the roster, in scope" /> : null}
         {records !== null ? <Stat label="Records" value={String(records)} note="all sources, in scope" /> : null}
         {framework ? (
           <Stat

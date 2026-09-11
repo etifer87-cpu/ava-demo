@@ -6,6 +6,7 @@ import Breadcrumbs from '@/components/ui/Breadcrumbs';
 import Chip from '@/components/ui/Chip';
 import DataTable, { type Column } from '@/components/ui/DataTable';
 import FilterBar, { TextFilter, SelectFilter } from '@/components/ui/FilterBar';
+import { labels } from '@/lib/config';
 
 /**
  * /subjects - the roster.
@@ -29,7 +30,7 @@ import FilterBar, { TextFilter, SelectFilter } from '@/components/ui/FilterBar';
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
-export const metadata = { title: 'Subjects' };
+export const metadata = { title: labels().subject_plural };
 
 interface SubjectRow {
   id: string;
@@ -58,6 +59,7 @@ export default async function SubjectsPage({
   const session = await requireSession();
   const access = await resolveAccess(session);
   requireCapability(access, 'people.view');
+  const L = labels();
 
   const sp = await searchParams;
   const q = one(sp.q);
@@ -164,8 +166,8 @@ export default async function SubjectsPage({
 
   return (
     <div className="stack">
-      <Breadcrumbs items={[{ label: 'Overview', href: '/' }, { label: 'Subjects' }]} />
-      <h1>Subjects</h1>
+      <Breadcrumbs items={[{ label: 'Overview', href: '/' }, { label: L.subject_plural }]} />
+      <h1>{L.subject_plural}</h1>
 
       <FilterBar action="/subjects" resetHref="/subjects">
         <TextFilter name="q" label="Name or id" value={q} placeholder="Search" />
@@ -186,11 +188,11 @@ export default async function SubjectsPage({
 
       <DataTable
         testId="subject-list"
-        caption="Subjects in scope"
+        caption={`${L.subject_plural} in scope`}
         columns={columns}
         rows={rows}
         rowKey={(r) => r.id}
-        emptyTitle="No subject matched"
+        emptyTitle={`No ${L.subject.toLowerCase()} matched`}
         emptyReason="No roster row matched these filters within the records this account may see. Reset the filters to check whether the scope or the filter is the reason."
         countSuffix={rows.length === 500 ? '(page limit reached - narrow the filters)' : undefined}
       />

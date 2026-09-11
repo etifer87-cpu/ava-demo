@@ -187,8 +187,16 @@ export function gradeScale(): {
 /* policy.yaml - the operator's vocabularies                            */
 /* ------------------------------------------------------------------ */
 
+export interface LabelSet {
+  subject: string;
+  subject_plural: string;
+  assessor: string;
+  assessor_plural: string;
+}
+
 export interface PolicyConfig {
   version: string;
+  labels?: Partial<LabelSet>;
   positions: string[];
   instructor_roles: string[];
   assessor_role_codes: string[];
@@ -199,6 +207,20 @@ export interface PolicyConfig {
 /** The training policy, loose like analyticsConfig: only the vocabularies screens read are typed. */
 export function policy(): PolicyConfig {
   return load<PolicyConfig>('policy.yaml');
+}
+
+/**
+ * The operator's display words. Falls back to the kit's neutral vocabulary when policy.yaml
+ * carries no `labels` block, so a screen never renders an empty string.
+ */
+export function labels(): LabelSet {
+  const l = policy().labels ?? {};
+  return {
+    subject: l.subject ?? 'Subject',
+    subject_plural: l.subject_plural ?? 'Subjects',
+    assessor: l.assessor ?? 'Assessor',
+    assessor_plural: l.assessor_plural ?? 'Assessors',
+  };
 }
 
 /** Test seam: forget everything read so far. Never called from a request path. */

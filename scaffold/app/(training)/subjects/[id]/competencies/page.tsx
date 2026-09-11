@@ -1,4 +1,5 @@
 import StubPage from '@/components/ui/StubPage';
+import { labels } from '@/lib/config';
 
 // TODO(kit): implement. Specified by docs/06_ANALYTICS.md. Gate: training.analysis.view, row-checked with requireOnPerson.
 export const runtime = 'nodejs';
@@ -15,7 +16,7 @@ export default async function Page({ params }: { params: Promise<{ id: string }>
       gate="training.analysis.view"
       crumbs={[
         { label: 'Overview', href: '/' },
-        { label: 'Subjects', href: '/subjects' },
+        { label: labels().subject_plural, href: '/subjects' },
         { label: 'Subject', href: `/subjects/${id}` },
         { label: 'Competencies' },
       ]}

@@ -1,6 +1,6 @@
 import type { Metadata } from 'next';
 import './globals.css';
-import { brand, brandCss } from '@/lib/config';
+import { brand, brandCss, labels } from '@/lib/config';
 import { getSession } from '@/lib/session';
 import { resolveAccess, can } from '@/lib/access';
 import AppHeader from '@/components/ui/AppHeader';
@@ -35,9 +35,15 @@ export async function generateMetadata(): Promise<Metadata> {
   };
 }
 
-/** Module -> the capability that must be held for its entry to appear. */
+/**
+ * Module -> the capability that must be held for its entry to appear.
+ *
+ * The roster's label is the operator's word (policy.yaml `labels.subject_plural`), not a literal:
+ * the route and every id stay `/subjects` because they are identifiers, and only what a person
+ * reads changes. Evaluated at module load, which is when policy.yaml is read anyway.
+ */
 const MODULES: ReadonlyArray<NavItem & { capability: string }> = [
-  { href: '/subjects', label: 'Subjects', capability: 'people.view' },
+  { href: '/subjects', label: labels().subject_plural, capability: 'people.view' },
   { href: '/sessions', label: 'Sessions', capability: 'training.sessions.view' },
   { href: '/records', label: 'Records', capability: 'training.records.view' },
   { href: '/templates', label: 'Templates', capability: 'training.templates.view' },
