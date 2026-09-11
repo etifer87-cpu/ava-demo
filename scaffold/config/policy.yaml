@@ -20,9 +20,9 @@
 # No operator content. Every vocabulary below is a neutral starter list.
 # ---------------------------------------------------------------------------
 
-version: "1.3"
-updated: "2026-09-10"
-note: "v1.3: display labels (subject reads as Pilot). v1.2: Avianca operator context. Vocabularies replaced with the operator's own (bases, fleets, seats, instructor roles, EBT session kinds, outcome terms). v1.1: the db_kind mapping and the element-catalogue db_type mapping are gone - migrations 0032 and 0033 widened the schema to carry the real vocabulary, so both levels collapsed into one."
+version: "1.4"
+updated: "2026-09-11"
+note: "v1.4: program builder vocabulary (section 9). v1.3: display labels (subject reads as Pilot). v1.2: Avianca operator context. Vocabularies replaced with the operator's own (bases, fleets, seats, instructor roles, EBT session kinds, outcome terms). v1.1: the db_kind mapping and the element-catalogue db_type mapping are gone - migrations 0032 and 0033 widened the schema to carry the real vocabulary, so both levels collapsed into one."
 
 # ---------------------------------------------------------------------------
 # 1. Template kinds - docs/04_ETR.md section 4.
@@ -279,6 +279,30 @@ templates:
   # seeded sessions are backdated freely and independently of this value.
   seed_version: 1
   seed_status: "published"
+
+# ---------------------------------------------------------------------------
+# 9. Program builder - docs/06_PROGRAM_BUILDER.md sections 2.1 and 3.
+#
+#    Operator words the builder offers: the levels an author arranges, the
+#    phases a section may carry, and the pilot-flying seats a task may name.
+#    Phase colours live in brand.yaml (phase_palette), keyed by these codes.
+#    Renderer branches (automation states, grading modes, visibility, slot
+#    policy) are code vocabularies in lib/program/shape.ts, for the reason
+#    migration 0033 gives: each needs a control and a report block behind it.
+# ---------------------------------------------------------------------------
+program:
+  section_kinds: ["module", "session", "block"]
+  phases:
+    - { code: brief,   label: "Briefing" }
+    - { code: eval,    label: "Evaluation" }
+    - { code: mt,      label: "Manoeuvres training" }
+    - { code: sbt,     label: "Scenario-based training" }
+    - { code: transit, label: "Transit" }
+    - { code: reinf,   label: "Reinforcement" }
+    - { code: debrief, label: "Debriefing" }
+  # The guide's crew-member seats. Roster positions (CP / FO) are a different
+  # vocabulary and stay in `positions` above.
+  pf_seats: ["CM1", "CM2"]
 
 # ---------------------------------------------------------------------------
 # 8. Synthetic-data profile - read by scripts/seed-synthetic.mjs.

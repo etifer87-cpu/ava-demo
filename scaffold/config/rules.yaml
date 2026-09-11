@@ -1,0 +1,75 @@
+# ---------------------------------------------------------------------------
+# rules.yaml - the findings the program builder shows.
+#
+# Specified by docs/06_PROGRAM_BUILDER.md section 6. Read by lib/program/index.ts,
+# evaluated by lib/program/rules.ts.
+#
+# ONE ROW, ONE IMPLEMENTATION. Every `id` here has exactly one predicate in
+# lib/program/rules.ts, and a test asserts the two sets are equal in both
+# directions: a rule that stops firing and a finding with no rule behind it
+# both fail loudly. This file carries the PARAMETERS and the WORDS; the logic
+# is code, because a predicate needs a branch.
+#
+# A rule that cannot be evaluated yet - because the data it reads does not
+# exist - is not in this file. A warning that fires on every action is a
+# yellow line people learn to walk past.
+#
+# BINDING RULE, same as policy.yaml: nothing in code may hardcode a value from
+# this file. The period, the phase codes and the tolerances are read from here.
+#
+# `severity`: block - the version cannot be published; warn - shown, publish
+# allowed. `applies_to_kinds`: template kinds the rule runs on; absent = all.
+# `source` is what the finding cites on screen, in the operator's language.
+# ---------------------------------------------------------------------------
+
+version: "1.0"
+updated: "2026-09-11"
+
+rules:
+  - id: ebt.three_phases
+    severity: block
+    applies_to_kinds: [ebt_recurrent]
+    params:
+      phases: [eval, mt, sbt]
+    source: "IATA EBT Implementation Guide · ICAO Doc 9995"
+    message: "An EBT module carries all three phases: Evaluation, Manoeuvres training and Scenario-based training."
+
+  - id: time.budget
+    severity: warn
+    params:
+      tolerance_minutes: 5
+    source: "Operator policy · module time schedule"
+    message: "Section times do not add up to the declared period."
+
+  - id: reinf.present
+    severity: block
+    applies_to_kinds: [ebt_recurrent]
+    params:
+      phase: reinf
+      min_minutes: 5
+    source: "Operator policy · reinforcement time is never cut"
+    message: "Reinforcement time is missing or below the minimum."
+
+  - id: training_only.not_graded
+    severity: block
+    params:
+      phases: [mt, transit, reinf, brief, debrief]
+    source: "Operator policy · training-only sections do not count towards the day's assessment"
+    message: "A task inside a training-only phase carries a grade control."
+
+  - id: task.max_competencies
+    severity: warn
+    params:
+      max: 3
+    source: "Operator design guardrail"
+    message: "A task targets more competencies than the design guardrail."
+
+  - id: task.grading_criteria
+    severity: warn
+    source: "Operator policy · every graded task states its standard"
+    message: "A graded task has no grading criteria written for the instructor."
+
+  - id: slot.constraints_unevaluated
+    severity: warn
+    source: "Constraint evaluation reads a pilot's history and lands with the delivery module"
+    message: "A slot carries rotation constraints; they are shown as authored and are not yet evaluated."

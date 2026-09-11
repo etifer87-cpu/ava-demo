@@ -17,8 +17,8 @@ Three screens, in this order:
 | # | Screen | Route | Who |
 |---|---|---|---|
 | 1 | **Programs** — every template, its kind, fleet, version and status, plus **Create new program** | `/templates` | Admin · Head of Training · Training Manager |
-| 2 | **Builder** — three panes: library rail, programme canvas, inspector | `/templates/[id]` | same |
-| 3 | **As instructor** — the instructor projection of the same programme, read-only, with a **task rail on the left to navigate** | `/templates/[id]?view=instructor` | same |
+| 2 | **Builder** — three panes: library rail, program canvas, inspector | `/templates/[id]` | same |
+| 3 | **As instructor** — the instructor projection of the same program, read-only, with a **task rail on the left to navigate** | `/templates/[id]?view=instructor` | same |
 
 Review & Sign (the third reference screen) is the *delivery* module's output, not the builder's. It
 is the step after this one and is specified in `docs/04_ETR.md`; it is named here only so nobody
@@ -28,7 +28,7 @@ expects it in this slice.
 
 ## 2. The model — reuse, do not fork
 
-The reference documents describe a `prog.*` / `lib.*` schema (programme · module · session · block ·
+The reference documents describe a `prog.*` / `lib.*` schema (program · module · session · block ·
 event). **We are not porting those tables.** The kit already carries an equivalent model, every
 grade in the system keys on it, the published-version immutability triggers already guard it, and
 the 26-assertion gate suite already asserts against it. A second model would fork the product.
@@ -37,7 +37,7 @@ The mapping is exact enough to be boring:
 
 | Reference concept | This build |
 |---|---|
-| Programme | `session_templates` + `session_template_versions` (one template = one gradable session) |
+| Program | `session_templates` + `session_template_versions` (one template = one gradable session) |
 | Module / Session / Block | `template_elements` with `element_type='section'`, nested by `parent_key`, kind in `content.section_kind` |
 | Event | `template_elements` with `element_type='task'` |
 | Set-up panel | `element_type='setup'` |
@@ -45,7 +45,7 @@ The mapping is exact enough to be boring:
 | Instructor prose | `element_type='note'` |
 | `lib.tasks`, malfunctions, injects, presets | `element_library`, separated by `element_type` + `tags` |
 | `event_targets` | `template_competencies` (version level) + `content.grading.competencies` (element level) |
-| `programme_type` | `template_kinds` (0032, 0141) — `ebt_recurrent`, `proficiency_check` = "OPC / LPC", `type_rating`, `line_check` |
+| `program_type` | `template_kinds` (0032, 0141) — `ebt_recurrent`, `proficiency_check` = "OPC / LPC", `type_rating`, `line_check` |
 
 **Consequence: the builder needs no new tables.** It needs one new migration at most — for the
 library-kind tags and any missing index — plus screens, a content shape and a validator.
@@ -83,7 +83,7 @@ Two rules carried over from the reference decision, because they were paid for o
 |---|---|---|
 | Malfunction reference ingestion | You asked to defer it | The library create form is live: an author adds a malfunction by hand |
 | Approve / publish lifecycle beyond `published` | The kit's publish already freezes the version | Draft → Published → Retired, nothing more |
-| Cross-day programme object | One template per sim day is the honest unit | `setup.programme = { code, module, phase, day }` groups them |
+| Cross-day program object | One template per sim day is the honest unit | `setup.program = { code, module, phase, day }` groups them |
 
 ---
 
@@ -120,7 +120,7 @@ Other guide vocabulary adopted as-is: **CM1 / CM2** (not CP / FO, which stay the
 ## 4. Seed content — the guide, taken apart
 
 The guide is one document holding a two-day module. The demo needs **separate templates**, because
-that is the argument the product makes: a programme is structured data, not a PDF.
+that is the argument the product makes: a program is structured data, not a PDF.
 
 **Decided: all four.** Three come out of the guide; the line check is invented against
 `docs/04_ETR.md` and exists to exercise `one_record_per_sector` — one record per leg, not one per
@@ -165,7 +165,7 @@ numbers.** The neutrality scan (`npm run scan`) already blocks the other directi
 ### 4.2 Slots and equivalency groups — in scope
 
 **Decided: build them.** Instructor choice from an equivalency group is the thing that separates a
-programme builder from a form designer, and the guide relies on it in practice — the same EVAL slot
+program builder from a form designer, and the guide relies on it in practice — the same EVAL slot
 takes any of several engine malfunctions, and the crew must not meet the same one twice in a cycle.
 
 What that means concretely, and where the cost is:
@@ -213,7 +213,7 @@ Three panes, matching the reference layout in Avianca dress:
 
 - **Left — Library.** Collapsible groups: Tasks, Blocks, Malfunctions, Injects, Set-ups, Presets.
   Search. **+ New** on every group (this is where a malfunction is created by hand).
-- **Centre — Programme.** One section expanded, the rest one-line summaries, expansion driven by
+- **Centre — Program.** One section expanded, the rest one-line summaries, expansion driven by
   `?section=<key>` so it stays server-rendered. Phase colour as a 3px left rule, never a fill.
   Per-section time budget: *3:45 of 4:00 · 0:15 free*. **Preview as instructor** top right.
 - **Right — Inspector.** The selected element only, `?sel=<element_key>`. Tabs: Set-up · Conduct ·

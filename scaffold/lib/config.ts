@@ -194,9 +194,17 @@ export interface LabelSet {
   assessor_plural: string;
 }
 
+/** policy.yaml section 9: the program builder's operator vocabulary. */
+export interface ProgramPolicy {
+  section_kinds: string[];
+  phases: { code: string; label: string }[];
+  pf_seats: string[];
+}
+
 export interface PolicyConfig {
   version: string;
   labels?: Partial<LabelSet>;
+  program?: ProgramPolicy;
   positions: string[];
   instructor_roles: string[];
   assessor_role_codes: string[];
@@ -221,6 +229,31 @@ export function labels(): LabelSet {
     assessor: l.assessor ?? 'Assessor',
     assessor_plural: l.assessor_plural ?? 'Assessors',
   };
+}
+
+/* ------------------------------------------------------------------ */
+/* rules.yaml - the program builder's findings                          */
+/* ------------------------------------------------------------------ */
+
+export interface RuleSpecConfig {
+  id: string;
+  severity: 'block' | 'warn';
+  applies_to_kinds?: string[];
+  params?: Record<string, unknown>;
+  source?: string;
+  message: string;
+}
+
+export interface RulesConfig {
+  version: string;
+  rules: RuleSpecConfig[];
+}
+
+/** The findings registry. lib/program/rules.ts asserts every id has an implementation. */
+export function rules(): RulesConfig {
+  const r = load<RulesConfig>('rules.yaml');
+  if (!Array.isArray(r.rules)) throw new Error('config/rules.yaml has no rules list');
+  return r;
 }
 
 /** Test seam: forget everything read so far. Never called from a request path. */
