@@ -1,32 +1,91 @@
 'use client';
 
+import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 
 /**
- * NavLinks - the only client component in the shell, and it is a client component for exactly one
- * reason: `aria-current="page"` needs the current path, and a layout server component cannot know
- * it. Nothing else here is interactive.
+ * NavLinks - the only navigational client component in the shell.
  *
- * The item list arrives ALREADY FILTERED by the server against the caller's capabilities. A link
- * the caller may not follow is not rendered here, not hidden by CSS and not disabled: the server
- * decided, and this component only draws what it was given.
+ * It is a client component for two reasons and no others: `aria-current="page"` needs the current
+ * path, which a server layout cannot know, and a group of links has to open and close.
+ *
+ * THE LIST ARRIVES ALREADY FILTERED. The server decided, per caller, which groups and which
+ * children exist; a link the caller may not follow is not rendered here, not hidden by CSS and not
+ * disabled. A group whose children were all filtered away never reaches this file. This component
+ * only draws what it was given.
  */
 export interface NavItem {
   readonly href: string;
   readonly label: string;
 }
 
-export function NavLinks({ items, reportHref = null }: { readonly items: readonly NavItem[]; readonly reportHref?: string | null }) {
+/** A top-level entry: either a link, or a label with children (a dropdown). */
+export interface NavEntry {
+  readonly label: string;
+  /** Set when the entry is itself a link. Mutually exclusive with `children`. */
+  readonly href?: string;
+  readonly children?: readonly NavItem[];
+}
+
+function isActive(pathname: string, href: string): boolean {
+  return pathname === href || pathname.startsWith(`${href}/`);
+}
+
+export function NavLinks({ items, reportHref = null }: { readonly items: readonly NavEntry[]; readonly reportHref?: string | null }) {
   const pathname = usePathname();
+  const [open, setOpen] = useState<string | null>(null);
+  const navRef = useRef<HTMLElement | null>(null);
+
+  // A menu that survives the navigation it caused is a menu covering the page you asked for.
+  useEffect(() => { setOpen(null); }, [pathname]);
+
+  useEffect(() => {
+    if (open === null) return;
+    const onDown = (e: MouseEvent) => {
+      if (navRef.current && !navRef.current.contains(e.target as Node)) setOpen(null);
+    };
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') setOpen(null); };
+    document.addEventListener('mousedown', onDown);
+    document.addEventListener('keydown', onKey);
+    return () => { document.removeEventListener('mousedown', onDown); document.removeEventListener('keydown', onKey); };
+  }, [open]);
+
   return (
-    <nav className="app-nav" aria-label="Modules">
-      {items.map((item) => {
-        const active = pathname === item.href || pathname.startsWith(`${item.href}/`);
+    <nav className="app-nav" aria-label="Modules" ref={navRef}>
+      {items.map((entry) => {
+        if (!entry.children || entry.children.length === 0) {
+          const href = entry.href ?? '/';
+          return (
+            <Link key={href} href={href} aria-current={isActive(pathname, href) ? 'page' : undefined}>
+              {entry.label}
+            </Link>
+          );
+        }
+        const active = entry.children.some((c) => isActive(pathname, c.href));
+        const isOpen = open === entry.label;
         return (
-          <Link key={item.href} href={item.href} aria-current={active ? 'page' : undefined}>
-            {item.label}
-          </Link>
+          <div key={entry.label} className="nav-group" data-testid={`nav-group-${entry.label.toLowerCase().replace(/\s+/g, '-')}`}>
+            <button
+              type="button"
+              className="nav-group-button"
+              aria-expanded={isOpen}
+              aria-current={active ? 'page' : undefined}
+              onClick={() => setOpen(isOpen ? null : entry.label)}
+            >
+              {entry.label}
+              <span aria-hidden="true" className="nav-caret">▾</span>
+            </button>
+            {isOpen ? (
+              <div className="nav-menu" role="menu">
+                {entry.children.map((child) => (
+                  <Link key={child.href} href={child.href} role="menuitem" aria-current={isActive(pathname, child.href) ? 'page' : undefined}>
+                    {child.label}
+                  </Link>
+                ))}
+              </div>
+            ) : null}
+          </div>
         );
       })}
       {reportHref ? (

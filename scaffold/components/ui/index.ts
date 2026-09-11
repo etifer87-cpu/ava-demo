@@ -1,8 +1,8 @@
 /**
  * components/ui - the shared set the example screens are built from.
  *
- * Server components unless the file says otherwise. Two are client components and each says why in
- * its header: NavLinks (the current path for `aria-current`) and Popup (showModal() on a <dialog>).
+ * Server components unless the file says otherwise. Exactly one is a client component and it says
+ * why in its header: NavLinks, which needs the current path for `aria-current`.
  *
  * The chart components are NOT re-exported here. They live in components/charts/, take no hooks and
  * a required `id` prop, and are imported directly by the pages that draw them - the same components
@@ -10,9 +10,7 @@
  * retired and empty.
  */
 export { AppHeader, type AppHeaderProps } from './AppHeader';
-export { NavLinks, type NavItem } from './NavLinks';
-export { Popup, type PopupProps } from './Popup';
-export { StatusChip, PriorityChip } from './TicketChips';
+export { NavLinks, type NavItem, type NavEntry } from './NavLinks';
 export { Breadcrumbs, type Crumb } from './Breadcrumbs';
 export { Card, type CardProps } from './Card';
 export { Chip, type ChipProps, type ChipTone } from './Chip';

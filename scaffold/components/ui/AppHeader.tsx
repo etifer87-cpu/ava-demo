@@ -1,4 +1,4 @@
-import NavLinks, { type NavItem } from './NavLinks';
+import NavLinks, { type NavEntry } from './NavLinks';
 
 /**
  * AppHeader - product mark, module navigation, acting identity, sign out.
@@ -15,7 +15,7 @@ export interface AppHeaderProps {
   readonly shortName: string;
   readonly environmentLabel?: string;
   readonly logo?: { readonly path: string; readonly alt: string; readonly heightPx: number } | null;
-  readonly nav: readonly NavItem[];
+  readonly nav: readonly NavEntry[];
   /** Display name of the acting user, or null when signed out. */
   readonly identityLabel: string | null;
   /** Where "Report a problem" goes (the tech log intake), or null to hide it. */

@@ -159,6 +159,33 @@ code, .mono, .id { font-family: var(--font-mono); font-size: 0.95em; }
 .app-nav { display: flex; flex-wrap: wrap; gap: var(--space-3); font-size: var(--text-sm); }
 .app-nav a[aria-current="page"] { border-bottom: 2px solid var(--brand-accent); padding-bottom: 2px; }
 
+/* Navigation groups. A group is a button that opens one panel; the panel's links are already
+   filtered server-side, so an empty group never reaches the browser. */
+.nav-group { position: relative; }
+.nav-group-button {
+  font: inherit; color: inherit; background: none; border: 0; padding: 0 0 2px 0; cursor: pointer;
+  display: inline-flex; align-items: center; gap: 4px; border-bottom: 2px solid transparent;
+}
+.nav-group-button[aria-current="page"] { border-bottom-color: var(--brand-accent); }
+.nav-group-button:hover { color: var(--brand-accent); }
+.nav-caret { font-size: 0.7em; line-height: 1; transform: translateY(1px); }
+.nav-group-button[aria-expanded="true"] .nav-caret { transform: translateY(1px) rotate(180deg); }
+.nav-menu {
+  position: absolute; top: calc(100% + var(--space-2)); left: 0; z-index: 40; min-width: 12rem;
+  display: flex; flex-direction: column; gap: 2px; padding: var(--space-2);
+  background: var(--header-bg, var(--surface, #fff)); color: var(--header-ink, inherit);
+  border: 1px solid var(--border, rgba(0, 0, 0, 0.12)); border-radius: var(--radius-sm, 6px);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.14);
+}
+.nav-menu a { display: block; padding: var(--space-2); border-radius: var(--radius-sm, 6px); white-space: nowrap; }
+.nav-menu a:hover { background: var(--brand-accent); color: #fff; }
+.nav-menu a[aria-current="page"] { border-bottom: 0; font-weight: 600; }
+
+/* A section that folds away. The marker stays, so it is obvious there is something under it. */
+details.collapse > summary { cursor: pointer; font-size: var(--text-sm); user-select: none; }
+details.collapse > summary::marker { color: var(--brand-accent); }
+details.collapse[open] > summary { margin-bottom: var(--space-3); }
+
 .breadcrumbs { font-size: var(--text-sm); color: var(--ink-muted); margin-bottom: var(--space-3); }
 .breadcrumbs ol { list-style: none; display: flex; flex-wrap: wrap; gap: var(--space-2); margin: 0; padding: 0; }
 .breadcrumbs li::after { content: "/"; margin-left: var(--space-2); color: var(--border-strong); }

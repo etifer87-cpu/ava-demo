@@ -73,39 +73,42 @@ export default async function AdminHub() {
       </div>
 
       <Card title="Roles" note="One card per role with the number of active holders. Open a role to see who holds it and how each grant is bound." testId="admin-roles">
-        <div className="role-grid">
-          {roles.map((r) => (
-            <div key={r.code} className={`role-card${r.user_count === 0 ? ' role-card-empty' : ''}`}>
-              <div className="row" style={{ alignItems: 'baseline' }}>
-                <span className="role-count">{r.user_count}</span>
-                <span className="xs muted">{r.module}</span>
+        <details className="collapse" open>
+          <summary>{roles.length} roles - {roles.reduce((n, r) => n + r.user_count, 0)} active grants</summary>
+          <div className="role-grid">
+            {roles.map((r) => (
+              <div key={r.code} className={`role-card${r.user_count === 0 ? ' role-card-empty' : ''}`}>
+                <div className="row" style={{ alignItems: 'baseline' }}>
+                  <span className="role-count">{r.user_count}</span>
+                  <span className="xs muted">{r.module}</span>
+                </div>
+                <div className="role-name">{r.name}</div>
+                <p className="xs muted role-desc">{r.description}</p>
+                <Popup label={r.user_count === 0 ? 'No holders' : `View ${r.user_count}`} title={`${r.name} - ${r.user_count} holder${r.user_count === 1 ? '' : 's'}`} buttonClassName="button button-quiet xs" testId={`role-popup-${r.code}`}>
+                  {r.users.length === 0 ? (
+                    <p className="muted small">Nobody holds this role.</p>
+                  ) : (
+                    <table className="data">
+                      <thead>
+                        <tr><th scope="col">Name</th><th scope="col">Username</th><th scope="col">Bound to</th><th scope="col">Status</th></tr>
+                      </thead>
+                      <tbody>
+                        {r.users.map((u) => (
+                          <tr key={`${u.id}-${u.binding ?? 'all'}`}>
+                            <td><Link href={`/admin/users/${u.id}`}>{u.full_name ?? <span className="muted">no roster row</span>}</Link></td>
+                            <td className="mono">{u.username}</td>
+                            <td>{u.binding ? <Chip tone="info">{u.binding}</Chip> : <span className="muted">every fleet / base</span>}</td>
+                            <td>{u.is_active ? <Chip tone="good">Active</Chip> : <Chip tone="bad">Inactive</Chip>}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  )}
+                </Popup>
               </div>
-              <div className="role-name">{r.name}</div>
-              <p className="xs muted role-desc">{r.description}</p>
-              <Popup label={r.user_count === 0 ? 'No holders' : `View ${r.user_count}`} title={`${r.name} - ${r.user_count} holder${r.user_count === 1 ? '' : 's'}`} buttonClassName="button button-quiet xs" testId={`role-popup-${r.code}`}>
-                {r.users.length === 0 ? (
-                  <p className="muted small">Nobody holds this role.</p>
-                ) : (
-                  <table className="data">
-                    <thead>
-                      <tr><th scope="col">Name</th><th scope="col">Username</th><th scope="col">Bound to</th><th scope="col">Status</th></tr>
-                    </thead>
-                    <tbody>
-                      {r.users.map((u) => (
-                        <tr key={`${u.id}-${u.binding ?? 'all'}`}>
-                          <td><Link href={`/admin/users/${u.id}`}>{u.full_name ?? <span className="muted">no roster row</span>}</Link></td>
-                          <td className="mono">{u.username}</td>
-                          <td>{u.binding ? <Chip tone="info">{u.binding}</Chip> : <span className="muted">every fleet / base</span>}</td>
-                          <td>{u.is_active ? <Chip tone="good">Active</Chip> : <Chip tone="bad">Inactive</Chip>}</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                )}
-              </Popup>
-            </div>
-          ))}
-        </div>
+            ))}
+          </div>
+        </details>
       </Card>
 
       <div className="grid grid-tiles" data-testid="admin-doors">
