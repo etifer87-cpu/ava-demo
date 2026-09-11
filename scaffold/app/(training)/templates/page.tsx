@@ -49,6 +49,7 @@ export default async function ProgramsPage({ searchParams }: { searchParams: Pro
   const canConfigure = can(access, 'training.templates.configure');
 
   const columns: Column<ProgramRow>[] = [
+    ...(canConfigure ? [{ key: 'pick', head: <span className="sr-only">Select</span>, cell: (r: ProgramRow) => <input type="checkbox" name="ids" value={r.id} form="batch" aria-label={`Select ${r.name}`} /> } as Column<ProgramRow>] : []),
     {
       key: 'name', head: 'Program',
       cell: (r) => (
@@ -88,6 +89,20 @@ export default async function ProgramsPage({ searchParams }: { searchParams: Pro
         <SelectFilter name="fleet" label="Fleet" value={fleet} options={fleets.map((f) => ({ value: f.value, label: f.value }))} />
         <SelectFilter name="status" label="Status" value={status} anyLabel="Active" options={[{ value: 'draft', label: 'Draft' }, { value: 'published', label: 'Published' }, { value: 'retired', label: 'Retired' }, { value: 'inactive', label: 'Inactive' }, { value: 'any', label: 'Everything' }]} />
       </FilterBar>
+
+      {canConfigure ? (
+        <form id="batch" method="post" action="/api/templates" className="batch-bar" data-testid="program-batch">
+          <input type="hidden" name="status" value={status} />
+          <span className="small muted">With the selected:</span>
+          {status === 'inactive' ? <button className="button button-quiet xs" type="submit" name="_action" value="unarchive">Restore</button>
+            : <button className="button button-quiet xs" type="submit" name="_action" value="archive">Archive</button>}
+          <span className="spacer" />
+          <label className="xs muted" htmlFor="batch-password">Your password, to delete</label>
+          <input id="batch-password" type="password" name="password" autoComplete="current-password" style={{ width: '12rem' }} aria-describedby="batch-help" />
+          <button className="button button-quiet xs" type="submit" name="_action" value="delete">Delete</button>
+          <span id="batch-help" className="xs muted">Deletion is re-authenticated and written to the app log. A program that sessions have used cannot be deleted - archive it.</span>
+        </form>
+      ) : null}
 
       <DataTable
         testId="template-list"

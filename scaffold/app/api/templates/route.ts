@@ -1,5 +1,5 @@
 import { NextResponse, type NextRequest } from 'next/server';
-import { transaction } from '@/lib/db';
+import { query, transaction } from '@/lib/db';
 import { requireSession } from '@/lib/session';
 import { resolveAccess, requireCapability } from '@/lib/access';
 import { audit, actorFromSession, requestContext } from '@/lib/audit';
@@ -8,7 +8,16 @@ import { suggestCode } from '@/lib/templates';
 import { parseMinutes, formatMinutes } from '@/lib/program/shape';
 
 /**
- * POST /api/templates - create a program. `_action`: create.
+ * POST /api/templates - the Programs list's write path. `_action`:
+ *
+ *   create      name, code, kind, fleet, period, device, program_*, notes
+ *   archive     ids[]                      is_active = false; the program leaves the default list
+ *   unarchive   ids[]
+ *   delete      ids[], password            soft delete (deleted_at) of the template and its versions.
+ *                                          Re-authenticated: the caller's password is checked by
+ *                                          Postgres the same way the login is, and the attempt is
+ *                                          written to the app log whether it succeeds or not. A
+ *                                          program any session has used is never deleted - archive it.
  *
  * One transaction: the session_templates row, its version 1 as a draft carrying the version-level
  * set-up, current_version_id pointed at it, one audit row. The kind is checked against the
@@ -38,6 +47,7 @@ export async function POST(request: NextRequest) {
     return res;
   };
 
+  if (action === 'archive' || action === 'unarchive' || action === 'delete') return batch(action, form, request, session, actor, ctx);
   if (action !== 'create') return NextResponse.json({ ok: false, error: 'unknown_action' }, { status: 400 });
 
   const name = str('name', 120);
@@ -101,5 +111,55 @@ export async function POST(request: NextRequest) {
     return back({ kind: 'ok', message: `${name} created as version 1, draft.` }, `/templates/${templateId}`);
   } catch (err) {
     return back({ kind: 'bad', message: err instanceof Error ? err.message : 'The program was not created.' });
+  }
+}
+
+async function batch(action: 'archive' | 'unarchive' | 'delete', form: FormData, request: NextRequest, session: Awaited<ReturnType<typeof requireSession>>, actor: ReturnType<typeof actorFromSession>, ctx: ReturnType<typeof requestContext>) {
+  const ids = form.getAll('ids').map((v) => String(v)).filter((v) => /^[0-9a-f-]{36}$/i.test(v)).slice(0, 200);
+  const status = String(form.get('status') ?? '').slice(0, 20);
+  const back = (flash: Parameters<typeof flashCookie>[0]) => {
+    const url = new URL('/templates', request.nextUrl.origin);
+    if (status) url.searchParams.set('status', status);
+    const res = NextResponse.redirect(url, 303);
+    res.cookies.set(flashCookie(flash, '/templates'));
+    return res;
+  };
+  if (ids.length === 0) return back({ kind: 'warn', message: 'Nothing selected.' });
+
+  if (action === 'delete') {
+    const password = String(form.get('password') ?? '');
+    const check = await query<{ ok: boolean }>(`SELECT (password_hash = crypt($2, password_hash)) AS ok FROM users WHERE id = $1::uuid AND deleted_at IS NULL AND is_active`, [session.userId, password]);
+    if (!password || !check[0]?.ok) {
+      await audit({ action: 'template.delete.refused', entityTable: 'session_templates', capabilityCode: 'training.templates.configure', reason: 'password did not verify', details: { ids } }, actor, ctx);
+      return back({ kind: 'bad', message: 'Password did not verify. Nothing was deleted; the attempt is in the app log.' });
+    }
+  }
+
+  try {
+    const result = await transaction(async (client) => {
+      const rows = (await client.query<{ id: string; code: string; name: string; used: number }>(
+        `SELECT t.id, t.code, t.name,
+                (SELECT count(*)::int FROM sessions s JOIN session_template_versions v ON v.id = s.template_version_id WHERE v.template_id = t.id) AS used
+           FROM session_templates t WHERE t.id = ANY($1::uuid[]) AND t.deleted_at IS NULL`, [ids])).rows;
+      const done: string[] = []; const kept: string[] = [];
+      for (const t of rows) {
+        if (action === 'delete') {
+          if (t.used > 0) { kept.push(`${t.name} (${t.used} session${t.used === 1 ? '' : 's'})`); continue; }
+          await client.query(`UPDATE session_template_versions SET deleted_at = now() WHERE template_id = $1::uuid AND deleted_at IS NULL`, [t.id]);
+          await client.query(`UPDATE session_templates SET deleted_at = now(), is_active = false WHERE id = $1::uuid`, [t.id]);
+          await audit({ action: 'template.delete', entityTable: 'session_templates', entityId: t.id, capabilityCode: 'training.templates.configure', reason: 'password re-authenticated', details: { code: t.code, name: t.name } }, actor, ctx, client);
+        } else {
+          await client.query(`UPDATE session_templates SET is_active = $2 WHERE id = $1::uuid`, [t.id, action === 'unarchive']);
+          await audit({ action: action === 'archive' ? 'template.archive' : 'template.unarchive', entityTable: 'session_templates', entityId: t.id, capabilityCode: 'training.templates.configure', details: { code: t.code, name: t.name } }, actor, ctx, client);
+        }
+        done.push(t.name);
+      }
+      return { done, kept };
+    });
+    const verb = action === 'delete' ? 'deleted' : action === 'archive' ? 'archived' : 'restored';
+    const msg = `${result.done.length} program${result.done.length === 1 ? '' : 's'} ${verb}.` + (result.kept.length ? ` Not deleted because sessions used them - archive instead: ${result.kept.join('; ')}.` : '');
+    return back({ kind: result.kept.length && !result.done.length ? 'warn' : 'ok', message: msg });
+  } catch (err) {
+    return back({ kind: 'bad', message: err instanceof Error ? err.message : 'The change was not made.' });
   }
 }

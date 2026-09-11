@@ -15,7 +15,6 @@ import Breadcrumbs from '@/components/ui/Breadcrumbs';
 import Card from '@/components/ui/Card';
 import Chip from '@/components/ui/Chip';
 import BuilderCanvas from '@/components/program/BuilderCanvas';
-import InspectorPane from '@/components/program/InspectorPane';
 import type { CanvasNode, PresetItem } from '@/components/program/canvas-types';
 import type { InspectorData, InspectorNode } from '@/components/program/inspector-types';
 
@@ -188,7 +187,7 @@ export default async function ProgramPage({ params, searchParams }: { params: Pr
         <>
           <BuilderCanvas
             templateId={template.id} versionId={program.version.id} roots={canvasRoots} presets={presets} selected={sel} editable={editable} basePath={base} carry={carry}
-            inspector={<InspectorPane templateId={template.id} versionId={program.version.id} {...inspectorData} />}
+            inspector={{ templateId: template.id, versionId: program.version.id, ...inspectorData }}
           />
 
           {program.problems.length ? (

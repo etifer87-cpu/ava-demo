@@ -1,8 +1,9 @@
 'use client';
 
-import { useCallback, useEffect, useRef, useState, type DragEvent, type KeyboardEvent, type LiHTMLAttributes, type MouseEvent, type PointerEvent, type ReactNode } from 'react';
+import { useCallback, useEffect, useRef, useState, type DragEvent, type KeyboardEvent, type LiHTMLAttributes, type MouseEvent, type PointerEvent } from 'react';
 import { useRouter } from 'next/navigation';
 import { PALETTE_ITEMS, type CanvasNode, type PaletteKind, type PresetItem } from './canvas-types';
+import InspectorPane, { type InspectorPaneProps } from './InspectorPane';
 
 /**
  * BuilderCanvas - the palette and the program canvas. Client component: drag-and-drop and inline
@@ -33,8 +34,8 @@ export interface BuilderCanvasProps {
   /** The page path, and the query parameters to keep when the selection changes (version, lib). */
   readonly basePath: string;
   readonly carry: Readonly<Record<string, string>>;
-  /** The right pane, rendered by the page. Placed here so the three panes share one resizable grid. */
-  readonly inspector: ReactNode;
+  /** The right pane's data. Rendered here so the three panes share one resizable grid. */
+  readonly inspector: InspectorPaneProps;
 }
 
 function canDrop(p: Payload, parentKind: 'root' | 'section'): boolean {
@@ -197,7 +198,7 @@ export function BuilderCanvas({ templateId, versionId, roots, presets, selected,
         </ol>
       </section>
       <div className="splitter" role="separator" aria-orientation="vertical" aria-label="Resize inspector" onPointerDown={startResize(1)} />
-      {inspector}
+      <InspectorPane {...inspector} />
     </div>
   );
 }
@@ -262,7 +263,7 @@ function Node({ node, index, selected, editable, busyKey, dragging, dragStart, d
             <Title node={node} editable={editable} onRename={onRename} className="outline-title" />
             {node.phaseLabel ? <span className="xs muted">{node.phaseLabel}</span> : null}
             {node.trainingOnly ? <span className="xs muted">training only</span> : null}
-            {node.badges.map((b) => <span key={b} className="xs muted">{b}</span>)}
+            {node.badges.map((b, i) => <span key={i} className="xs muted">{b}</span>)}
             <span className="spacer" />
             <span className="mono xs">{node.minutes ?? '-'}</span>
           </div>
@@ -284,7 +285,7 @@ function Node({ node, index, selected, editable, busyKey, dragging, dragStart, d
         {editable ? <span className="grip" aria-hidden="true">⋮⋮</span> : null}
         <span className="mono xs muted outline-kind">{node.kind}</span>
         <Title node={node} editable={editable} onRename={onRename} className="" />
-        {node.badges.map((b) => <span key={b} className="xs muted">{b}</span>)}
+        {node.badges.map((b, i) => <span key={i} className="xs muted">{b}</span>)}
         <span className="spacer" />
         <span className="mono xs">{node.minutes ?? ''}</span>
       </li>
