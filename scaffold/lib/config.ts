@@ -218,6 +218,8 @@ export interface PolicyConfig {
   version: string;
   labels?: Partial<LabelSet>;
   program?: ProgramPolicy;
+  templates?: { element_key_pattern?: string };
+  reserved_element_titles?: string[];
   positions: string[];
   instructor_roles: string[];
   assessor_role_codes: string[];
