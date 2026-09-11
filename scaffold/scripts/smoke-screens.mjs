@@ -114,6 +114,7 @@ const ROUTES = [
   { path: "/records",                   marker: 'data-testid="record-list"',      state: "built" },
   { path: "/templates",                 marker: 'data-testid="template-list"',    state: "built" },
   { path: "/templates/new",             marker: 'data-testid="template-new"',     state: "built" },
+  { path: "/templates/archive",         marker: 'data-testid="template-archive"', state: "built" },
   { path: "/templates/builder",         marker: 'data-testid="template-builder-stub"', state: "stub" },
   { path: "/analytics",                 marker: 'data-testid="analytics-overview"', state: "stub" },
   { path: "/analytics/competencies",    marker: 'data-testid="competency-matrix"', state: "stub" },

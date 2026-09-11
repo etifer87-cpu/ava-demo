@@ -10,7 +10,8 @@ import FilterBar, { TextFilter, SelectFilter } from '@/components/ui/FilterBar';
 import ProgramBatch from '@/components/program/ProgramBatch';
 
 /**
- * /templates - Programs. docs/06_PROGRAM_BUILDER.md section 5.1.
+ * /templates/archive - archived programs: is_active = false. Restore puts them back; Delete is the
+ * same re-authenticated path as on the list. docs/06_PROGRAM_BUILDER.md section 5.1.
  *
  * One row per program: its kind, fleet, current version and status, what it holds, who last
  * touched it. Clicking a row opens the builder on the current version. "Create new program" asks
@@ -22,7 +23,7 @@ import ProgramBatch from '@/components/program/ProgramBatch';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
-export const metadata = { title: 'Programs' };
+export const metadata = { title: 'Archived programs' };
 
 function one(v: string | string[] | undefined): string {
   return typeof v === 'string' ? v.trim() : '';
@@ -35,7 +36,7 @@ function StatusChip({ status }: { status: string | null }) {
   return <Chip tone="bad">No version</Chip>;
 }
 
-export default async function ProgramsPage({ searchParams }: { searchParams: Promise<Record<string, string | string[] | undefined>> }) {
+export default async function ArchivedProgramsPage({ searchParams }: { searchParams: Promise<Record<string, string | string[] | undefined>> }) {
   const session = await requireSession();
   const access = await resolveAccess(session);
   requireCapability(access, 'training.templates.view');
@@ -46,7 +47,7 @@ export default async function ProgramsPage({ searchParams }: { searchParams: Pro
   const fleet = one(sp.fleet);
   const status = one(sp.status);
 
-  const [rows, kinds, fleets, flash, archived] = await Promise.all([listPrograms({ q, kind, fleet, status }), kindOptions(), fleetOptions(), readFlash(), listPrograms({ status: 'inactive' })]);
+  const [rows, kinds, fleets, flash] = await Promise.all([listPrograms({ q, kind, fleet, status: 'inactive' }), kindOptions(), fleetOptions(), readFlash()]);
   const canConfigure = can(access, 'training.templates.configure');
 
   const columns: Column<ProgramRow>[] = [
@@ -75,33 +76,32 @@ export default async function ProgramsPage({ searchParams }: { searchParams: Pro
 
   return (
     <div className="stack">
-      <Breadcrumbs items={[{ label: 'Overview', href: '/' }, { label: 'Programs' }]} />
+      <Breadcrumbs items={[{ label: 'Overview', href: '/' }, { label: 'Programs', href: '/templates' }, { label: 'Archive' }]} />
       <div className="row">
-        <h1 style={{ margin: 0 }}>Programs</h1>
+        <h1 style={{ margin: 0 }}>Archived programs</h1>
         <span className="spacer" />
-        <Link href="/templates/archive" className="button button-quiet" style={{ textDecoration: 'none' }} data-testid="program-archive-link">Archive{archived.length ? ` (${archived.length})` : ''}</Link>
-        {canConfigure ? <Link href="/templates/new" className="button" style={{ textDecoration: 'none' }} data-testid="program-create">Create new program</Link> : null}
+        <Link href="/templates" className="button button-quiet" style={{ textDecoration: 'none' }}>Back to programs</Link>
       </div>
+      <p className="small muted" style={{ margin: 0 }}>Archived programs are kept with every version and can be restored. Deleting is final and re-authenticated.</p>
 
       {flash ? <div className={`notice${flash.kind === 'bad' ? ' notice-bad' : flash.kind === 'warn' ? ' notice-warn' : ''}`} role="status"><p style={{ margin: 0 }}>{flash.message}</p></div> : null}
 
-      <FilterBar action="/templates" resetHref="/templates">
+      <FilterBar action="/templates/archive" resetHref="/templates/archive">
         <TextFilter name="q" label="Name, code or program" value={q} placeholder="Search" />
         <SelectFilter name="kind" label="Kind" value={kind} options={kinds.map((k) => ({ value: k.value, label: k.label }))} />
         <SelectFilter name="fleet" label="Fleet" value={fleet} options={fleets.map((f) => ({ value: f.value, label: f.value }))} />
-        <SelectFilter name="status" label="Status" value={status} anyLabel="Any" options={[{ value: 'draft', label: 'Draft' }, { value: 'published', label: 'Published' }, { value: 'retired', label: 'Retired' }]} />
       </FilterBar>
 
-      {canConfigure ? <ProgramBatch status={status} mode="active" /> : null}
+      {canConfigure ? <ProgramBatch status="inactive" mode="archived" /> : null}
 
       <DataTable
-        testId="template-list"
+        testId="template-archive"
         caption="Programs"
         columns={columns}
         rows={rows}
         rowKey={(r) => r.id}
-        emptyTitle="No program yet"
-        emptyReason={canConfigure ? 'Nothing matched these filters, or no program has been created. Create the first one: it opens empty, in the builder, as a draft.' : 'Nothing matched these filters, or no program has been created yet.'}
+        emptyTitle="Nothing archived"
+        emptyReason="No program has been archived, or none matched these filters."
         countSuffix={rows.length === 500 ? '(page limit reached - narrow the filters)' : undefined}
       />
     </div>

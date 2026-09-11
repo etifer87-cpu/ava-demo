@@ -117,9 +117,10 @@ export async function POST(request: NextRequest) {
 async function batch(action: 'archive' | 'unarchive' | 'delete', form: FormData, request: NextRequest, session: Awaited<ReturnType<typeof requireSession>>, actor: ReturnType<typeof actorFromSession>, ctx: ReturnType<typeof requestContext>) {
   const ids = form.getAll('ids').map((v) => String(v)).filter((v) => /^[0-9a-f-]{36}$/i.test(v)).slice(0, 200);
   const status = String(form.get('status') ?? '').slice(0, 20);
+  const reason = String(form.get('reason') ?? '').trim().slice(0, 500);
   const back = (flash: Parameters<typeof flashCookie>[0]) => {
-    const url = new URL('/templates', request.nextUrl.origin);
-    if (status) url.searchParams.set('status', status);
+    const url = new URL(status === 'inactive' ? '/templates/archive' : '/templates', request.nextUrl.origin);
+    if (status && status !== 'inactive') url.searchParams.set('status', status);
     const res = NextResponse.redirect(url, 303);
     res.cookies.set(flashCookie(flash, '/templates'));
     return res;
@@ -128,9 +129,10 @@ async function batch(action: 'archive' | 'unarchive' | 'delete', form: FormData,
 
   if (action === 'delete') {
     const password = String(form.get('password') ?? '');
+    if (reason.length < 3) return back({ kind: 'bad', message: 'A reason is required to delete.' });
     const check = await query<{ ok: boolean }>(`SELECT (password_hash = crypt($2, password_hash)) AS ok FROM users WHERE id = $1::uuid AND deleted_at IS NULL AND is_active`, [session.userId, password]);
     if (!password || !check[0]?.ok) {
-      await audit({ action: 'template.delete.refused', entityTable: 'session_templates', capabilityCode: 'training.templates.configure', reason: 'password did not verify', details: { ids } }, actor, ctx);
+      await audit({ action: 'template.delete.refused', entityTable: 'session_templates', capabilityCode: 'training.templates.configure', reason, details: { ids, refused: 'password did not verify' } }, actor, ctx);
       return back({ kind: 'bad', message: 'Password did not verify. Nothing was deleted; the attempt is in the app log.' });
     }
   }
@@ -147,7 +149,7 @@ async function batch(action: 'archive' | 'unarchive' | 'delete', form: FormData,
           if (t.used > 0) { kept.push(`${t.name} (${t.used} session${t.used === 1 ? '' : 's'})`); continue; }
           await client.query(`UPDATE session_template_versions SET deleted_at = now() WHERE template_id = $1::uuid AND deleted_at IS NULL`, [t.id]);
           await client.query(`UPDATE session_templates SET deleted_at = now(), is_active = false WHERE id = $1::uuid`, [t.id]);
-          await audit({ action: 'template.delete', entityTable: 'session_templates', entityId: t.id, capabilityCode: 'training.templates.configure', reason: 'password re-authenticated', details: { code: t.code, name: t.name } }, actor, ctx, client);
+          await audit({ action: 'template.delete', entityTable: 'session_templates', entityId: t.id, capabilityCode: 'training.templates.configure', reason, details: { code: t.code, name: t.name, reauthenticated: true } }, actor, ctx, client);
         } else {
           await client.query(`UPDATE session_templates SET is_active = $2 WHERE id = $1::uuid`, [t.id, action === 'unarchive']);
           await audit({ action: action === 'archive' ? 'template.archive' : 'template.unarchive', entityTable: 'session_templates', entityId: t.id, capabilityCode: 'training.templates.configure', details: { code: t.code, name: t.name } }, actor, ctx, client);
