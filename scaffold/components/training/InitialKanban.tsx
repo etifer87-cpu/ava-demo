@@ -15,6 +15,10 @@ import { RecordArticle, outcomeTone, type RecordListRow } from '@/components/pro
  * planned session · RAG dot. Click a card for the pop-up: milestone timeline, every session in
  * the course and the sector-by-sector LFUS table; click a flown session for its record, fetched
  * from /api/records/[id] on demand. Pop-ups close only with the ✕ Close button.
+ *
+ * Lanes start collapsed; the user opens the course they want. The counters above the board are
+ * filters: click "at risk" and only those pilots stay on the board (their lanes open by
+ * themselves); click again to clear.
  */
 
 export interface BoardPilot {
@@ -32,6 +36,7 @@ export function InitialKanban({ pilots, stages, releasedLabel, today, finishingD
   const [record, setRecord] = useState<RecordListRow | null>(null);
   const [loading, setLoading] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [filter, setFilter] = useState<'training' | 'lfus' | 'finishing' | 'behind' | 'risk' | 'released' | null>(null);
 
   const show = (p: BoardPilot) => { setOpen(p); dialog.current?.showModal(); };
   const close = () => { dialog.current?.close(); setOpen(null); };
@@ -53,14 +58,22 @@ export function InitialKanban({ pilots, stages, releasedLabel, today, finishingD
   const finishBy = new Date(`${today}T00:00:00Z`); finishBy.setUTCDate(finishBy.getUTCDate() + finishingDays);
   const finishIso = finishBy.toISOString().slice(0, 10);
   const lastStage = stages.at(-1)?.key;
-  const kpi = {
-    training: pilots.filter((p) => !p.card.released).length,
-    lfus: pilots.filter((p) => p.card.stage === 'lfus').length,
-    finishing: pilots.filter((p) => !p.card.released && p.card.next && p.card.next.stage === lastStage && p.card.next.date <= finishIso).length,
-    behind: pilots.filter((p) => p.card.rag === 'warn').length,
-    risk: pilots.filter((p) => p.card.rag === 'bad').length,
-    released: pilots.filter((p) => p.card.released).length,
-  };
+  const test = {
+    training: (p: BoardPilot) => !p.card.released,
+    lfus: (p: BoardPilot) => p.card.stage === 'lfus',
+    finishing: (p: BoardPilot) => !p.card.released && !!p.card.next && p.card.next.stage === lastStage && p.card.next.date <= finishIso,
+    behind: (p: BoardPilot) => p.card.rag === 'warn',
+    risk: (p: BoardPilot) => p.card.rag === 'bad',
+    released: (p: BoardPilot) => p.card.released,
+  } as const;
+  const kpi = Object.fromEntries((Object.keys(test) as (keyof typeof test)[]).map((k) => [k, pilots.filter(test[k]).length])) as Record<keyof typeof test, number>;
+  const shown = filter ? pilots.filter(test[filter]) : pilots;
+  const toggle = (k: keyof typeof test) => setFilter((f) => (f === k ? null : k));
+  const Counter = ({ k, tone, dot, label }: { k: keyof typeof test; tone?: string; dot?: boolean; label: string }) => (
+    <button type="button" className={`chip chip-click ${tone ?? ''} ${filter === k ? 'chip-on' : ''}`} onClick={() => toggle(k)} aria-pressed={filter === k} title={filter === k ? 'Show everyone' : `Show only these pilots`}>
+      {dot ? <span className="chip-dot" aria-hidden="true" /> : null}<strong>{kpi[k]}</strong>&nbsp;{label}
+    </button>
+  );
   const counter = (p: BoardPilot) => {
     const c = p.card;
     if (c.stage === 'simulator') return <>FFS <strong>{c.ffs.done}</strong>/{c.ffs.total}</>;
@@ -75,24 +88,25 @@ export function InitialKanban({ pilots, stages, releasedLabel, today, finishingD
   return (
     <div className="stack" data-testid="initial-board">
       <div className="row" style={{ gap: 'var(--space-2)' }}>
-        <span className="chip"><strong>{kpi.training}</strong>&nbsp;in training</span>
-        <span className="chip chip-info"><strong>{kpi.lfus}</strong>&nbsp;in LFUS</span>
-        <span className="chip"><strong>{kpi.finishing}</strong>&nbsp;line check within {finishingDays} days</span>
-        <span className="chip chip-warn"><span className="chip-dot" aria-hidden="true" /><strong>{kpi.behind}</strong>&nbsp;behind schedule</span>
-        <span className="chip chip-bad"><span className="chip-dot" aria-hidden="true" /><strong>{kpi.risk}</strong>&nbsp;at risk</span>
-        <span className="chip chip-good"><strong>{kpi.released}</strong>&nbsp;released</span>
+        <Counter k="training" label="in training" />
+        <Counter k="lfus" tone="chip-info" label="in LFUS" />
+        <Counter k="finishing" label={`line check within ${finishingDays} days`} />
+        <Counter k="behind" tone="chip-warn" dot label="behind schedule" />
+        <Counter k="risk" tone="chip-bad" dot label="at risk" />
+        <Counter k="released" tone="chip-good" label="released" />
+        {filter ? <button type="button" className="button button-quiet xs" onClick={() => setFilter(null)}>Show all {pilots.length}</button> : null}
       </div>
 
       <div className="kanban-wrap">
         <div className="kanban" style={{ gridTemplateColumns: `repeat(${columns.length}, minmax(190px, 1fr))` }}>
-          {columns.map((c) => <div key={c.key} className="kanban-head">{c.label} <span className="muted">{pilots.filter((p) => p.card.stage === c.key).length}</span></div>)}
-          {courses.map((course) => (
-            <div key={course} className="kanban-lane" style={{ gridColumn: `1 / span ${columns.length}` }}>
-              <div className="kanban-lane-title mono">{course} <span className="muted small">· {pilots.filter((p) => (p.training_course ?? '—') === course).length} pilots</span></div>
+          {columns.map((c) => <div key={c.key} className="kanban-head">{c.label} <span className="kanban-count">{shown.filter((p) => p.card.stage === c.key).length}</span></div>)}
+          {courses.map((course) => { const lane = shown.filter((p) => (p.training_course ?? '—') === course); return (
+            <details key={`${course}-${filter ?? 'all'}`} className="kanban-lane" style={{ gridColumn: `1 / span ${columns.length}` }} open={filter !== null && lane.length > 0}>
+              <summary className="kanban-lane-title"><span className="mono">{course}</span> <span className="muted small">· {lane.length} pilot{lane.length === 1 ? '' : 's'}{filter ? ` of ${pilots.filter((p) => (p.training_course ?? '—') === course).length}` : ''}</span></summary>
               <div className="kanban" style={{ gridTemplateColumns: `repeat(${columns.length}, minmax(190px, 1fr))` }}>
                 {columns.map((c) => (
                   <div key={c.key} className="kanban-col">
-                    {pilots.filter((p) => (p.training_course ?? '—') === course && p.card.stage === c.key).map((p) => (
+                    {lane.filter((p) => p.card.stage === c.key).map((p) => (
                       <button type="button" key={p.id} className="kanban-card" onClick={() => show(p)} data-testid={`board-card-${p.external_id}`}>
                         <div className="row" style={{ gap: 'var(--space-1)', alignItems: 'center', flexWrap: 'nowrap' }}>
                           <span className={`rag rag-${p.card.rag}`} title={ragTitle[p.card.rag]} aria-label={ragTitle[p.card.rag]} />
@@ -109,11 +123,11 @@ export function InitialKanban({ pilots, stages, releasedLabel, today, finishingD
                   </div>
                 ))}
               </div>
-            </div>
-          ))}
+            </details>
+          ); })}
         </div>
       </div>
-      <p className="xs muted" style={{ margin: 0 }}>Cards move on their own: a pilot sits in the first stage with a session still to fly, and moves the moment the last session of a stage is signed. Click a card for the milestones and every sector flown.</p>
+      <p className="xs muted" style={{ margin: 0 }}>Cards move on their own: a pilot sits in the first stage with a session still to fly, and moves the moment the last session of a stage is signed. Open a course to see its pilots; click a card for the milestones and every sector flown.</p>
 
       <dialog ref={dialog} className="modal modal-wide" aria-labelledby="board-title" onCancel={(e) => e.preventDefault()}>
         {open ? (

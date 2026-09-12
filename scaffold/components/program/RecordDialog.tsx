@@ -114,11 +114,11 @@ export function RecordArticle({ record: open, onClose: close }: { readonly recor
 
       {(s.tasks ?? []).length ? (
         <table className="data report-table">
-          <thead><tr><th scope="col">Exercise</th><th scope="col" className="num">Attempt</th><th scope="col" className="num">Grade</th><th scope="col">Remark</th></tr></thead>
+          <thead><tr><th scope="col">Exercise</th>{repeated ? <th scope="col" className="num">Attempt</th> : null}<th scope="col" className="num">Grade</th><th scope="col">Remark</th></tr></thead>
           <tbody>{(s.tasks ?? []).map((t, i) => (
             <tr key={`${t.element_key}-${t.attempt}-${i}`}>
               <td>{t.task_name}{t.pf_pm && t.role ? <span className="xs" style={{ marginLeft: 'var(--space-2)', fontWeight: 600 }}>as {t.role}</span> : null}</td>
-              <td className="num">{t.attempt}</td>
+              {repeated ? <td className="num">{t.attempt}</td> : null}
               <td className="num"><strong>{t.grade ?? '—'}</strong></td>
               <td className="small">{t.remark ?? <span className="muted">—</span>}</td>
             </tr>

@@ -8,6 +8,7 @@
  *   npm run seed:history         plan + write, idempotent: a session already written (matched by
  *                                its plan id in sessions.setup) is skipped
  *   npm run seed:history -- --reset   voids every generated session first, then rewrites
+ *   npm run seed:history -- --reset-initial   voids only the initial-training courses' sessions, then rewrites them
  *
  * Specified by docs/avianca/07_HISTORY_GENERATOR.md. Everything is drawn from policy.yaml
  * `history` (section 11) and the seed there; the roster comes from data/roster/pilots.json and the
@@ -31,6 +32,7 @@ const H = policy.history;
 if (!H) { console.error('policy.yaml has no history section'); process.exit(1); }
 const PLAN_ONLY = argFlag('--plan');
 const RESET = argFlag('--reset');
+const RESET_INITIAL = argFlag('--reset-initial');
 const FROM = parseDate(H.from);
 const AS_OF = parseDate(H.as_of);
 const ROUTES = H.routes;
@@ -183,8 +185,12 @@ for (const [i, c] of candidates.entries()) {
     for (const [ci, crew] of crews.entries()) plans.push({ id: planId('trpc', `${code}-${ci}`, ''), kind: 'pc', program: `pc.${fleet.toLowerCase()}.${year}`, fleet, date: weekday(addDays(start, day + (ci % 2))), subjects: crew.map((m) => m.external_id), pool: 'examiner', check: 'LPC', course: code, stage: 'skill_test' });
     for (const m of members) {
       let d = day + T.skill_test_after_days;
+      // Each pilot flies at their own cadence inside lfus_every_days_range (by seniority, so it is stable), which is
+      // what fans a course out across line training, line check and release rather than moving it as one block.
+      const range = T.lfus_every_days_range;
+      const every = range ? range[0] + (m.seniority % (range[1] - range[0] + 1)) : T.lfus_every_days;
       for (let sct = 1; sct <= T.lfus_sectors; sct += 1) {
-        d += T.lfus_every_days;
+        d += every;
         plans.push({ id: planId('trlfus', `${m.external_id}-${sct}`, ''), kind: 'lfus', program: 'lfus.sector', fleet, date: weekday(addDays(start, d)), subjects: [m.external_id], pool: 'ltc', sector: sct, route: ROUTES[fleet][(m.seniority + sct) % ROUTES[fleet].length], pfOdd: sct % 2 === 1, course: code, stage: 'lfus' });
       }
       plans.push({ id: planId('trlc', m.external_id, ''), kind: 'lc', program: 'lc.line-check', fleet, date: weekday(addDays(start, d + T.line_check_after_days)), subjects: [m.external_id], pool: 'examiner', route: ROUTES[fleet][m.seniority % ROUTES[fleet].length], course: code, stage: 'line_check' });
@@ -338,6 +344,10 @@ try {
     const { rowCount } = await client.query(`UPDATE sessions SET status = 'void', deleted_at = now() WHERE setup->>'plan_seed' = $1 AND deleted_at IS NULL`, [H.seed]);
     await client.query(`UPDATE records SET deleted_at = now() WHERE deleted_at IS NULL AND snapshot->>'plan_seed' = $1`, [H.seed]);
     console.log(`reset: ${rowCount} generated sessions voided`);
+  } else if (RESET_INITIAL) {
+    await client.query(`UPDATE records r SET deleted_at = now() FROM sessions s WHERE r.session_id = s.id AND r.deleted_at IS NULL AND s.setup->>'plan_seed' = $1 AND s.setup ? 'course'`, [H.seed]);
+    const { rowCount } = await client.query(`UPDATE sessions SET status = 'void', deleted_at = now() WHERE setup->>'plan_seed' = $1 AND setup ? 'course' AND deleted_at IS NULL`, [H.seed]);
+    console.log(`reset-initial: ${rowCount} initial-training sessions voided`);
   }
   const existing = new Set((await client.query(`SELECT setup->>'plan_id' AS id FROM sessions WHERE setup->>'plan_seed' = $1 AND deleted_at IS NULL`, [H.seed])).rows.map((r) => r.id));
   const counts = { sessions: 0, records: 0, tasks: 0, comps: 0, obs: 0, sectors: 0, objections: 0, skipped: 0, planned: 0 };
