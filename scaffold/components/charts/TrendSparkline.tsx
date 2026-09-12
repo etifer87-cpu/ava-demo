@@ -18,6 +18,8 @@ import { chartId, gradeColour, PAD, xAt, yAt } from './chart-tokens';
 export interface SparklinePoint {
   readonly on: string;              // ISO date; used for the end labels only
   readonly value: number | null;
+  /** Shown on hover (an SVG title): the event behind the point. */
+  readonly label?: string;
 }
 
 export interface TrendSparklineProps {
@@ -38,6 +40,10 @@ export interface TrendSparklineProps {
   readonly emptyText?: string;
   /** Printed beside the chart. A direction with no measurement behind it is an assertion. */
   readonly annotation?: string | null;
+  /** Multiplies every font size; 1 is the compact card, 1.6 the enlarged view. */
+  readonly fontScale?: number;
+  /** Dot radius; larger in the enlarged view. */
+  readonly dotRadius?: number;
 }
 
 export function TrendSparkline({
@@ -52,7 +58,10 @@ export function TrendSparkline({
   label,
   emptyText = 'No data',
   annotation = null,
+  fontScale = 1,
+  dotRadius = 2.5,
 }: TrendSparklineProps) {
+  const fs = (n: number) => n * fontScale;
   const uid = chartId(id);
   const n = points.length;
   const valid = points
@@ -101,7 +110,7 @@ export function TrendSparkline({
           />
           <text
             x={PAD.left - 4} y={py(g)}
-            fontSize={6} fill={tokens.surface.inkMuted}
+            fontSize={fs(6)} fill={tokens.surface.inkMuted}
             textAnchor="end" dominantBaseline="middle"
           >
             {g}
@@ -112,7 +121,7 @@ export function TrendSparkline({
       {valid.length === 0 && (
         <text
           x={width / 2} y={height / 2}
-          fontSize={9} fill={tokens.surface.inkMuted} textAnchor="middle"
+          fontSize={fs(9)} fill={tokens.surface.inkMuted} textAnchor="middle"
         >
           {emptyText}
         </text>
@@ -142,13 +151,15 @@ export function TrendSparkline({
       {valid.map((p) => (
         <circle
           key={p.i}
-          cx={px(p.i)} cy={py(p.v)} r={2.5}
+          cx={px(p.i)} cy={py(p.v)} r={dotRadius}
           // Dot fill is the GRADE colour, not the series colour: the mark carries
           // the value's band while the line carries the competency's identity.
           fill={gradeColour(tokens, Math.round(p.v))}
           stroke={tokens.surface.halo}
           strokeWidth={1}
-        />
+        >
+          {points[p.i]?.label ? <title>{`${points[p.i]?.on} · grade ${p.v}\n${points[p.i]?.label}`}</title> : null}
+        </circle>
       ))}
 
       {/* Only the first and last category labels, so a compact card stays legible. */}
@@ -156,13 +167,13 @@ export function TrendSparkline({
         <>
           <text
             x={PAD.left} y={height - 4}
-            fontSize={6} fill={tokens.surface.inkMuted} textAnchor="start"
+            fontSize={fs(6)} fill={tokens.surface.inkMuted} textAnchor="start"
           >
             {points[0]?.on.slice(0, 7)}
           </text>
           <text
             x={width - PAD.right} y={height - 4}
-            fontSize={6} fill={tokens.surface.inkMuted} textAnchor="end"
+            fontSize={fs(6)} fill={tokens.surface.inkMuted} textAnchor="end"
           >
             {points[n - 1]?.on.slice(0, 7)}
           </text>
@@ -172,7 +183,7 @@ export function TrendSparkline({
       {annotation && (
         <text
           x={width - PAD.right} y={PAD.top + 6}
-          fontSize={6.5} fill={tokens.surface.ink} textAnchor="end"
+          fontSize={fs(6.5)} fill={tokens.surface.ink} textAnchor="end"
         >
           {annotation}
         </text>

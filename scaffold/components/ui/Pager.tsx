@@ -6,14 +6,14 @@ import Link from 'next/link';
  */
 export const PAGE_SIZES = [20, 60, 100] as const;
 
-export function pageParams(sp: Record<string, string | string[] | undefined>, fallback: number = PAGE_SIZES[0]): { page: number; size: number } {
+export function pageParams(sp: Record<string, string | string[] | undefined>, fallback: number = PAGE_SIZES[0], sizes: readonly number[] = PAGE_SIZES): { page: number; size: number } {
   const one = (v: string | string[] | undefined) => (typeof v === 'string' ? v : '');
-  const size = (PAGE_SIZES as readonly number[]).includes(Number(one(sp.size))) ? Number(one(sp.size)) : fallback;
+  const size = sizes.includes(Number(one(sp.size))) ? Number(one(sp.size)) : fallback;
   const page = Math.max(1, Number.parseInt(one(sp.page), 10) || 1);
   return { page, size };
 }
 
-export function Pager({ path, params, page, size, total, noun = 'rows' }: { readonly path: string; readonly params: Readonly<Record<string, string>>; readonly page: number; readonly size: number; readonly total: number; readonly noun?: string }) {
+export function Pager({ path, params, page, size, total, noun = 'rows', sizes = PAGE_SIZES }: { readonly path: string; readonly params: Readonly<Record<string, string>>; readonly page: number; readonly size: number; readonly total: number; readonly noun?: string; readonly sizes?: readonly number[] }) {
   const pages = Math.max(1, Math.ceil(total / size));
   const href = (p: number, s: number = size) => { const u = new URLSearchParams(params); u.set('page', String(p)); u.set('size', String(s)); return `${path}?${u}`; };
   const from = total === 0 ? 0 : (page - 1) * size + 1;
@@ -26,7 +26,7 @@ export function Pager({ path, params, page, size, total, noun = 'rows' }: { read
       <span className="spacer" />
       <span className="row" style={{ gap: 'var(--space-1)', alignItems: 'center' }}>
         <span className="xs muted">Show</span>
-        {PAGE_SIZES.map((s) => s === size ? <span key={s} className="pager-size is-current" aria-current="true">{s}</span> : <Link key={s} href={href(1, s)} className="pager-size">{s}</Link>)}
+        {sizes.map((s) => s === size ? <span key={s} className="pager-size is-current" aria-current="true">{s}</span> : <Link key={s} href={href(1, s)} className="pager-size">{s}</Link>)}
       </span>
       <span className="row" style={{ gap: 'var(--space-1)', alignItems: 'center' }}>
         {page > 1 ? <Link href={href(page - 1)} className="button button-quiet xs" aria-label="Previous page">‹ Prev</Link> : <span className="button button-quiet xs" aria-disabled="true" style={{ opacity: 0.4 }}>‹ Prev</span>}

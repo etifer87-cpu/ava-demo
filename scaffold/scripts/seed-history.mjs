@@ -287,7 +287,7 @@ try {
   const obRows = (await client.query(`SELECT ob.id, ob.code, ob.text, c.code AS comp FROM observable_behaviours ob JOIN competencies c ON c.id = ob.competency_id WHERE ob.framework_id = $1::uuid AND ob.is_active ORDER BY ob.position`, [framework.id])).rows;
   const obsByComp = new Map(); for (const ob of obRows) { if (!obsByComp.has(ob.comp)) obsByComp.set(ob.comp, []); obsByComp.get(ob.comp).push(ob); }
   const versions = new Map((await client.query(`SELECT t.code, v.id, t.name, t.template_kind, k.label, k.facility_kind, v.hide_record_from_subject FROM session_templates t JOIN session_template_versions v ON v.id = t.current_version_id LEFT JOIN template_kinds k ON k.code = t.template_kind WHERE t.deleted_at IS NULL AND v.status = 'published'`)).rows.map((r) => [r.code, r]));
-  for (const code of new Set(plans.map((p) => p.program))) if (!versions.has(code)) throw new Error(`program ${code} has no published version; publish it first`);
+  for (const code of new Set(plans.map((p) => p.program))) if (!versions.has(code)) throw new Error(`program ${code} has no published version; run npm run publish:programs (or publish it in the builder) first`);
   const people = new Map((await client.query(`SELECT id, external_id, full_name, position, org_unit_id, asset_class_id FROM people WHERE deleted_at IS NULL`)).rows.map((r) => [r.external_id, r]));
   for (const p of roster.pilots) if (!people.has(p.external_id)) throw new Error(`${p.external_id} is not in people; run seed:roster`);
   const orgByCode = new Map((await client.query(`SELECT id, code FROM org_units WHERE deleted_at IS NULL`)).rows.map((r) => [r.code, r.id]));
@@ -395,7 +395,7 @@ try {
   await client.query('COMMIT');
   console.log(`history seeded: ${counts.sessions} sessions (${counts.planned} planned, ${counts.skipped} already present), ${counts.records} records, ${counts.tasks} task grades, ${counts.comps} competency grades, ${counts.obs} OB selections, ${counts.sectors} sectors, ${counts.objections} objections`);
 } catch (err) {
-  await client.query('ROLLBACK');
+  await client.query('ROLLBACK').catch(() => {});
   throw err;
 } finally {
   await client.end();

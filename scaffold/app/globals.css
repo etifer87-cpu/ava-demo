@@ -490,3 +490,16 @@ dialog.modal .field input, dialog.modal .field textarea { width: 100%; box-sizin
 .pager-page, .pager-size { display: inline-block; min-width: 1.8rem; padding: 2px var(--space-2); text-align: center; border-radius: var(--radius-sm); font-size: var(--text-sm); text-decoration: none; color: var(--ink); border: 1px solid transparent; }
 .pager-page:hover, .pager-size:hover { background: var(--surface-sunken); }
 .pager-page.is-current, .pager-size.is-current { background: var(--surface-sunken); border-color: var(--border-strong); font-weight: 600; }
+
+/* Pilot profile: radar beside the averages; trend cards; clickable record rows; wide modals. */
+.profile-grid { display: grid; grid-template-columns: minmax(220px, 260px) 1fr; gap: var(--space-4); align-items: start; }
+@media (max-width: 48rem) { .profile-grid { grid-template-columns: 1fr; } }
+.averages td, .averages th { padding-top: 4px; padding-bottom: 4px; }
+.trend-card { display: block; width: 100%; text-align: left; font: inherit; color: inherit; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: var(--space-2); cursor: zoom-in; }
+.trend-card:hover { border-color: var(--brand-accent); }
+.trend-title { font-size: var(--text-base); font-weight: 700; margin-bottom: 4px; }
+.trend-code { font-size: 1.1em; }
+.row-click { cursor: pointer; }
+.row-click:hover td { background: var(--surface-sunken); }
+.row-click:focus-visible { outline: 2px solid var(--brand-accent); outline-offset: -2px; }
+dialog.modal-wide { max-width: 64rem; }

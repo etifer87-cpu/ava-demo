@@ -3,16 +3,18 @@ import { notFound } from 'next/navigation';
 import { query, queryOne } from '@/lib/db';
 import { requireSession } from '@/lib/session';
 import { resolveAccess, can, canOnPerson, visiblePersonIds, ALL_PEOPLE } from '@/lib/access';
-import { analyticsConfig, gradeScale, gradePalette, labels } from '@/lib/config';
+import { gradeScale, gradePalette, labels } from '@/lib/config';
 import { buildChartTokens } from '@/components/charts/chart-tokens';
 import { CompetencyRadar } from '@/components/charts/CompetencyRadar';
-import { TrendSparkline } from '@/components/charts/TrendSparkline';
+import { TrendCard } from '@/components/charts/TrendCard';
 import { KpiTile } from '@/components/charts/KpiTile';
 import Breadcrumbs from '@/components/ui/Breadcrumbs';
 import Card from '@/components/ui/Card';
 import Chip from '@/components/ui/Chip';
-import DataTable, { type Column } from '@/components/ui/DataTable';
 import EmptyState from '@/components/ui/EmptyState';
+import AutoSubmitSelect from '@/components/ui/AutoSubmitSelect';
+import Pager, { pageParams } from '@/components/ui/Pager';
+import RecordsTable, { type RecordListRow } from '@/components/program/RecordDialog';
 
 /**
  * /subjects/[id] - one subject's profile.
@@ -51,23 +53,16 @@ interface PersonRow {
 
 interface CompetencyRow { id: string; code: string; name: string; colour: string }
 interface MeanRow { competency_id: string; mean: string | null; n: string }
-interface PointRow { competency_id: string; on: string; value: string }
-interface RecordRow {
-  id: string;
-  title: string;
-  record_kind: string | null;
-  source: string;
-  training_date: string;
-  outcome: string | null;
-  outcome_override: string | null;
-  asset_class: string | null;
-  competency_count: string;
-  below_count: string;
-}
+interface PointRow { competency_id: string; on: string; value: string; label: string }
 interface TotalsRow { records: string; scored: string; below: string; last_on: string | null }
+interface KindRow { record_kind: string; n: string }
+const RECORD_PAGE_SIZES = [10, 20, 50] as const;
 
-export default async function SubjectProfilePage({ params }: { params: Promise<{ id: string }> }) {
+export default async function SubjectProfilePage({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<Record<string, string | string[] | undefined>> }) {
   const { id } = await params;
+  const sp = await searchParams;
+  const kind = typeof sp.kind === 'string' ? sp.kind.slice(0, 60) : '';
+  const { page, size } = pageParams(sp, RECORD_PAGE_SIZES[0], RECORD_PAGE_SIZES);
   const session = await requireSession();
   const access = await resolveAccess(session);
 
@@ -88,8 +83,6 @@ export default async function SubjectProfilePage({ params }: { params: Promise<{
   if (!person) notFound();
 
   const scale = gradeScale();
-  const cfg = analyticsConfig<{ rate_display: Record<string, { denominator: number; unit: string; axis_label: string }> }>();
-  const rateCfg = cfg.rate_display?.below_standard_rate ?? { denominator: 1000, unit: 'per_1000_grades', axis_label: 'per 1000 grades' };
   const below = scale.below_standard_max;
 
   const competencies = await query<CompetencyRow>(
@@ -105,16 +98,18 @@ export default async function SubjectProfilePage({ params }: { params: Promise<{
   const visible = await visiblePersonIds(access, 'people.view');
   const peerFilter = visible === ALL_PEOPLE ? null : [...visible];
 
-  const [means, peerMeans, points, records, totals] = await Promise.all([
+  // The kind filter (All / one training or check) narrows the profile, the averages and the trend.
+  const kindFilter = kind ? `AND r.record_kind = $3` : '';
+  const [means, peerMeans, points, records, totals, kinds] = await Promise.all([
     query<MeanRow>(
       `SELECT rc.competency_id,
               avg(grade_num(rc.grade))::numeric(4,2)::text AS mean,
               count(grade_num(rc.grade))::text             AS n
          FROM record_competencies rc
          JOIN records r ON r.id = rc.record_id AND r.deleted_at IS NULL
-        WHERE r.person_id = $1::uuid
+        WHERE r.person_id = $1::uuid ${kind ? 'AND r.record_kind = $2' : ''}
         GROUP BY rc.competency_id`,
-      [id],
+      kind ? [id, kind] : [id],
     ),
     query<MeanRow>(
       `SELECT rc.competency_id,
@@ -123,31 +118,32 @@ export default async function SubjectProfilePage({ params }: { params: Promise<{
          FROM record_competencies rc
          JOIN records r ON r.id = rc.record_id AND r.deleted_at IS NULL
         WHERE r.person_id <> $1::uuid
-          AND ($2::uuid[] IS NULL OR r.person_id = ANY($2::uuid[]))
+          AND ($2::uuid[] IS NULL OR r.person_id = ANY($2::uuid[])) ${kindFilter}
         GROUP BY rc.competency_id`,
-      [id, peerFilter],
+      kind ? [id, peerFilter, kind] : [id, peerFilter],
     ),
     query<PointRow>(
-      `SELECT rc.competency_id, r.training_date::text AS on, grade_num(rc.grade)::text AS value
+      `SELECT rc.competency_id, r.training_date::text AS on, grade_num(rc.grade)::text AS value,
+              COALESCE(r.snapshot->'template'->>'name', r.title) || COALESCE(' · ' || (r.snapshot->'session'->>'check'), '') || COALESCE(' · ' || p.full_name, '') AS label
          FROM record_competencies rc
          JOIN records r ON r.id = rc.record_id AND r.deleted_at IS NULL
-        WHERE r.person_id = $1::uuid AND grade_num(rc.grade) IS NOT NULL
-        ORDER BY r.training_date`,
-      [id],
+         LEFT JOIN people p ON p.id = r.assessor_person_id
+        WHERE r.person_id = $1::uuid AND grade_num(rc.grade) IS NOT NULL ${kind ? 'AND r.record_kind = $2' : ''}
+        ORDER BY r.training_date, r.id`,
+      kind ? [id, kind] : [id],
     ),
-    query<RecordRow>(
-      `SELECT r.id, r.title, r.record_kind, r.source, r.training_date::text AS training_date,
-              r.outcome, r.outcome_override, ac.name AS asset_class,
-              count(rc.id)::text AS competency_count,
-              count(*) FILTER (WHERE grade_num(rc.grade) <= $2)::text AS below_count
+    query<RecordListRow & { total: string }>(
+      `SELECT r.id, r.title, r.record_kind, r.training_date::text AS training_date,
+              r.outcome, r.outcome_override, ac.code AS asset_class, p.full_name AS assessor_name, r.is_hidden_from_subject, r.snapshot,
+              (SELECT count(*)::text FROM record_competencies rc WHERE rc.record_id = r.id) AS competency_count,
+              count(*) OVER ()::text AS total
          FROM records r
-         LEFT JOIN asset_classes ac      ON ac.id = r.asset_class_id
-         LEFT JOIN record_competencies rc ON rc.record_id = r.id
+         LEFT JOIN asset_classes ac ON ac.id = r.asset_class_id
+         LEFT JOIN people p ON p.id = r.assessor_person_id
         WHERE r.person_id = $1::uuid AND r.deleted_at IS NULL
-        GROUP BY r.id, ac.name
-        ORDER BY r.training_date DESC
-        LIMIT 200`,
-      [id, below],
+        ORDER BY r.training_date DESC, r.created_at DESC
+        LIMIT ${size} OFFSET ${(page - 1) * size}`,
+      [id],
     ),
     queryOne<TotalsRow>(
       `SELECT count(DISTINCT r.id)::text                                     AS records,
@@ -159,7 +155,9 @@ export default async function SubjectProfilePage({ params }: { params: Promise<{
         WHERE r.person_id = $1::uuid AND r.deleted_at IS NULL`,
       [id, below],
     ),
+    query<KindRow>(`SELECT r.record_kind, count(*)::text AS n FROM records r WHERE r.person_id = $1::uuid AND r.deleted_at IS NULL AND r.record_kind IS NOT NULL GROUP BY r.record_kind ORDER BY r.record_kind`, [id]),
   ]);
+  const recordTotal = Number(records[0]?.total ?? 0);
 
   const tokens = buildChartTokens({
     competencies: competencies.map((c) => ({ competencyId: c.id, code: c.code, name: c.name, colour: c.colour })),
@@ -168,45 +166,16 @@ export default async function SubjectProfilePage({ params }: { params: Promise<{
 
   const meanBy = new Map(means.map((m) => [m.competency_id, m.mean === null ? null : Number(m.mean)]));
   const peerBy = new Map(peerMeans.map((m) => [m.competency_id, m.mean === null ? null : Number(m.mean)]));
-  const pointsBy = new Map<string, { on: string; value: number | null }[]>();
+  const nBy = new Map(means.map((m) => [m.competency_id, Number(m.n)]));
+  const pointsBy = new Map<string, { on: string; value: number | null; label: string }[]>();
   for (const p of points) {
     const list = pointsBy.get(p.competency_id) ?? [];
-    list.push({ on: p.on, value: Number(p.value) });
+    list.push({ on: p.on, value: Number(p.value), label: p.label });
     pointsBy.set(p.competency_id, list);
   }
 
   const scored = Number(totals?.scored ?? 0);
-  const belowN = Number(totals?.below ?? 0);
-  const rate = scored > 0 ? (belowN / scored) * rateCfg.denominator : null;
-
-  const columns: Column<RecordRow>[] = [
-    { key: 'date', head: 'Date', numeric: true, cell: (r) => r.training_date },
-    { key: 'title', head: 'Record', cell: (r) => r.title },
-    { key: 'kind', head: 'Kind', cell: (r) => r.record_kind ?? <span className="muted">-</span> },
-    { key: 'asset', head: 'Asset class', cell: (r) => r.asset_class ?? <span className="muted">-</span> },
-    {
-      key: 'outcome',
-      head: 'Outcome',
-      cell: (r) =>
-        r.outcome_override ? (
-          <Chip tone="info" srPrefix="Outcome, administratively corrected">
-            {r.outcome_override} (amended)
-          </Chip>
-        ) : (
-          r.outcome ?? <span className="muted">-</span>
-        ),
-    },
-    { key: 'graded', head: 'Competencies graded', numeric: true, cell: (r) => r.competency_count },
-    {
-      key: 'below',
-      head: 'Below standard',
-      numeric: true,
-      cell: (r) => (Number(r.below_count) > 0 ? <strong>{r.below_count}</strong> : r.below_count),
-    },
-    // `source` is shown as a column and never as a filter: a surface that reads one source reports
-    // zero for the others.
-    { key: 'source', head: 'Source', cell: (r) => <span className="mono xs">{r.source}</span> },
-  ];
+  const overall = means.length ? (means.reduce((s, m) => s + (m.mean === null ? 0 : Number(m.mean) * Number(m.n)), 0) / Math.max(1, means.reduce((s, m) => s + Number(m.n), 0))).toFixed(2) : null;
 
   return (
     <div className="stack" data-testid="subject-profile">
@@ -228,7 +197,7 @@ export default async function SubjectProfilePage({ params }: { params: Promise<{
         ) : null}
         <span className="spacer" />
         {can(access, 'training.analysis.view') ? (
-          <Link className="small" href={`/subjects/${person.id}/analysis`}>Analysis runs</Link>
+          <Link className="button button-quiet" href={`/subjects/${person.id}/analysis`} style={{ textDecoration: 'none' }} data-testid="trainee-analysis">Trainee analysis</Link>
         ) : null}
       </div>
       <p className="muted small">
@@ -239,15 +208,7 @@ export default async function SubjectProfilePage({ params }: { params: Promise<{
       <div className="grid grid-kpi">
         <KpiTile id="kpi-records" caption="Records" value={String(totals?.records ?? 0)} context="all sources" tokens={tokens} />
         <KpiTile id="kpi-competency-grades" caption="Competency grades" value={String(scored)} context="scored, excludes NR/NO/NA" tokens={tokens} />
-        <KpiTile
-          id="kpi-below-standard"
-          caption="Below standard"
-          value={rate === null ? null : rate.toFixed(1)}
-          unit={rateCfg.axis_label}
-          state={rate === null ? 'insufficient' : 'value'}
-          context={`grade <= ${below}`}
-          tokens={tokens}
-        />
+        <KpiTile id="kpi-overall" caption="Overall average" value={overall} state={overall === null ? 'insufficient' : 'value'} context={kind ? kind : 'all trainings and checks'} tokens={tokens} />
         <KpiTile
           id="kpi-last-record"
           caption="Last record"
@@ -266,67 +227,60 @@ export default async function SubjectProfilePage({ params }: { params: Promise<{
         <>
           <Card
             title="Competency profile"
-            note={`Mean of scored grades per competency, against the peer group this account can see. Spokes come from the active framework: ${competencies.length} competencies.`}
+            note="Mean of scored grades per competency, against the peer group this account can see. Choose a training or check to narrow the profile, the averages and the trend."
           >
-            <CompetencyRadar
-              id={`radar-${person.id}`}
-              label={`Competency profile for ${person.full_name}`}
-              competencies={competencies.map((c) => ({ competencyId: c.id, code: c.code, name: c.name }))}
-              tokens={tokens}
-              min={scale.min}
-              max={scale.max}
-              series={[
-                {
-                  key: 'subject',
-                  label: 'This subject',
-                  emphasis: 'primary',
-                  values: competencies.map((c) => meanBy.get(c.id) ?? null),
-                },
-                {
-                  key: 'peers',
-                  label: 'Peer group',
-                  emphasis: 'secondary',
-                  values: competencies.map((c) => peerBy.get(c.id) ?? null),
-                },
-              ]}
-            />
+            <div className="row" style={{ marginBottom: 'var(--space-3)' }}>
+              <AutoSubmitSelect name="kind" label="Show" value={kind} resetParams={['page']} options={[{ value: '', label: 'All trainings and checks' }, ...kinds.map((k) => ({ value: k.record_kind, label: `${k.record_kind} (${k.n})` }))]} />
+            </div>
+            <div className="profile-grid">
+              <CompetencyRadar
+                id={`radar-${person.id}`}
+                label={`Competency profile for ${person.full_name}`}
+                competencies={competencies.map((c) => ({ competencyId: c.id, code: c.code, name: c.name }))}
+                tokens={tokens}
+                min={scale.min}
+                max={scale.max}
+                size={240}
+                series={[
+                  { key: 'subject', label: 'This pilot', emphasis: 'primary', values: competencies.map((c) => meanBy.get(c.id) ?? null) },
+                  { key: 'peers', label: 'Peer group', emphasis: 'secondary', values: competencies.map((c) => peerBy.get(c.id) ?? null) },
+                ]}
+              />
+              <table className="data averages" data-testid="competency-averages">
+                <thead><tr><th scope="col">Competency</th><th scope="col" className="num">Average</th><th scope="col" className="num">Peers</th><th scope="col" className="num">Grades</th></tr></thead>
+                <tbody>
+                  {competencies.map((c) => {
+                    const m = meanBy.get(c.id) ?? null; const pm = peerBy.get(c.id) ?? null;
+                    return (
+                      <tr key={c.id}>
+                        <td><span className="mono" style={{ color: c.colour, fontWeight: 700 }}>{c.code}</span> <span className="small">{c.name}</span></td>
+                        <td className="num"><strong>{m === null ? '—' : m.toFixed(2)}</strong></td>
+                        <td className="num muted">{pm === null ? '—' : pm.toFixed(2)}</td>
+                        <td className="num muted">{nBy.get(c.id) ?? 0}</td>
+                      </tr>
+                    );
+                  })}
+                  <tr><th scope="row">All competencies</th><td className="num"><strong>{overall ?? '—'}</strong></td><td className="num muted"></td><td className="num muted">{scored}</td></tr>
+                </tbody>
+              </table>
+            </div>
           </Card>
 
           <Card
             title="Trend by competency"
-            note="One point per scored competency grade, in date order. Gaps are breaks in the line, never zeros: a missing grade plotted at the axis draws a failure that never happened."
+            note="One point per scored competency grade, in date order. Click a competency to enlarge it; hover a point for the session behind it."
           >
             <div className="grid grid-spark">
               {competencies.map((c) => (
-                <div key={c.id}>
-                  <div className="xs muted">
-                    <span className="mono">{c.code}</span> {c.name}
-                  </div>
-                  <TrendSparkline
-                    id={`spark-${c.id}`}
-                    label={`${c.code} trend`}
-                    points={pointsBy.get(c.id) ?? []}
-                    tokens={tokens}
-                    colour={c.colour}
-                    min={scale.min}
-                    max={scale.max}
-                  />
-                </div>
+                <TrendCard key={c.id} code={c.code} name={c.name} colour={c.colour} points={pointsBy.get(c.id) ?? []} tokens={tokens} min={scale.min} max={scale.max} />
               ))}
             </div>
           </Card>
         </>
       )}
 
-      <DataTable
-        testId="subject-record-list"
-        caption="Records, most recent first"
-        columns={columns}
-        rows={records}
-        rowKey={(r) => r.id}
-        emptyTitle="No records"
-        emptyReason={`Nothing has been recorded for this ${labels().subject.toLowerCase()} from any source yet.`}
-      />
+      <RecordsTable rows={records} subjectLabel={labels().subject} />
+      <Pager path={`/subjects/${person.id}`} params={kind ? { kind } : {}} page={page} size={size} total={recordTotal} noun="records" sizes={RECORD_PAGE_SIZES} />
     </div>
   );
 }

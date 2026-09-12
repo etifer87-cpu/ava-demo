@@ -22,7 +22,7 @@
     "typecheck": "tsc --noEmit",
     "scan": "node --env-file=.env scripts/neutrality-scan.mjs",
     "password": "node --env-file=.env scripts/set-password.mjs",
-    "reset:clean": "npm run migrate && npm run config:load && npm run seed:framework && npm run seed:operator && npm run seed:library && npm run seed:program && npm run seed:roster && node --env-file=.env scripts/create-user.mjs admin_av operator_admin",
+    "reset:clean": "npm run migrate && npm run config:load && npm run seed:framework && npm run seed:operator && npm run seed:library && npm run seed:program && npm run publish:programs && npm run seed:roster && node --env-file=.env scripts/create-user.mjs admin_av operator_admin",
     "verify:clean": "node --env-file=.env scripts/neutrality-scan.mjs && node --env-file=.env scripts/verify.mjs --group schema && node --env-file=.env scripts/verify.mjs --group config && node --env-file=.env scripts/verify.mjs --group framework && node --env-file=.env scripts/verify.mjs --group access",
     "user": "node --env-file=.env scripts/create-user.mjs",
     "seed:operator": "node --env-file=.env scripts/seed-operator.mjs",
@@ -31,6 +31,7 @@
     "gen:programs": "node scripts/gen-programs.mjs",
     "gen:roster": "node scripts/gen-roster.mjs",
     "seed:roster": "node --env-file=.env scripts/seed-roster.mjs",
+    "publish:programs": "node --env-file=.env scripts/publish-programs.mjs",
     "gen:history": "node --env-file=.env scripts/seed-history.mjs --plan",
     "seed:history": "node --env-file=.env scripts/seed-history.mjs"
   },
