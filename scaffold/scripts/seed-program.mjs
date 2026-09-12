@@ -50,10 +50,10 @@ try {
         continue;
       }
       if (!version) {
-        version = (await client.query(`INSERT INTO session_template_versions (template_id, version, status, setup, notes, allowed_assessor_roles) VALUES ($1::uuid, 1, 'draft', $2::jsonb, $3, $4::text[]) RETURNING id, status, version`, [tpl.id, JSON.stringify(t.setup ?? {}), t.notes ?? null, t.allowed_assessor_roles ?? []])).rows[0];
+        version = (await client.query(`INSERT INTO session_template_versions (template_id, version, status, setup, notes, allowed_assessor_roles, hide_record_from_subject) VALUES ($1::uuid, 1, 'draft', $2::jsonb, $3, $4::text[], $5) RETURNING id, status, version`, [tpl.id, JSON.stringify(t.setup ?? {}), t.notes ?? null, t.allowed_assessor_roles ?? [], t.hide_record_from_subject === true])).rows[0];
         await client.query(`UPDATE session_templates SET current_version_id = $2::uuid WHERE id = $1::uuid`, [tpl.id, version.id]);
       } else {
-        await client.query(`UPDATE session_template_versions SET setup = $2::jsonb, notes = $3, allowed_assessor_roles = $4::text[] WHERE id = $1::uuid`, [version.id, JSON.stringify(t.setup ?? {}), t.notes ?? null, t.allowed_assessor_roles ?? []]);
+        await client.query(`UPDATE session_template_versions SET setup = $2::jsonb, notes = $3, allowed_assessor_roles = $4::text[], hide_record_from_subject = $5 WHERE id = $1::uuid`, [version.id, JSON.stringify(t.setup ?? {}), t.notes ?? null, t.allowed_assessor_roles ?? [], t.hide_record_from_subject === true]);
         await client.query(`DELETE FROM template_elements WHERE template_version_id = $1::uuid`, [version.id]);
       }
 

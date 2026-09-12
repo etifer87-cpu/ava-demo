@@ -172,6 +172,7 @@ export default async function ProgramPage({ params, searchParams }: { params: Pr
           : program.version.status === 'retired' ? <Chip tone="neutral">Retired · v{program.version.version}</Chip>
           : <Chip tone="warn">Draft · v{program.version.version}</Chip>
         ) : <Chip tone="bad">No version</Chip>}
+        {template.hide_record_from_subject ? <Chip tone="neutral">Not visible to the trainee</Chip> : null}
         {program && canConfigure ? (
           <form method="post" action={`/api/templates/${template.id}/versions`} className="row" style={{ gap: 'var(--space-2)' }} data-testid="version-actions">
             <input type="hidden" name="version" value={program.version.id} />

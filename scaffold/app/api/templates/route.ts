@@ -11,7 +11,7 @@ import { publishVersion } from '@/lib/program/publish';
 /**
  * POST /api/templates - the Programs list's write path. `_action`:
  *
- *   create      name, code, kind, fleet, period, program_*, notes
+ *   create      name, code, kind, fleet, period, program_*, notes, subject_visibility
  *   archive     ids[]                      is_active = false; the program leaves the default list
  *   unarchive   ids[]
  *   publish     ids[]                      publishes each program's current draft; blockers skip it
@@ -59,6 +59,7 @@ export async function POST(request: NextRequest) {
   const periodRaw = str('period', 10);
   const period = periodRaw ? parseMinutes(periodRaw) : null;
   const notes = str('notes', 300) || null;
+  const hideFromSubject = str('subject_visibility', 10) === 'hidden';
   const intOrNull = (k: string, max: number) => { const v = str(k, 5); if (!v) return null; const n = Number(v); return Number.isInteger(n) && n >= 1 && n <= max ? n : NaN; };
   const day = intOrNull('program_day', 30);
   const cycle = intOrNull('cycle_months', 60);
@@ -95,8 +96,8 @@ export async function POST(request: NextRequest) {
       const templateId = t.rows[0]?.id;
       if (!templateId) throw new Error('The program was not created.');
       const v = await client.query<{ id: string }>(
-        `INSERT INTO session_template_versions (template_id, version, status, setup, notes) VALUES ($1::uuid, 1, 'draft', $2::jsonb, $3) RETURNING id`,
-        [templateId, JSON.stringify(setup), notes],
+        `INSERT INTO session_template_versions (template_id, version, status, setup, notes, hide_record_from_subject) VALUES ($1::uuid, 1, 'draft', $2::jsonb, $3, $4) RETURNING id`,
+        [templateId, JSON.stringify(setup), notes, hideFromSubject],
       );
       const versionId = v.rows[0]?.id;
       if (!versionId) throw new Error('The first version was not created.');

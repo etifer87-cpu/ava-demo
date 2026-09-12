@@ -52,7 +52,7 @@ export default async function NewProgramPage() {
               <label htmlFor="fleet">Fleet</label>
               <select id="fleet" name="fleet" defaultValue="">
                 <option value="">Every fleet</option>
-                {fleets.map((f) => <option key={f.id} value={f.id} title={f.label}>{f.value}</option>)}
+                {fleets.map((f) => <option key={f.id} value={f.id}>{f.value}</option>)}
               </select>
             </div>
           </div>
@@ -69,6 +69,14 @@ export default async function NewProgramPage() {
             <div className="field"><label htmlFor="cycle_months">Cycle (months)</label><input id="cycle_months" name="cycle_months" type="number" min={1} max={60} /></div>
           </div>
           <div className="field" style={{ marginTop: 'var(--space-3)' }}><label htmlFor="notes">Description</label><input id="notes" name="notes" maxLength={300} /></div>
+          <div className="field" style={{ marginTop: 'var(--space-3)' }}>
+            <label htmlFor="subject_visibility">Record visible to the trainee</label>
+            <select id="subject_visibility" name="subject_visibility" defaultValue="visible">
+              <option value="visible">Yes - the trainee sees and signs the record</option>
+              <option value="hidden">No - internal: recruitment, screening or an assessment the candidate does not see</option>
+            </select>
+            <span className="xs muted">A hidden record is signed by the assessor only and never appears in the trainee&apos;s own history.</span>
+          </div>
         </Card>
 
         <div className="row">

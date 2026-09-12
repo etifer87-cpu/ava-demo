@@ -92,6 +92,7 @@ export default async function InstructorViewPage({ params, searchParams }: { par
           outcomes={outcomes}
           statements={{ assessor: statements.assessor, subject: statements.subject, subjectExtra: statements.subjectExtra }}
           objection={statements.objection}
+          hiddenFromSubject={template.hide_record_from_subject}
         />
       )}
     </div>

@@ -31,6 +31,8 @@ export interface InstructorDemoProps {
   readonly outcomes: readonly string[];
   readonly statements: { readonly assessor: string; readonly subject: string; readonly subjectExtra: string | null };
   readonly objection: { readonly allowed: boolean; readonly label: string; readonly prompt: string; readonly marksRecord: string; readonly notifiesRole: string };
+  /** An internal record (screening, assessment): the trainee never sees it, so only the assessor signs. */
+  readonly hiddenFromSubject: boolean;
 }
 
 type CompGrade = { grade: number | 'competent' | 'not_competent' | 'not_observed' | null; obs: string[] };
@@ -250,7 +252,7 @@ function Record(props: { p: InstructorDemoProps; grades: Record<string, Exercise
   const pfCounts = props.steps.filter(({ st }) => st.kind === 'exercise' && st.pfPm && gradeOf(st.key).role).map(({ st }) => ({ counter: st.kind === 'exercise' ? st.pfPm : null, role: gradeOf(st.key).role }));
   const pfLine = pfCounts.length ? `Take-offs as PF ${pfCounts.filter((x) => x.counter === 'take_off' && x.role === 'PF').length} · landings as PF ${pfCounts.filter((x) => x.counter === 'landing' && x.role === 'PF').length} · as PM ${pfCounts.filter((x) => x.role === 'PM').length}` : null;
   const comments = props.steps.filter(({ st }) => st.kind === 'exercise' && gradeOf(st.key).comment.trim()).map(({ st }) => `${st.title}: ${gradeOf(st.key).comment.trim()}`);
-  const status = objection ? `INCOMPLETE · objection` : signed.instructor && signed.subject ? 'SIGNED' : signed.instructor || signed.subject ? 'AWAITING SIGNATURE' : 'DRAFT';
+  const status = objection ? `INCOMPLETE · objection` : signed.instructor && (signed.subject || p.hiddenFromSubject) ? 'SIGNED' : signed.instructor || signed.subject ? 'AWAITING SIGNATURE' : 'DRAFT';
   const cell = (v: ExerciseGrade['result'] | CompGrade['grade']) => v === null ? '—' : v === 'pass' ? 'PASS' : v === 'fail' ? 'FAIL' : v === 'competent' ? 'C' : v === 'not_competent' ? 'NC' : v === 'not_observed' ? 'N/O' : String(v);
 
   return (
@@ -263,7 +265,7 @@ function Record(props: { p: InstructorDemoProps; grades: Record<string, Exercise
           <div><dt>Date</dt><dd>{new Date().toISOString().slice(0, 10)}</dd></div>
           <div><dt>Location</dt><dd className="muted">—</dd></div>
           <div><dt>Device</dt><dd className="muted">— (chosen when the session is created)</dd></div>
-          <div><dt>Trainee</dt><dd className="muted">Trainee (demo)</dd></div>
+          <div><dt>{p.hiddenFromSubject ? 'Candidate' : 'Trainee'}</dt><dd className="muted">{p.hiddenFromSubject ? 'Candidate (demo)' : 'Trainee (demo)'}</dd></div>
           <div><dt>Position</dt><dd className="muted">—</dd></div>
           <div><dt>Instructor</dt><dd>{p.instructorName}</dd></div>
         </dl>
@@ -301,6 +303,12 @@ function Record(props: { p: InstructorDemoProps; grades: Record<string, Exercise
           <p className="sig-statement">{p.statements.assessor}</p>
           {signed.instructor ? <span className="chip chip-good"><span className="chip-dot" aria-hidden="true" />Signed · {signed.instructor}</span> : <div><button type="button" className="button" onClick={() => setSigned({ ...signed, instructor: now() })} disabled={!outcome} title={outcome ? undefined : 'Choose the outcome first'}>Sign</button></div>}
         </div>
+        {p.hiddenFromSubject ? (
+          <div className="sig-block" data-testid="sig-hidden">
+            <div className="xs muted" style={{ letterSpacing: '0.04em' }}>INTERNAL RECORD</div>
+            <p className="small" style={{ margin: 0 }}>Not visible to the trainee. This record is signed by the assessor only and does not appear in the trainee&apos;s history.</p>
+          </div>
+        ) : (
         <div className="sig-block">
           <div className="xs muted" style={{ letterSpacing: '0.04em' }}>TRAINEE</div>
           <div className="small"><strong>Trainee (demo)</strong></div>
@@ -309,6 +317,7 @@ function Record(props: { p: InstructorDemoProps; grades: Record<string, Exercise
             : signed.subject ? <span className="chip chip-good"><span className="chip-dot" aria-hidden="true" />Signed · {signed.subject}</span>
             : <div className="row"><button type="button" className="button" onClick={() => setSigned({ ...signed, subject: now() })} disabled={!signed.instructor} title={signed.instructor ? undefined : 'The instructor signs first'}>Sign</button>{p.objection.allowed ? <button type="button" className="button button-quiet" onClick={() => dialog.current?.showModal()} disabled={!signed.instructor}>{p.objection.label}</button> : null}</div>}
         </div>
+        )}
       </div>
       <footer className="xs muted mono" style={{ marginTop: 'var(--space-3)' }}>Demo record · content hash — · both signatures attest to this content. Any later change voids them.</footer>
 

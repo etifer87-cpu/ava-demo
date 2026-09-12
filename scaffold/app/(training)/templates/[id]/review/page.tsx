@@ -48,6 +48,7 @@ export default async function ReviewPage({ params, searchParams }: { params: Pro
         <span className="spacer" />
         <BuilderTabs templateId={template.id} active="review" versionQuery={versionQuery} />
       </div>
+      {template.hide_record_from_subject ? <div className="notice"><p style={{ margin: 0 }}><strong>Internal record.</strong> Not visible to the trainee: signed by the assessor only, never shown in the trainee&apos;s history.</p></div> : null}
       <p className="small muted" style={{ margin: 0 }}>What both parties see and sign. Set-up, conduct and instructor notes are not on it, by design; the PDF is this page.</p>
 
       {!report ? <div className="notice"><p style={{ margin: 0 }}>No version to show.</p></div> : (
