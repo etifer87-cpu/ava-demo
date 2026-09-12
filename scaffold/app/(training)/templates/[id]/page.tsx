@@ -33,7 +33,7 @@ import BuilderTabs from '@/components/program/BuilderTabs';
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
-interface TemplateRow { id: string; code: string; name: string; template_kind: string; kind_label: string; asset_class: string | null; current_version_id: string | null; is_active: boolean }
+interface TemplateRow { id: string; code: string; name: string; template_kind: string; kind_label: string; asset_class: string | null; current_version_id: string | null; is_active: boolean; hide_record_from_subject: boolean }
 const UUID = /^[0-9a-f-]{36}$/i;
 const KEY = /^[a-z0-9][a-z0-9_.-]{0,62}$/;
 
@@ -56,8 +56,10 @@ export default async function ProgramPage({ params, searchParams }: { params: Pr
   const sel = KEY.test(one('sel')) ? one('sel') : null;
 
   const template = (await query<TemplateRow>(`
-    SELECT t.id, t.code, t.name, t.template_kind, COALESCE(k.label, t.template_kind) AS kind_label, ac.code AS asset_class, t.current_version_id, t.is_active
+    SELECT t.id, t.code, t.name, t.template_kind, COALESCE(k.label, t.template_kind) AS kind_label, ac.code AS asset_class, t.current_version_id, t.is_active,
+           COALESCE(v.hide_record_from_subject, false) AS hide_record_from_subject
       FROM session_templates t LEFT JOIN template_kinds k ON k.code = t.template_kind LEFT JOIN asset_classes ac ON ac.id = t.asset_class_id
+      LEFT JOIN session_template_versions v ON v.id = t.current_version_id
      WHERE t.id = $1::uuid AND t.deleted_at IS NULL`, [id]))[0] ?? null;
   if (!template) notFound();
 

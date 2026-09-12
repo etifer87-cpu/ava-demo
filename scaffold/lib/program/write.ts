@@ -355,7 +355,7 @@ export async function updateTask(versionId: string, key: string, tab: TaskTab, f
     let next: TaskContent;
     switch (tab) {
       case 'setup':
-        next = { ...now, setup: Object.fromEntries(SETUP_KINDS.map((k) => [k, ref(k)])) as TaskContent['setup'] };
+        next = { ...now, setup: Object.fromEntries(SETUP_KINDS.map((k) => [k, ref(k)])) as unknown as TaskContent['setup'] };
         break;
       case 'conduct': {
         const slotGroup = form('slot_group');
