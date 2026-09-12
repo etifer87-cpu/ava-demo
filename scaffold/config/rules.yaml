@@ -22,8 +22,8 @@
 # `source` is what the finding cites on screen, in the operator's language.
 # ---------------------------------------------------------------------------
 
-version: "1.0"
-updated: "2026-09-11"
+version: "1.1"
+updated: "2026-09-12"
 
 rules:
   - id: ebt.three_phases
@@ -38,8 +38,11 @@ rules:
     severity: warn
     params:
       tolerance_minutes: 5
+      # The declared period is the device period. Phases held outside the device - the
+      # briefing before it and the debriefing after it - are planned but not counted.
+      exclude_phases: [brief, debrief]
     source: "Operator policy · module time schedule"
-    message: "Section times do not add up to the declared period."
+    message: "Section times inside the device period do not add up to the declared period."
 
   - id: reinf.present
     severity: block
@@ -47,7 +50,7 @@ rules:
     params:
       phase: reinf
       min_minutes: 5
-    source: "Operator policy · reinforcement time is never cut"
+    source: "Operator policy · reinforcement time, as observed"
     message: "Reinforcement time is missing or below the minimum."
 
   - id: training_only.not_graded

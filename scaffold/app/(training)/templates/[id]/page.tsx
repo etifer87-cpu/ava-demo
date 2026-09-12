@@ -3,10 +3,10 @@ import { notFound } from 'next/navigation';
 import { query } from '@/lib/db';
 import { requireSession } from '@/lib/session';
 import { resolveAccess, requireCapability, can } from '@/lib/access';
-import { loadProgramVersion, programVocab } from '@/lib/program';
-import { hasBlockers } from '@/lib/program/rules';
+import { loadProgramVersion, programVocab, ruleRegistry } from '@/lib/program';
+import { hasBlockers, budgetFor } from '@/lib/program/rules';
 import { formatMinutes } from '@/lib/program/shape';
-import { plannedMinutes, totalPlannedMinutes, type ProgramNode } from '@/lib/program/model';
+import { plannedMinutes, type ProgramNode } from '@/lib/program/model';
 import { listLibrary, malfunctionIndex, eventLibrary, groupsWithCandidates } from '@/lib/program/library';
 import { fleetOptions } from '@/lib/templates';
 import { phaseColour } from '@/lib/config';
@@ -152,7 +152,8 @@ export default async function ProgramPage({ params, searchParams }: { params: Pr
     malfunctions, events, groups,
   };
 
-  const planned = program ? totalPlannedMinutes(program.tree) : null;
+  const bud = program ? budgetFor(program.tree, ruleRegistry()) : { inside: null, outside: null, excludedPhases: [] };
+  const planned = bud.inside;
   const period = program?.tree.setup.period_minutes ?? null;
   const blockers = program ? hasBlockers(program.findings) : false;
   const taskCount = program ? [...program.tree.byKey.values()].filter((n) => n.content.type === 'task').length : 0;
@@ -176,7 +177,8 @@ export default async function ProgramPage({ params, searchParams }: { params: Pr
         {template.kind_label} · {template.asset_class ?? 'every fleet'}
         {program?.tree.setup.program.code ? ` · ${program.tree.setup.program.code}${program.tree.setup.program.day ? ` day ${program.tree.setup.program.day}` : ''}` : ''}
         {program?.tree.setup.device ? ` · ${program.tree.setup.device}` : ''}
-        {planned !== null || period !== null ? <> · <span className="mono">{planned === null ? '-' : formatMinutes(planned)}{period !== null ? ` of ${formatMinutes(period)}` : ''}</span>{planned !== null && period !== null ? <span> · {planned <= period ? `${formatMinutes(period - planned)} free` : `${formatMinutes(planned - period)} over`}</span> : null}</> : null}
+        {planned !== null || period !== null ? <> · device <span className="mono">{planned === null ? '-' : formatMinutes(planned)}{period !== null ? ` of ${formatMinutes(period)}` : ''}</span>{planned !== null && period !== null ? <span> · {planned <= period ? `${formatMinutes(period - planned)} free` : `${formatMinutes(planned - period)} over`}</span> : null}</> : null}
+        {bud.outside !== null ? <> · outside the device <span className="mono">{formatMinutes(bud.outside)}</span></> : null}
         {` · ${taskCount} exercise${taskCount === 1 ? '' : 's'}`}
         {versions.length > 1 ? <> · versions: {versions.map((v, i) => <span key={v.id}>{i ? ', ' : ''}<Link href={`${base}?version=${v.id}`}>v{v.version} {v.status}</Link></span>)}</> : null}
       </p>

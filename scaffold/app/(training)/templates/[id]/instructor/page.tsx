@@ -1,7 +1,8 @@
 import Link from 'next/link';
 import { requireSession } from '@/lib/session';
 import { resolveAccess, requireCapability } from '@/lib/access';
-import { programVocab } from '@/lib/program';
+import { programVocab, ruleRegistry } from '@/lib/program';
+import { budgetFor } from '@/lib/program/rules';
 import { loadProgramScreen } from '@/lib/program/screens';
 import { instructorProjection, type InstructorStep } from '@/lib/program/projection';
 import { formatMinutes } from '@/lib/program/shape';
@@ -34,6 +35,7 @@ export default async function InstructorViewPage({ params, searchParams }: { par
   const { template, program, versionQuery, wantedVersion } = await loadProgramScreen(id, typeof sp.version === 'string' ? sp.version : undefined);
   const vocab = programVocab();
   const view = program ? instructorProjection(program.tree, { runtime: null }) : null;
+  const bud = program ? budgetFor(program.tree, ruleRegistry()) : { inside: null, outside: null, excludedPhases: [] as readonly string[] };
   const at = typeof sp.at === 'string' ? sp.at : '';
   const idx = view ? Math.max(0, view.order.findIndex((o) => o.key === at)) : 0;
   const current = view?.order[idx] ?? null;
@@ -59,14 +61,14 @@ export default async function InstructorViewPage({ params, searchParams }: { par
       ) : (
         <div className="instructor-layout">
           <aside className="rail" aria-label="Navigate the session" data-testid="instructor-rail">
-            <div className="row" style={{ alignItems: 'baseline' }}><h2 className="card-title" style={{ margin: 0 }}>Session</h2><span className="spacer" /><span className="mono xs">{view.totalMinutes === null ? '' : formatMinutes(view.totalMinutes)}</span></div>
+            <div className="row" style={{ alignItems: 'baseline' }}><h2 className="card-title" style={{ margin: 0 }}>Session</h2><span className="spacer" /><span className="mono xs" title="Device time; briefing and debriefing are outside it">{bud.inside === null ? '' : formatMinutes(bud.inside)}{bud.outside !== null ? <span className="muted"> + {formatMinutes(bud.outside)}</span> : null}</span></div>
             {view.sections.map((s) => (
               <div key={s.key} className="nav-section" style={phaseColour(s.phase) ? { borderLeftColor: phaseColour(s.phase) ?? undefined } : undefined}>
                 <div className="row" style={{ alignItems: 'baseline', gap: 'var(--space-2)' }}>
                   <span className="nav-section-title">{s.title}</span>
                   {s.phase ? <span className="xs muted">{vocab.phases.get(s.phase) ?? s.phase}</span> : null}
                   <span className="spacer" />
-                  <span className="mono xs">{s.minutes === null ? '' : formatMinutes(s.minutes)}</span>
+                  <span className="mono xs">{s.minutes === null ? '' : formatMinutes(s.minutes)}{s.phase && bud.excludedPhases.includes(s.phase) ? <span className="muted" title="Outside the device period"> ·</span> : null}</span>
                 </div>
                 <ol className="nav-steps">
                   {s.steps.map((st) => (

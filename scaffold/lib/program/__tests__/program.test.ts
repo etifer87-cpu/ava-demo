@@ -230,6 +230,12 @@ describe('findings', () => {
     expect(ids(DAY.filter((r) => !r.element_key.startsWith('sbt1')), { period: '4:00' }, 'proficiency_check')).not.toContain('ebt.three_phases');
   });
 
+  it('the time budget counts only phases inside the device: a 1:00 briefing outside a 4:00 period is not "over"', () => {
+    const rows = [...DAY, row({ element_key: 'brief', element_type: 'section', position: -1, content: { section_kind: 'block', phase: 'brief', time: '1:00' } }), row({ element_key: 'brief.t', element_type: 'task', parent_key: 'brief', content: {} })];
+    const f = build(rows).find((x) => x.rule === 'time.budget');
+    expect(f?.detail).toBe('2:10 of 4:00');            // the briefing hour is not in the 2:10
+  });
+
   it('the time budget warns with the numbers, and stays silent when nothing is stated', () => {
     const f = build(DAY).find((x) => x.rule === 'time.budget');
     expect(f?.severity).toBe('warn');

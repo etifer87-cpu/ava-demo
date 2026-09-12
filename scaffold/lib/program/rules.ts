@@ -10,7 +10,7 @@
  */
 
 import { formatMinutes, type SlotRef } from './shape';
-import { isTrainingOnly, phaseOf, plannedMinutes, sectionsOf, tasksOf, totalPlannedMinutes, walk, type ProgramTree } from './model';
+import { isTrainingOnly, phaseOf, plannedMinutes, sectionsOf, tasksOf, walk, type ProgramTree } from './model';
 
 export type Severity = 'block' | 'warn';
 
@@ -76,11 +76,11 @@ export const RULE_IMPLEMENTATIONS: Readonly<Record<string, Predicate>> = {
 
   'time.budget': (tree, rule) => {
     const period = tree.setup.period_minutes;
-    const planned = totalPlannedMinutes(tree);
-    if (period === null || planned === null) return [];          // nothing stated, nothing to measure
+    const { inside } = budget(tree, rule);
+    if (period === null || inside === null) return [];          // nothing stated, nothing to measure
     const tolerance = num(rule, 'tolerance_minutes', 0);
-    if (Math.abs(planned - period) <= tolerance) return [];
-    return [finding(rule, null, `${formatMinutes(planned)} of ${formatMinutes(period)}`)];
+    if (Math.abs(inside - period) <= tolerance) return [];
+    return [finding(rule, null, `${formatMinutes(inside)} of ${formatMinutes(period)}`)];
   },
 
   'reinf.present': (tree, rule) => {
@@ -133,6 +133,27 @@ export const RULE_IMPLEMENTATIONS: Readonly<Record<string, Predicate>> = {
       .filter(({ slot }) => slot.no_repeat_within_modules !== null || slot.cycle_coverage)
       .map(({ key, slot }) => finding(rule, key, [slot.no_repeat_within_modules !== null ? `no repeat within ${slot.no_repeat_within_modules} modules` : null, slot.cycle_coverage ? 'cycle coverage' : null].filter(Boolean).join(' · '))),
 };
+
+/**
+ * The time budget as the rule measures it: minutes planned INSIDE the device period (root
+ * sections whose phase is not excluded) and OUTSIDE it (briefing, debriefing). Null = not stated.
+ * The builder header and the instructor rail show the same split, from the same registry row.
+ */
+export function budget(tree: ProgramTree, rule: RuleSpec | undefined): { inside: number | null; outside: number | null; excludedPhases: readonly string[] } {
+  const excluded = new Set(rule ? strings(rule, 'exclude_phases') : []);
+  let inside: number | null = null; let outside: number | null = null;
+  for (const root of tree.roots) {
+    const m = plannedMinutes(root);
+    if (m === null) continue;
+    const phase = root.content.type === 'section' ? root.content.section.phase : null;
+    if (phase !== null && excluded.has(phase)) outside = (outside ?? 0) + m; else inside = (inside ?? 0) + m;
+  }
+  return { inside, outside, excludedPhases: [...excluded] };
+}
+
+export function budgetFor(tree: ProgramTree, registry: RuleRegistry) {
+  return budget(tree, registry.rules.find((r) => r.id === 'time.budget'));
+}
 
 /** Throws when rules.yaml and RULE_IMPLEMENTATIONS disagree, naming every id on the wrong side. */
 export function assertRegistryComplete(registry: RuleRegistry): void {
