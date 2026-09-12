@@ -172,6 +172,14 @@ export default async function ProgramPage({ params, searchParams }: { params: Pr
           : program.version.status === 'retired' ? <Chip tone="neutral">Retired · v{program.version.version}</Chip>
           : <Chip tone="warn">Draft · v{program.version.version}</Chip>
         ) : <Chip tone="bad">No version</Chip>}
+        {program && canConfigure ? (
+          <form method="post" action={`/api/templates/${template.id}/versions`} className="row" style={{ gap: 'var(--space-2)' }} data-testid="version-actions">
+            <input type="hidden" name="version" value={program.version.id} />
+            {program.version.status === 'draft'
+              ? <button className="button" type="submit" name="_action" value="publish" disabled={blockers || program.problems.length > 0} title={blockers ? 'Resolve the blockers first' : 'Freeze this version; sessions will record it'}>Publish</button>
+              : <button className="button button-quiet" type="submit" name="_action" value="new_draft" title="Open the next version as a draft; this one stays as sessions recorded it">New draft</button>}
+          </form>
+        ) : null}
       </div>
       <p className="small muted" style={{ margin: 0 }}>
         {template.kind_label} · {template.asset_class ?? 'every fleet'}

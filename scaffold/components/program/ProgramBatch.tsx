@@ -7,7 +7,7 @@ import { useEffect, useRef, useState, type FormEvent } from 'react';
  *
  * The row checkboxes belong to the form `batch` through their `form` attribute, so this component
  * owns no selection state of its own: it counts the checked boxes on every change and shows the
- * two buttons only while at least one is ticked. Archive submits at once. Delete opens a modal
+ * buttons only while at least one is ticked. Publish and Archive submit at once. Delete opens a modal
  * that asks for a reason and the password; the modal closes only through Cancel or a submit -
  * clicking outside or pressing Escape does nothing, because a half-typed reason lost to a stray
  * click is how deletions get re-attempted without one.
@@ -46,7 +46,7 @@ export function ProgramBatch({ status, mode }: { readonly status: string; readon
       <span className="spacer" />
       {mode === 'archived'
         ? <button className="button button-quiet" type="submit" name="_action" value="unarchive" formNoValidate>Restore</button>
-        : <button className="button button-quiet" type="submit" name="_action" value="archive" formNoValidate>Archive</button>}
+        : <><button className="button button-quiet" type="submit" name="_action" value="publish" formNoValidate title="Publish the current draft of each selected program">Publish</button><button className="button button-quiet" type="submit" name="_action" value="archive" formNoValidate>Archive</button></>}
       <button className="button" type="button" onClick={open}>Delete</button>
 
       <dialog ref={dialog} className="modal" aria-labelledby="del-title" onCancel={(e) => e.preventDefault()}>

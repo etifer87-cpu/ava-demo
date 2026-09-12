@@ -6,6 +6,7 @@ import { audit, actorFromSession, requestContext } from '@/lib/audit';
 import { flashCookie } from '@/lib/admin';
 import { suggestCode } from '@/lib/templates';
 import { parseMinutes, formatMinutes } from '@/lib/program/shape';
+import { publishVersion } from '@/lib/program/publish';
 
 /**
  * POST /api/templates - the Programs list's write path. `_action`:
@@ -13,6 +14,7 @@ import { parseMinutes, formatMinutes } from '@/lib/program/shape';
  *   create      name, code, kind, fleet, period, program_*, notes
  *   archive     ids[]                      is_active = false; the program leaves the default list
  *   unarchive   ids[]
+ *   publish     ids[]                      publishes each program's current draft; blockers skip it
  *   delete      ids[], password            soft delete (deleted_at) of the template and its versions.
  *                                          Re-authenticated: the caller's password is checked by
  *                                          Postgres the same way the login is, and the attempt is
@@ -47,7 +49,7 @@ export async function POST(request: NextRequest) {
     return res;
   };
 
-  if (action === 'archive' || action === 'unarchive' || action === 'delete') return batch(action, form, request, session, actor, ctx);
+  if (action === 'archive' || action === 'unarchive' || action === 'delete' || action === 'publish') return batch(action, form, request, session, actor, ctx);
   if (action !== 'create') return NextResponse.json({ ok: false, error: 'unknown_action' }, { status: 400 });
 
   const name = str('name', 120);
@@ -109,7 +111,7 @@ export async function POST(request: NextRequest) {
   }
 }
 
-async function batch(action: 'archive' | 'unarchive' | 'delete', form: FormData, request: NextRequest, session: Awaited<ReturnType<typeof requireSession>>, actor: ReturnType<typeof actorFromSession>, ctx: ReturnType<typeof requestContext>) {
+async function batch(action: 'archive' | 'unarchive' | 'delete' | 'publish', form: FormData, request: NextRequest, session: Awaited<ReturnType<typeof requireSession>>, actor: ReturnType<typeof actorFromSession>, ctx: ReturnType<typeof requestContext>) {
   const ids = form.getAll('ids').map((v) => String(v)).filter((v) => /^[0-9a-f-]{36}$/i.test(v)).slice(0, 200);
   const status = String(form.get('status') ?? '').slice(0, 20);
   const reason = String(form.get('reason') ?? '').trim().slice(0, 500);
@@ -121,6 +123,19 @@ async function batch(action: 'archive' | 'unarchive' | 'delete', form: FormData,
     return res;
   };
   if (ids.length === 0) return back({ kind: 'warn', message: 'Nothing selected.' });
+
+  if (action === 'publish') {
+    const rows = await query<{ id: string; name: string; version_id: string | null; status: string | null }>(
+      `SELECT t.id, t.name, v.id AS version_id, v.status FROM session_templates t LEFT JOIN session_template_versions v ON v.id = t.current_version_id AND v.deleted_at IS NULL
+        WHERE t.id = ANY($1::uuid[]) AND t.deleted_at IS NULL ORDER BY t.name`, [ids]);
+    const done: string[] = []; const skipped: string[] = [];
+    for (const t of rows) {
+      if (!t.version_id || t.status !== 'draft') { skipped.push(`${t.name} (${t.status ?? 'no version'})`); continue; }
+      const r = await publishVersion(t.version_id, session.userId, actor, ctx);
+      if (r.ok) done.push(t.name); else skipped.push(r.message);
+    }
+    return back({ kind: done.length ? (skipped.length ? 'warn' : 'ok') : 'bad', message: `${done.length} program${done.length === 1 ? '' : 's'} published.${skipped.length ? ` Skipped: ${skipped.join(' · ')}` : ''}` });
+  }
 
   if (action === 'delete') {
     const password = String(form.get('password') ?? '');
