@@ -225,21 +225,27 @@ Three panes, matching the reference layout in Avianca dress:
   grid), Event (category, pre-created or typed, **+**), Note. The three panes are resizable.
 - **Foot — Findings bar.** Green checks, amber warnings, red blockers, each with a jump link. See §6.
 
-### 5.3 As instructor — `/templates/[id]?view=instructor`
+### 5.3 As instructor — `/templates/[id]/instructor`
 
-The same content through the **instructor projection**, read-only, with no write path at all —
-not a disabled one. Runtime values render as placeholders: no pilot, no grades, clocks at zero, no
-signature block.
+**Built 2026-09-12.** The instructor projection of the real content, read-only, with runtime values
+as placeholders: no pilot, no grades, clocks at zero. A rail on the left lists the sections and every
+step inside them; the main pane shows one step with Previous / Next: an exercise (PF, time,
+automation chips, inherited aims with their source, instructor notes, the grade controls exactly as
+they will render, inert), a set-up (the lines), a malfunction or event (a sequence, or the
+**choose-one grid**), a note. `lib/program/projection.ts` `instructorProjection(tree, { runtime: null })`
+— the delivery screen calls the same function with a session.
 
-Your one modification to the reference layout: **a left rail listing the sections and tasks**, so
-the instructor navigates the session rather than scrolling it. It shows phase colour, task number,
-title, and a dot when a task carries a grade control.
+### 5.4 Review — `/templates/[id]/review`
 
-The rule that makes this worth building: `view=instructor` calls the *same* projection function the
-delivery screen will call. If it renders through its own template it drifts within a month, and a
-preview that lies is worse than no preview.
-
----
+**Built 2026-09-12.** The record as both parties will sign it: `subjectProjection(tree)` — exercise
+names, the failures assessed on (names only), competencies and grades, the outcome, both signature
+blocks. Set-up, conduct, instructor notes and timers are structurally absent, and a test asserts it
+over the serialised object. The signature statements come from `policy.yaml` (`signatures.statements`);
+a licence check (`proficiency_check`) adds the line about partial pass or fail. The trainee may
+**object to the results**: a dialog that closes only through its own buttons, a written reason,
+signed; the rule (`signatures.objection`) marks the record *incomplete* and notifies the training
+manager. In preview the buttons are inert; the objection, the incomplete state and the manager's
+dashboard alert are wired with the delivery module, where a record exists to mark.
 
 ## 6. New idea — a findings bar with real rules
 

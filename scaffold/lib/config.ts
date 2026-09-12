@@ -220,6 +220,10 @@ export interface PolicyConfig {
   program?: ProgramPolicy;
   templates?: { element_key_pattern?: string };
   reserved_element_titles?: string[];
+  signatures?: {
+    statements?: { assessor?: string; subject?: string; subject_by_kind?: Record<string, string> };
+    objection?: { allowed?: boolean; label?: string; prompt?: string; marks_record?: string; notifies_role?: string };
+  };
   positions: string[];
   instructor_roles: string[];
   assessor_role_codes: string[];
@@ -269,6 +273,19 @@ export function rules(): RulesConfig {
   const r = load<RulesConfig>('rules.yaml');
   if (!Array.isArray(r.rules)) throw new Error('config/rules.yaml has no rules list');
   return r;
+}
+
+/** The signature wording for one template kind, and the objection rule. Neutral fallbacks when policy.yaml is silent. */
+export function signatureStatements(templateKind: string | null): { assessor: string; subject: string; subjectExtra: string | null; objection: { allowed: boolean; label: string; prompt: string; marksRecord: string; notifiesRole: string } } {
+  const s = policy().signatures ?? {};
+  const st = s.statements ?? {};
+  const o = s.objection ?? {};
+  return {
+    assessor: st.assessor ?? 'By signing I confirm that these results were given to the trainee and explained.',
+    subject: st.subject ?? 'By signing I confirm that these results were given to me and that I accept them.',
+    subjectExtra: templateKind ? st.subject_by_kind?.[templateKind] ?? null : null,
+    objection: { allowed: o.allowed ?? true, label: o.label ?? 'Object to the results', prompt: o.prompt ?? 'Say why you do not agree with the results.', marksRecord: o.marks_record ?? 'incomplete', notifiesRole: o.notifies_role ?? 'training_manager' },
+  };
 }
 
 /** Test seam: forget everything read so far. Never called from a request path. */

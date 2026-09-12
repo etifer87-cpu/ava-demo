@@ -17,6 +17,7 @@ import Chip from '@/components/ui/Chip';
 import BuilderCanvas from '@/components/program/BuilderCanvas';
 import type { CanvasNode, PresetItem } from '@/components/program/canvas-types';
 import type { InspectorData, InspectorNode } from '@/components/program/inspector-types';
+import BuilderTabs from '@/components/program/BuilderTabs';
 
 /**
  * /templates/[id] - the builder. docs/06_PROGRAM_BUILDER.md section 5.2.
@@ -164,6 +165,7 @@ export default async function ProgramPage({ params, searchParams }: { params: Pr
         <h1 style={{ margin: 0 }}>{template.name}</h1>
         <span className="mono xs muted">{template.code}</span>
         <span className="spacer" />
+        <BuilderTabs templateId={template.id} active="builder" versionQuery={wantedVersion ? `?version=${wantedVersion}` : ''} />
         {program ? (
           program.version.status === 'published' ? <Chip tone="good">Published · v{program.version.version}</Chip>
           : program.version.status === 'retired' ? <Chip tone="neutral">Retired · v{program.version.version}</Chip>

@@ -20,9 +20,9 @@
 # No operator content. Every vocabulary below is a neutral starter list.
 # ---------------------------------------------------------------------------
 
-version: "1.4"
-updated: "2026-09-11"
-note: "v1.4: program builder vocabulary (section 9). v1.3: display labels (subject reads as Pilot). v1.2: Avianca operator context. Vocabularies replaced with the operator's own (bases, fleets, seats, instructor roles, EBT session kinds, outcome terms). v1.1: the db_kind mapping and the element-catalogue db_type mapping are gone - migrations 0032 and 0033 widened the schema to carry the real vocabulary, so both levels collapsed into one."
+version: "1.5"
+updated: "2026-09-12"
+note: "v1.5: signature statements and the objection rule (section 5). v1.4: program builder vocabulary (section 9). v1.3: display labels (subject reads as Pilot). v1.2: Avianca operator context. Vocabularies replaced with the operator's own (bases, fleets, seats, instructor roles, EBT session kinds, outcome terms). v1.1: the db_kind mapping and the element-catalogue db_type mapping are gone - migrations 0032 and 0033 widened the schema to carry the real vocabulary, so both levels collapsed into one."
 
 # ---------------------------------------------------------------------------
 # 1. Template kinds - docs/04_ETR.md section 4.
@@ -252,6 +252,23 @@ signatures:
   imported_records_use_electronic_wording: false
   capture_signature_timestamp: true  # when false, signature-lag metrics are
                                      # emitted null with "not captured", never 0
+
+  # The wording each party attests to. Rendered above the signature, on screen and on the PDF,
+  # verbatim. `subject_by_kind` adds a line for particular template kinds - a licence check
+  # carries the consequence of a partial pass or fail.
+  statements:
+    assessor: "By signing I confirm that these results were given to the trainee and explained."
+    subject: "By signing I confirm that these results were given to me and that I accept them."
+    subject_by_kind:
+      proficiency_check: "With a partial pass or a fail, licence privileges cannot be exercised."
+  # The subject may decline to accept the results: a written reason, then a signature on the
+  # objection. The record is marked incomplete and the named role is notified to review it.
+  objection:
+    allowed: true
+    label: "Object to the results"
+    prompt: "Say why you do not agree with the results. Your objection is signed and kept with the record."
+    marks_record: "incomplete"
+    notifies_role: "training_manager"
 
 # ---------------------------------------------------------------------------
 # 6. Retention - docs/09_DMS.md and docs/17_GOVERNANCE.md are the authorities
