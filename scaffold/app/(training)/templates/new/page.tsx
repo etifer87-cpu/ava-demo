@@ -52,7 +52,7 @@ export default async function NewProgramPage() {
               <label htmlFor="fleet">Fleet</label>
               <select id="fleet" name="fleet" defaultValue="">
                 <option value="">Every fleet</option>
-                {fleets.map((f) => <option key={f.id} value={f.id}>{f.value} - {f.label}</option>)}
+                {fleets.map((f) => <option key={f.id} value={f.id} title={f.label}>{f.value}</option>)}
               </select>
             </div>
           </div>

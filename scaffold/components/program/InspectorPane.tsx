@@ -313,7 +313,7 @@ function MalfunctionPane({ node, data, save }: { node: Extract<InspectorNode, { 
     <div className="stack pane" style={{ gap: 'var(--space-3)' }} data-testid="pane-malfunction">
       <Field label="Aircraft type">
         <select value={fleet} onChange={(e) => setAndSave({ ...v, fleet: e.target.value || null })}>
-          {data.fleets.map((f) => <option key={f.code} value={f.code}>{f.code} - {f.label}</option>)}
+          {data.fleets.map((f) => <option key={f.code} value={f.code}>{f.code}</option>)}
         </select>
       </Field>
       {data.malfunctions.length === 0 ? <p className="xs muted" style={{ margin: 0 }}>No malfunction index for {fleet || 'this type'} yet. Failures can still be typed below.</p> : null}

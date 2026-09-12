@@ -27,7 +27,8 @@
     "user": "node --env-file=.env scripts/create-user.mjs",
     "seed:operator": "node --env-file=.env scripts/seed-operator.mjs",
     "seed:library": "node --env-file=.env scripts/seed-library.mjs",
-    "seed:program": "node --env-file=.env scripts/seed-program.mjs"
+    "seed:program": "node --env-file=.env scripts/seed-program.mjs",
+    "gen:programs": "node scripts/gen-programs.mjs"
   },
   "dependencies": {
     "next": "^16.0.0",

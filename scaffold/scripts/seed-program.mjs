@@ -10,6 +10,10 @@
  * template is upserted by code; if its current version is a draft, the elements are replaced
  * from the file; a published version is never touched (0021 would refuse anyway) and the script
  * says so. Grades never exist on a draft, so replacing its elements loses nothing.
+ *
+ * `allowed_assessor_roles` on the template is written to the version (empty = every assessor
+ * role). data/programs/retired.json lists codes of superseded seeds: those templates are set
+ * inactive (archived), never deleted, so a database seeded before the generator keeps reading.
  */
 
 import { readdir, readFile } from 'node:fs/promises';
@@ -18,7 +22,7 @@ import { connect, KIT_ROOT, argValue } from './lib/kit-seed.mjs';
 
 const DIR = process.env.PROGRAM_DATA_DIR ?? path.resolve(KIT_ROOT, 'data', 'programs');
 const only = process.argv.slice(2).find((a) => a.endsWith('.json')) ?? argValue('file', null);
-const files = only ? [path.isAbsolute(only) ? only : path.join(DIR, only)] : (await readdir(DIR)).filter((f) => f.endsWith('.json')).map((f) => path.join(DIR, f));
+const files = only ? [path.isAbsolute(only) ? only : path.join(DIR, only)] : (await readdir(DIR)).filter((f) => f.endsWith('.json') && f !== 'retired.json').sort().map((f) => path.join(DIR, f));
 if (files.length === 0) { console.error(`no program definitions in ${DIR}`); process.exit(1); }
 
 const client = await connect();
@@ -46,10 +50,10 @@ try {
         continue;
       }
       if (!version) {
-        version = (await client.query(`INSERT INTO session_template_versions (template_id, version, status, setup, notes) VALUES ($1::uuid, 1, 'draft', $2::jsonb, $3) RETURNING id, status, version`, [tpl.id, JSON.stringify(t.setup ?? {}), t.notes ?? null])).rows[0];
+        version = (await client.query(`INSERT INTO session_template_versions (template_id, version, status, setup, notes, allowed_assessor_roles) VALUES ($1::uuid, 1, 'draft', $2::jsonb, $3, $4::text[]) RETURNING id, status, version`, [tpl.id, JSON.stringify(t.setup ?? {}), t.notes ?? null, t.allowed_assessor_roles ?? []])).rows[0];
         await client.query(`UPDATE session_templates SET current_version_id = $2::uuid WHERE id = $1::uuid`, [tpl.id, version.id]);
       } else {
-        await client.query(`UPDATE session_template_versions SET setup = $2::jsonb, notes = $3 WHERE id = $1::uuid`, [version.id, JSON.stringify(t.setup ?? {}), t.notes ?? null]);
+        await client.query(`UPDATE session_template_versions SET setup = $2::jsonb, notes = $3, allowed_assessor_roles = $4::text[] WHERE id = $1::uuid`, [version.id, JSON.stringify(t.setup ?? {}), t.notes ?? null, t.allowed_assessor_roles ?? []]);
         await client.query(`DELETE FROM template_elements WHERE template_version_id = $1::uuid`, [version.id]);
       }
 
@@ -85,6 +89,14 @@ try {
       await client.query('ROLLBACK');
       throw err;
     }
+  }
+  // Superseded seeds: archived, not deleted.
+  try {
+    const retired = JSON.parse(await readFile(path.join(DIR, 'retired.json'), 'utf8'));
+    const { rowCount } = await client.query(`UPDATE session_templates SET is_active = false WHERE deleted_at IS NULL AND is_active AND code = ANY($1::text[])`, [retired.codes ?? []]);
+    if (rowCount) console.log(`archived ${rowCount} superseded program(s): ${(retired.codes ?? []).join(', ')}`);
+  } catch (err) {
+    if (err.code !== 'ENOENT') throw err;
   }
 } finally {
   await client.end();

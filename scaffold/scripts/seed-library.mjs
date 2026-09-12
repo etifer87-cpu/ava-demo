@@ -2,7 +2,7 @@
 /**
  * seed-library.mjs - the element library from data/library/*.json.
  *
- *   data/library/a320-malfunctions.json    the A320 IOS malfunction INDEX: button title, ATA
+ *   data/library/*-malfunctions.json       one malfunction INDEX per fleet: button title, ATA
  *                                          chapter, engine applicability, options. Names only -
  *                                          the source document's effect and cue text is its
  *                                          owner's and is not reproduced.
@@ -19,7 +19,7 @@
  *   npm run seed:library
  */
 
-import { readFile } from 'node:fs/promises';
+import { readFile, readdir } from 'node:fs/promises';
 import path from 'node:path';
 import { connect, KIT_ROOT } from './lib/kit-seed.mjs';
 
@@ -64,9 +64,11 @@ function guideRow(e, fleet) {
   return { code: e.code, element_type: type, title: e.title, tags, content };
 }
 
-const malf = await readJson('a320-malfunctions.json');
+const malfFiles = (await readdir(DATA_DIR)).filter((f) => f.endsWith('-malfunctions.json')).sort();
+const malfRows = [];
+for (const f of malfFiles) { const malf = await readJson(f); malfRows.push(...malf.malfunctions.map((m) => malfunctionRow(m, malf.fleet))); }
 const guide = await readJson('standard-library.json');
-const rows = [...malf.malfunctions.map((m) => malfunctionRow(m, malf.fleet)), ...guide.elements.map((e) => guideRow(e, guide.fleet))];
+const rows = [...malfRows, ...guide.elements.map((e) => guideRow(e, guide.fleet))];
 
 const client = await connect();
 try {
