@@ -82,6 +82,7 @@ export interface BrandConfig {
   grade_palette: Record<string, { colour: string; label: string }>;
   /** Keyed by policy.yaml program.phases codes; emitted as --phase-<code>. Optional. */
   phase_palette?: Record<string, { colour: string; label?: string }>;
+  average_bands?: { from: number; colour: string; label?: string }[];
   font: { sans: string; mono: string; display: string; faces?: FontFace[] };
   shape: { radius_px: number; radius_small_px: number; focus_ring_px: number };
 }
@@ -160,6 +161,20 @@ export function phaseColour(code: string | null, b: BrandConfig = brand()): stri
   return b.phase_palette?.[code]?.colour ?? null;
 }
 
+/** A competency's compact display name where space is tight; the full framework name otherwise. */
+export function competencyDisplayName(code: string, fullName: string, p: PolicyConfig = policy()): string {
+  return p.competency_display_names?.[code] ?? fullName;
+}
+
+/** The colour an average grade (a mean, 1-5) is shown in: the band whose lower bound it reaches. */
+export function averageBand(mean: number | null, b: BrandConfig = brand()): { colour: string; label: string } | null {
+  if (mean === null || !Number.isFinite(mean)) return null;
+  const bands = [...(b.average_bands ?? [])].sort((x, y) => x.from - y.from);
+  let hit: { from: number; colour: string; label?: string } | null = null;
+  for (const band of bands) if (mean + 1e-9 >= band.from) hit = band;
+  return hit ? { colour: hit.colour, label: hit.label ?? '' } : null;
+}
+
 /** Grade colours for the chart token builder. Keyed by the numeric grade, sorted ascending. */
 export function gradePalette(b: BrandConfig = brand()): { grade: number; colour: string; label: string }[] {
   return Object.entries(b.grade_palette)
@@ -225,6 +240,7 @@ export interface PolicyConfig {
     objection?: { allowed?: boolean; label?: string; prompt?: string; marks_record?: string; notifies_role?: string };
   };
   grading?: { outcomes?: string[] };
+  competency_display_names?: Record<string, string>;
   positions: string[];
   instructor_roles: string[];
   assessor_role_codes: string[];

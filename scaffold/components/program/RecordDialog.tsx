@@ -79,7 +79,7 @@ export function RecordsTable({ rows, subjectLabel }: { readonly rows: readonly R
         </tbody>
       </table>
 
-      <dialog ref={dialog} className="modal modal-wide" aria-labelledby="rec-title" onClick={(e) => { if (e.target === e.currentTarget) close(); }}>
+      <dialog ref={dialog} className="modal modal-wide" aria-labelledby="rec-title" onCancel={(e) => e.preventDefault()}>
         {open ? (
           <article className="report" data-testid="record-dialog">
             <header className="report-head">
@@ -87,7 +87,7 @@ export function RecordsTable({ rows, subjectLabel }: { readonly rows: readonly R
                 <div className="report-brand">{s.template?.kind_label ?? open.record_kind ?? 'Record'}</div>
                 <span className="spacer" />
                 <span className={outcomeTone(open.outcome)}><span className="chip-dot" aria-hidden="true" />{open.outcome ?? 'no outcome'}</span>
-                <button type="button" className="button button-quiet xs" onClick={close}>Close</button>
+                <button type="button" className="button button-quiet xs" onClick={close} aria-label="Close">✕ Close</button>
               </div>
               <h2 id="rec-title" style={{ margin: 'var(--space-2) 0 0' }}>{s.template?.name ?? open.title}</h2>
               <dl className="report-meta">

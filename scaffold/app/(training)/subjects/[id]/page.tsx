@@ -2,8 +2,8 @@ import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { query, queryOne } from '@/lib/db';
 import { requireSession } from '@/lib/session';
-import { resolveAccess, can, canOnPerson, visiblePersonIds, ALL_PEOPLE } from '@/lib/access';
-import { gradeScale, gradePalette, labels } from '@/lib/config';
+import { resolveAccess, can, canOnPerson } from '@/lib/access';
+import { gradeScale, gradePalette, labels, averageBand, competencyDisplayName } from '@/lib/config';
 import { buildChartTokens } from '@/components/charts/chart-tokens';
 import { CompetencyRadar } from '@/components/charts/CompetencyRadar';
 import { TrendCard } from '@/components/charts/TrendCard';
@@ -93,14 +93,9 @@ export default async function SubjectProfilePage({ params, searchParams }: { par
       ORDER BY c.position, c."index"`,
   );
 
-  // The peer group is the set this caller may see. A comparison against people the caller cannot
-  // open is a comparison they cannot check.
-  const visible = await visiblePersonIds(access, 'people.view');
-  const peerFilter = visible === ALL_PEOPLE ? null : [...visible];
 
   // The kind filter (All / one training or check) narrows the profile, the averages and the trend.
-  const kindFilter = kind ? `AND r.record_kind = $3` : '';
-  const [means, peerMeans, points, records, totals, kinds] = await Promise.all([
+  const [means, points, records, totals, kinds] = await Promise.all([
     query<MeanRow>(
       `SELECT rc.competency_id,
               avg(grade_num(rc.grade))::numeric(4,2)::text AS mean,
@@ -110,17 +105,6 @@ export default async function SubjectProfilePage({ params, searchParams }: { par
         WHERE r.person_id = $1::uuid ${kind ? 'AND r.record_kind = $2' : ''}
         GROUP BY rc.competency_id`,
       kind ? [id, kind] : [id],
-    ),
-    query<MeanRow>(
-      `SELECT rc.competency_id,
-              avg(grade_num(rc.grade))::numeric(4,2)::text AS mean,
-              count(grade_num(rc.grade))::text             AS n
-         FROM record_competencies rc
-         JOIN records r ON r.id = rc.record_id AND r.deleted_at IS NULL
-        WHERE r.person_id <> $1::uuid
-          AND ($2::uuid[] IS NULL OR r.person_id = ANY($2::uuid[])) ${kindFilter}
-        GROUP BY rc.competency_id`,
-      kind ? [id, peerFilter, kind] : [id, peerFilter],
     ),
     query<PointRow>(
       `SELECT rc.competency_id, r.training_date::text AS on, grade_num(rc.grade)::text AS value,
@@ -165,8 +149,6 @@ export default async function SubjectProfilePage({ params, searchParams }: { par
   });
 
   const meanBy = new Map(means.map((m) => [m.competency_id, m.mean === null ? null : Number(m.mean)]));
-  const peerBy = new Map(peerMeans.map((m) => [m.competency_id, m.mean === null ? null : Number(m.mean)]));
-  const nBy = new Map(means.map((m) => [m.competency_id, Number(m.n)]));
   const pointsBy = new Map<string, { on: string; value: number | null; label: string }[]>();
   for (const p of points) {
     const list = pointsBy.get(p.competency_id) ?? [];
@@ -227,42 +209,47 @@ export default async function SubjectProfilePage({ params, searchParams }: { par
         <>
           <Card
             title="Competency profile"
-            note="Mean of scored grades per competency, against the peer group this account can see. Choose a training or check to narrow the profile, the averages and the trend."
+            note="Mean of this pilot's scored grades per competency. Choose a training or check to narrow the profile, the averages and the trend."
           >
             <div className="row" style={{ marginBottom: 'var(--space-3)' }}>
               <AutoSubmitSelect name="kind" label="Show" value={kind} resetParams={['page']} options={[{ value: '', label: 'All trainings and checks' }, ...kinds.map((k) => ({ value: k.record_kind, label: `${k.record_kind} (${k.n})` }))]} />
             </div>
             <div className="profile-grid">
-              <CompetencyRadar
+              <div className="profile-panel"><CompetencyRadar
                 id={`radar-${person.id}`}
                 label={`Competency profile for ${person.full_name}`}
                 competencies={competencies.map((c) => ({ competencyId: c.id, code: c.code, name: c.name }))}
                 tokens={tokens}
                 min={scale.min}
                 max={scale.max}
-                size={240}
+                size={300}
+                labelFontSize={8}
+                showValues={false}
+                showRingLabels
+                vertexRadius={2.4}
                 series={[
                   { key: 'subject', label: 'This pilot', emphasis: 'primary', values: competencies.map((c) => meanBy.get(c.id) ?? null) },
-                  { key: 'peers', label: 'Peer group', emphasis: 'secondary', values: competencies.map((c) => peerBy.get(c.id) ?? null) },
                 ]}
-              />
-              <table className="data averages" data-testid="competency-averages">
-                <thead><tr><th scope="col">Competency</th><th scope="col" className="num">Average</th><th scope="col" className="num">Peers</th><th scope="col" className="num">Grades</th></tr></thead>
-                <tbody>
+              /></div>
+              <div className="profile-panel">
+                <ul className="averages" data-testid="competency-averages">
                   {competencies.map((c) => {
-                    const m = meanBy.get(c.id) ?? null; const pm = peerBy.get(c.id) ?? null;
+                    const m = meanBy.get(c.id) ?? null;
                     return (
-                      <tr key={c.id}>
-                        <td><span className="mono" style={{ color: c.colour, fontWeight: 700 }}>{c.code}</span> <span className="small">{c.name}</span></td>
-                        <td className="num"><strong>{m === null ? '—' : m.toFixed(2)}</strong></td>
-                        <td className="num muted">{pm === null ? '—' : pm.toFixed(2)}</td>
-                        <td className="num muted">{nBy.get(c.id) ?? 0}</td>
-                      </tr>
+                      <li key={c.id}>
+                        <span className="avg-name"><span className="mono" style={{ color: c.colour, fontWeight: 700 }}>{c.code}</span> {competencyDisplayName(c.code, c.name)}</span>
+                        <span className="avg-bar" aria-hidden="true" title={averageBand(m)?.label}><span style={{ width: `${m === null ? 0 : ((m - scale.min) / (scale.max - scale.min)) * 100}%`, background: averageBand(m)?.colour ?? 'var(--brand-accent)' }} /></span>
+                        <span className="avg-value">{m === null ? '—' : m.toFixed(2)}</span>
+                      </li>
                     );
                   })}
-                  <tr><th scope="row">All competencies</th><td className="num"><strong>{overall ?? '—'}</strong></td><td className="num muted"></td><td className="num muted">{scored}</td></tr>
-                </tbody>
-              </table>
+                  <li className="avg-total">
+                    <span className="avg-name"><strong>All competencies</strong></span>
+                    <span className="avg-bar" aria-hidden="true" title={averageBand(overall === null ? null : Number(overall))?.label}><span style={{ width: `${overall === null ? 0 : ((Number(overall) - scale.min) / (scale.max - scale.min)) * 100}%`, background: averageBand(overall === null ? null : Number(overall))?.colour ?? 'var(--brand-accent)' }} /></span>
+                    <span className="avg-value"><strong>{overall ?? '—'}</strong></span>
+                  </li>
+                </ul>
+              </div>
             </div>
           </Card>
 
@@ -270,9 +257,9 @@ export default async function SubjectProfilePage({ params, searchParams }: { par
             title="Trend by competency"
             note="One point per scored competency grade, in date order. Click a competency to enlarge it; hover a point for the session behind it."
           >
-            <div className="grid grid-spark">
+            <div className="grid-trend">
               {competencies.map((c) => (
-                <TrendCard key={c.id} code={c.code} name={c.name} colour={c.colour} points={pointsBy.get(c.id) ?? []} tokens={tokens} min={scale.min} max={scale.max} />
+                <TrendCard key={c.id} code={c.code} name={competencyDisplayName(c.code, c.name)} colour={c.colour} points={pointsBy.get(c.id) ?? []} tokens={tokens} min={scale.min} max={scale.max} />
               ))}
             </div>
           </Card>

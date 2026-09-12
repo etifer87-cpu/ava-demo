@@ -40,6 +40,14 @@ export interface CompetencyRadarProps {
   readonly emptyText?: string;
   /** Colour the vertices by grade band. The numeral is printed regardless. */
   readonly colourVerticesByGrade?: boolean;
+  /** Font size of the competency codes on the spokes. */
+  readonly labelFontSize?: number;
+  /** Print the value beside each vertex (default true). */
+  readonly showValues?: boolean;
+  /** Print the ring values (min..max) along the top spoke (default false). */
+  readonly showRingLabels?: boolean;
+  /** Vertex dot radius. */
+  readonly vertexRadius?: number;
 }
 
 export function CompetencyRadar({
@@ -53,6 +61,10 @@ export function CompetencyRadar({
   label,
   emptyText = 'No data',
   colourVerticesByGrade = true,
+  labelFontSize = 9,
+  showValues = true,
+  showRingLabels = false,
+  vertexRadius = 3.2,
 }: CompetencyRadarProps) {
   const uid = chartId(id);
   const n = competencies.length;
@@ -83,18 +95,22 @@ export function CompetencyRadar({
       <title id={`${uid}-title`}>{label}</title>
 
       {rings.map((ringValue) => (
-        <polygon
-          key={ringValue}
-          points={competencies
-            .map((_, i) => {
-              const p = point(i, ringValue);
-              return `${p.x.toFixed(2)},${p.y.toFixed(2)}`;
-            })
-            .join(' ')}
-          fill="none"
-          stroke={tokens.surface.grid}
-          strokeWidth={0.8}
-        />
+        <g key={ringValue}>
+          <polygon
+            points={competencies
+              .map((_, i) => {
+                const p = point(i, ringValue);
+                return `${p.x.toFixed(2)},${p.y.toFixed(2)}`;
+              })
+              .join(' ')}
+            fill="none"
+            stroke={tokens.surface.grid}
+            strokeWidth={0.8}
+          />
+          {showRingLabels && ringValue > min ? (
+            <text x={cx + 3} y={point(0, ringValue).y + 2} fontSize={labelFontSize * 0.7} fill={tokens.surface.inkMuted} textAnchor="start">{ringValue}</text>
+          ) : null}
+        </g>
       ))}
 
       {competencies.map((c, i) => {
@@ -113,7 +129,7 @@ export function CompetencyRadar({
             <text
               x={labelPos.x}
               y={labelPos.y}
-              fontSize={9}
+              fontSize={labelFontSize}
               fill={competencyColour(tokens, c.competencyId)}
               textAnchor={labelPos.x > cx + 2 ? 'start' : labelPos.x < cx - 2 ? 'end' : 'middle'}
               dominantBaseline="middle"
@@ -162,16 +178,20 @@ export function CompetencyRadar({
                   return (
                     <g key={p.i}>
                       <circle
-                        cx={q.x} cy={q.y} r={3.2}
+                        cx={q.x} cy={q.y} r={vertexRadius}
                         fill={fill} stroke={tokens.surface.halo} strokeWidth={1}
-                      />
-                      {/* The value is printed, so the band colour is redundant. */}
-                      <text
-                        x={q.x} y={q.y - 6}
-                        fontSize={8} fill={tokens.surface.ink} textAnchor="middle"
                       >
-                        {(p.v as number).toFixed(1)}
-                      </text>
+                        <title>{`${competencies[p.i]?.code}: ${(p.v as number).toFixed(2)}`}</title>
+                      </circle>
+                      {/* The value is printed, so the band colour is redundant. */}
+                      {showValues ? (
+                        <text
+                          x={q.x} y={q.y - 6}
+                          fontSize={8} fill={tokens.surface.ink} textAnchor="middle"
+                        >
+                          {(p.v as number).toFixed(1)}
+                        </text>
+                      ) : null}
                     </g>
                   );
                 })}
