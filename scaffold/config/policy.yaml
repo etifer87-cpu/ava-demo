@@ -20,9 +20,9 @@
 # No operator content. Every vocabulary below is a neutral starter list.
 # ---------------------------------------------------------------------------
 
-version: "1.12"
+version: "1.13"
 updated: "2026-09-12"
-note: "v1.12: training status items (section 13). v1.11: initial training courses (roster) and the type-rating pipeline (history). v1.10: competency display names for compact titles. v1.9: history section (section 11) - the training history the generator writes. v1.8: roster section (section 10) - the pilot population the roster generator builds. v1.7: A330 fleet and device withdrawn (A320 and B787 only). v1.6: reinf phase reads Additional training. v1.5: signature statements and the objection rule (section 5). v1.4: program builder vocabulary (section 9). v1.3: display labels (subject reads as Pilot). v1.2: Avianca operator context. Vocabularies replaced with the operator's own (bases, fleets, seats, instructor roles, EBT session kinds, outcome terms). v1.1: the db_kind mapping and the element-catalogue db_type mapping are gone - migrations 0032 and 0033 widened the schema to carry the real vocabulary, so both levels collapsed into one."
+note: "v1.13: initial-training board (check stages, released label, board settings in section 13). v1.12: training status items (section 13). v1.11: initial training courses (roster) and the type-rating pipeline (history). v1.10: competency display names for compact titles. v1.9: history section (section 11) - the training history the generator writes. v1.8: roster section (section 10) - the pilot population the roster generator builds. v1.7: A330 fleet and device withdrawn (A320 and B787 only). v1.6: reinf phase reads Additional training. v1.5: signature statements and the objection rule (section 5). v1.4: program builder vocabulary (section 9). v1.3: display labels (subject reads as Pilot). v1.2: Avianca operator context. Vocabularies replaced with the operator's own (bases, fleets, seats, instructor roles, EBT session kinds, outcome terms). v1.1: the db_kind mapping and the element-catalogue db_type mapping are gone - migrations 0032 and 0033 widened the schema to carry the real vocabulary, so both levels collapsed into one."
 
 # ---------------------------------------------------------------------------
 # 1. Template kinds - docs/04_ETR.md section 4.
@@ -565,3 +565,9 @@ training_status:
     skill_test: "Skill test"
     lfus:       "Line training (LFUS)"
     line_check: "Line check"
+  # Stages that are checks: complete only with a passing outcome; a fail keeps the pilot in the column.
+  check_stages: [skill_test, line_check]
+  # The column after the last stage, once every milestone is complete.
+  released_label: "Released to the line"
+  board:
+    finishing_days: 14      # "line check within N days" count on the board

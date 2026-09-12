@@ -241,7 +241,7 @@ export interface PolicyConfig {
   };
   grading?: { outcomes?: string[] };
   competency_display_names?: Record<string, string>;
-  training_status?: { warning_days: number; items: { key: string; label: string; kind: string; validity_months: number }[]; stages: Record<string, string> };
+  training_status?: { warning_days: number; items: { key: string; label: string; kind: string; validity_months: number }[]; stages: Record<string, string>; check_stages?: string[]; released_label?: string; board?: { finishing_days: number } };
   positions: string[];
   instructor_roles: string[];
   assessor_role_codes: string[];
