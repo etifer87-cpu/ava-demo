@@ -14,7 +14,7 @@ import { assertRegistryComplete, evaluate, RULE_IMPLEMENTATIONS, type RuleRegist
 
 const vocab: ProgramVocab = {
   sectionKinds: new Set(['module', 'session', 'block']),
-  phases: new Map([['brief', 'Briefing'], ['eval', 'Evaluation'], ['mt', 'Manoeuvres training'], ['sbt', 'Scenario-based training'], ['reinf', 'Reinforcement'], ['debrief', 'Debriefing']]),
+  phases: new Map([['brief', 'Briefing'], ['eval', 'Evaluation'], ['mt', 'Manoeuvres training'], ['sbt', 'Scenario-based training'], ['reinf', 'Additional training'], ['debrief', 'Debriefing']]),
   pfSeats: new Set(['CM1', 'CM2']),
 };
 
@@ -249,9 +249,14 @@ describe('findings', () => {
     expect(f?.at).toBe('sbt1.t1');
   });
 
-  it('a graded task in a manoeuvres-training phase is a blocker even without the flag - the phase decides', () => {
-    const rows = DAY.map((r) => (r.element_key === 'mt.uprt' ? { ...r, content: { grading: { competency_grade_mode: 'scale_1_5', competencies: ['FPM'] } } } : r));
-    expect(build(rows).some((x) => x.rule === 'training_only.not_graded' && x.at === 'mt.uprt')).toBe(true);
+  it('a graded task in the additional-training phase is a blocker even without the flag - the phase decides', () => {
+    const rows = [...DAY, row({ element_key: 'reinf.t1', element_type: 'task', parent_key: 'reinf', position: 1, content: { grading: { competency_grade_mode: 'scale_1_5', competencies: ['FPM'] } } })];
+    expect(build(rows).some((x) => x.rule === 'training_only.not_graded' && x.at === 'reinf.t1')).toBe(true);
+  });
+
+  it('a graded task in the manoeuvres phase is allowed - manoeuvres are graded as tasks', () => {
+    const rows = DAY.map((r) => (r.element_key === 'mt.uprt' ? { ...r, content: { grading: { task_outcome_mode: 'scale_1_5' }, aims: { grading_criteria: 'x' } } } : r));
+    expect(build(rows).some((x) => x.rule === 'training_only.not_graded' && x.at === 'mt.uprt')).toBe(false);
   });
 
   it('too many competencies on one task warns; three is fine', () => {

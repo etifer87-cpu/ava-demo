@@ -224,6 +224,7 @@ export interface PolicyConfig {
     statements?: { assessor?: string; subject?: string; subject_by_kind?: Record<string, string> };
     objection?: { allowed?: boolean; label?: string; prompt?: string; marks_record?: string; notifies_role?: string };
   };
+  grading?: { outcomes?: string[] };
   positions: string[];
   instructor_roles: string[];
   assessor_role_codes: string[];

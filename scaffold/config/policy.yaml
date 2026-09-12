@@ -20,9 +20,9 @@
 # No operator content. Every vocabulary below is a neutral starter list.
 # ---------------------------------------------------------------------------
 
-version: "1.5"
+version: "1.6"
 updated: "2026-09-12"
-note: "v1.5: signature statements and the objection rule (section 5). v1.4: program builder vocabulary (section 9). v1.3: display labels (subject reads as Pilot). v1.2: Avianca operator context. Vocabularies replaced with the operator's own (bases, fleets, seats, instructor roles, EBT session kinds, outcome terms). v1.1: the db_kind mapping and the element-catalogue db_type mapping are gone - migrations 0032 and 0033 widened the schema to carry the real vocabulary, so both levels collapsed into one."
+note: "v1.6: reinf phase reads Additional training. v1.5: signature statements and the objection rule (section 5). v1.4: program builder vocabulary (section 9). v1.3: display labels (subject reads as Pilot). v1.2: Avianca operator context. Vocabularies replaced with the operator's own (bases, fleets, seats, instructor roles, EBT session kinds, outcome terms). v1.1: the db_kind mapping and the element-catalogue db_type mapping are gone - migrations 0032 and 0033 widened the schema to carry the real vocabulary, so both levels collapsed into one."
 
 # ---------------------------------------------------------------------------
 # 1. Template kinds - docs/04_ETR.md section 4.
@@ -210,7 +210,7 @@ positions: ["CP", "FO", "CRFO"]          # Captain, First Officer, Cruise Relief
 grading:
   target_grade: 3
   # How many competencies may sit at grade 2 in one record before the record
-  # itself is treated as below the programme's expectation.
+  # itself is treated as below the program's expectation.
   tolerated_grade_2_competencies: 2
   # Non-scoring codes are defined in analytics.yaml (grade_scale.non_scoring)
   # and are listed there, not here, so one vocabulary cannot drift from another.
@@ -315,7 +315,7 @@ program:
     - { code: mt,      label: "Manoeuvres training" }
     - { code: sbt,     label: "Scenario-based training" }
     - { code: transit, label: "Transit" }
-    - { code: reinf,   label: "Reinforcement" }
+    - { code: reinf,   label: "Additional training" }
     - { code: debrief, label: "Debriefing" }
   # The guide's crew-member seats. Roster positions (CP / FO) are a different
   # vocabulary and stay in `positions` above.

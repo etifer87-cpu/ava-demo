@@ -22,7 +22,7 @@
 # `source` is what the finding cites on screen, in the operator's language.
 # ---------------------------------------------------------------------------
 
-version: "1.1"
+version: "1.2"
 updated: "2026-09-12"
 
 rules:
@@ -50,15 +50,17 @@ rules:
     params:
       phase: reinf
       min_minutes: 5
-    source: "Operator policy · reinforcement time, as observed"
-    message: "Reinforcement time is missing or below the minimum."
+    source: "Operator policy · additional training time, as observed"
+    message: "Additional training time is missing or below the minimum."
 
   - id: training_only.not_graded
     severity: block
     params:
-      phases: [mt, transit, reinf, brief, debrief]
+      # Phases that never carry a grade. Manoeuvres and scenario phases may be graded as tasks,
+      # so they are not here; a section marked training-only is caught by the flag instead.
+      phases: [transit, reinf]
     source: "Operator policy · training-only sections do not count towards the day's assessment"
-    message: "A task inside a training-only phase carries a grade control."
+    message: "An exercise inside a training-only phase carries a grade control."
 
   - id: task.max_competencies
     severity: warn
