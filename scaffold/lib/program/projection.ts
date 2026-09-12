@@ -22,7 +22,7 @@ import { plannedMinutes, walk } from './model';
 export interface InstructorAims { readonly source: string; readonly aims: Aims }
 
 export type InstructorStep =
-  | { readonly kind: 'exercise'; readonly key: string; readonly title: string; readonly minutes: number | null; readonly pf: string | null; readonly snapshot: string | null;
+  | { readonly kind: 'exercise'; readonly key: string; readonly title: string; readonly minutes: number | null; readonly pf: string | null; readonly snapshot: string | null; readonly pfPm: string | null;
       readonly automation: { ap: string; athr: string; fd: string }; readonly aims: readonly InstructorAims[]; readonly notes: string | null; readonly grading: Grading; readonly trainingOnly: boolean }
   | { readonly kind: 'setup'; readonly key: string; readonly title: string; readonly lines: readonly { label: string; values: readonly string[] }[]; readonly mass: { zfw: string | null; zfwcg: string | null; fuel: string | null }; readonly notes: string | null; readonly snapshot: string | null }
   | { readonly kind: 'malfunction' | 'event'; readonly key: string; readonly title: string; readonly mode: 'sequence' | 'choose_one'; readonly items: readonly { name: string; option: string | null; trigger: string | null; category: string | null }[] }
@@ -64,7 +64,7 @@ function stepOf(tree: ProgramTree, n: ProgramNode, trainingOnly: boolean): Instr
   const c = n.content;
   switch (c.type) {
     case 'task':
-      return { kind: 'exercise', key: n.key, title: n.title || n.key, minutes: c.task.minutes, pf: c.task.pf, snapshot: c.task.snapshot, automation: c.task.automation, aims: aimsChain(tree, n), notes: c.task.conduct.instructor_notes, grading: c.task.grading, trainingOnly };
+      return { kind: 'exercise', key: n.key, title: n.title || n.key, minutes: c.task.minutes, pf: c.task.pf, snapshot: c.task.snapshot, pfPm: c.task.pf_pm, automation: c.task.automation, aims: aimsChain(tree, n), notes: c.task.conduct.instructor_notes, grading: c.task.grading, trainingOnly };
     case 'setup':
       return { kind: 'setup', key: n.key, title: n.title || n.key, lines: Object.entries(c.setup.entries).filter(([, v]) => v.length).map(([k, v]) => ({ label: LINE_LABELS[k] ?? k, values: v })), mass: c.setup.mass, notes: c.setup.notes, snapshot: c.setup.snapshot };
     case 'event_option':
@@ -118,6 +118,8 @@ export interface ReportRow {
   /** Aims text the visibility allows onto the report. */
   readonly aims: string | null;
   readonly gradingCriteria: string | null;
+  /** The record carries a PF/PM choice for this row, counted as this on the line-flying status. */
+  readonly pfPm: string | null;
 }
 
 export interface ReportSection { readonly key: string; readonly title: string; readonly phase: string | null; readonly trainingOnly: boolean; readonly grading: Grading; readonly rows: readonly ReportRow[] }
@@ -152,6 +154,7 @@ export function subjectProjection(tree: ProgramTree): ReportModel {
         competencies: c.task.grading.competencies, grading: c.task.grading, trainingOnly,
         aims: onReport ? c.task.aims.aims : null,
         gradingCriteria: onReport ? c.task.aims.grading_criteria : null,
+        pfPm: c.task.pf_pm,
       });
     }
     sections.push({ key: root.key, title: root.title || root.key, phase: root.content.section.phase, trainingOnly, grading: root.content.section.grading, rows });

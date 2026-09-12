@@ -34,7 +34,7 @@ export interface InstructorDemoProps {
 }
 
 type CompGrade = { grade: number | 'competent' | 'not_competent' | 'not_observed' | null; obs: string[] };
-type ExerciseGrade = { result: number | 'pass' | 'fail' | null; comps: Record<string, CompGrade>; comment: string };
+type ExerciseGrade = { result: number | 'pass' | 'fail' | null; comps: Record<string, CompGrade>; comment: string; role: 'PF' | 'PM' | null };
 
 const AUTO: Record<string, string> = { required_on: 'REQUIRED ON', required_off: 'REQUIRED OFF', crew_discretion: 'CREW DISCRETION', not_applicable: 'N/A' };
 const fmt = (m: number | null) => (m === null ? '' : `${Math.floor(m / 60)}:${String(m % 60).padStart(2, '0')}`);
@@ -56,7 +56,7 @@ export function InstructorDemo(p: InstructorDemoProps) {
   const comps = useMemo(() => new Map(p.competencies.map((c) => [c.code, c])), [p.competencies]);
   const steps = p.view.sections.flatMap((s) => s.steps.map((st) => ({ st, section: s })));
   const current = steps[idx] ?? null;
-  const gradeOf = (key: string): ExerciseGrade => grades[key] ?? { result: null, comps: {}, comment: '' };
+  const gradeOf = (key: string): ExerciseGrade => grades[key] ?? { result: null, comps: {}, comment: '', role: null };
   const setGrade = (key: string, next: ExerciseGrade) => setGrades((g) => ({ ...g, [key]: next }));
   const now = () => new Date().toISOString().slice(0, 16).replace('T', ' ') + ' UTC';
   const locked = signed.instructor !== null || signed.subject !== null || objection !== null;
@@ -163,6 +163,13 @@ function StepBody({ step, section, grade, onGrade, comps, locked }: { step: Inst
           {graded ? (
             <div className="grade-panel" data-testid="grade-panel">
               <div className="xs muted" style={{ letterSpacing: '0.04em' }}>GRADE · THIS EXERCISE{locked ? ' · locked by a signature' : ''}</div>
+              {step.pfPm ? (
+                <div className="row" style={{ marginTop: 'var(--space-2)', gap: 'var(--space-2)', alignItems: 'center' }} data-testid="pf-pm">
+                  <span className="small">Flown as</span>
+                  <GradeButtons values={['PF', 'PM'] as const} value={grade.role} onPick={(v) => onGrade({ ...grade, role: v })} disabled={locked} />
+                  <span className="xs muted">{step.pfPm === 'take_off' ? 'counts as a take-off on the line-flying status' : step.pfPm === 'landing' ? 'counts as a landing on the line-flying status' : 'recorded, not counted'}</span>
+                </div>
+              ) : null}
               {g.task_outcome_mode === 'pass_fail' ? <div style={{ marginTop: 'var(--space-2)' }}><GradeButtons values={['pass', 'fail'] as const} value={grade.result as 'pass' | 'fail' | null} onPick={(v) => onGrade({ ...grade, result: v })} labels={{ pass: 'Pass', fail: 'Fail' }} disabled={locked} /></div> : null}
               {g.task_outcome_mode === 'scale_1_5' ? <div style={{ marginTop: 'var(--space-2)' }}><GradeButtons values={[1, 2, 3, 4, 5] as const} value={grade.result as number | null} onPick={(v) => onGrade({ ...grade, result: v })} disabled={locked} /></div> : null}
               {g.competency_grade_mode !== 'none' ? g.competencies.map((code) => {
@@ -239,7 +246,9 @@ function Record(props: { p: InstructorDemoProps; grades: Record<string, Exercise
   const { p, grades, sectionNotes, outcome, setOutcome, remarks, setRemarks, additional, setAdditional, signed, setSigned, objection, setObjection, now, locked } = props;
   const dialog = useRef<HTMLDialogElement | null>(null);
   const [reason, setReason] = useState(''); const [by, setBy] = useState('');
-  const gradeOf = (key: string): ExerciseGrade => grades[key] ?? { result: null, comps: {}, comment: '' };
+  const gradeOf = (key: string): ExerciseGrade => grades[key] ?? { result: null, comps: {}, comment: '', role: null };
+  const pfCounts = props.steps.filter(({ st }) => st.kind === 'exercise' && st.pfPm && gradeOf(st.key).role).map(({ st }) => ({ counter: st.kind === 'exercise' ? st.pfPm : null, role: gradeOf(st.key).role }));
+  const pfLine = pfCounts.length ? `Take-offs as PF ${pfCounts.filter((x) => x.counter === 'take_off' && x.role === 'PF').length} · landings as PF ${pfCounts.filter((x) => x.counter === 'landing' && x.role === 'PF').length} · as PM ${pfCounts.filter((x) => x.role === 'PM').length}` : null;
   const comments = props.steps.filter(({ st }) => st.kind === 'exercise' && gradeOf(st.key).comment.trim()).map(({ st }) => `${st.title}: ${gradeOf(st.key).comment.trim()}`);
   const status = objection ? `INCOMPLETE · objection` : signed.instructor && signed.subject ? 'SIGNED' : signed.instructor || signed.subject ? 'AWAITING SIGNATURE' : 'DRAFT';
   const cell = (v: ExerciseGrade['result'] | CompGrade['grade']) => v === null ? '—' : v === 'pass' ? 'PASS' : v === 'fail' ? 'FAIL' : v === 'competent' ? 'C' : v === 'not_competent' ? 'NC' : v === 'not_observed' ? 'N/O' : String(v);
@@ -271,6 +280,7 @@ function Record(props: { p: InstructorDemoProps; grades: Record<string, Exercise
 
       <section className="report-comment">
         <div className="xs muted" style={{ letterSpacing: '0.04em' }}>INSTRUCTOR COMMENT</div>
+        {pfLine ? <p className="small" style={{ margin: '4px 0 0' }} data-testid="pf-line"><strong>{pfLine}</strong></p> : null}
         {comments.length ? <ul className="small" style={{ margin: '4px 0', paddingLeft: '1.2rem' }}>{comments.map((c, i) => <li key={i}>{c}</li>)}</ul> : null}
         <textarea rows={3} value={remarks} onChange={(e) => setRemarks(e.target.value)} disabled={locked} placeholder="Session remarks." style={{ width: '100%', boxSizing: 'border-box', marginTop: 'var(--space-2)' }} />
       </section>
@@ -330,7 +340,7 @@ function SectionRows({ s, gradeOf, cell, phaseLabel, note }: { s: ReportModel['s
         const rows = comps.length ? comps : [null];
         return rows.map((c, i) => (
           <tr key={`${r.key}-${c ?? 'task'}`}>
-            {i === 0 ? <td rowSpan={rows.length}><div>{r.title}</div>{r.aims ? <div className="xs muted">{r.aims}</div> : null}{r.gradingCriteria ? <div className="xs muted">Criteria: {r.gradingCriteria}</div> : null}</td> : null}
+            {i === 0 ? <td rowSpan={rows.length}><div>{r.title}{r.pfPm && g.role ? <span className="xs" style={{ marginLeft: 'var(--space-2)', fontWeight: 600 }}>as {g.role}</span> : null}</div>{r.aims ? <div className="xs muted">{r.aims}</div> : null}{r.gradingCriteria ? <div className="xs muted">Criteria: {r.gradingCriteria}</div> : null}</td> : null}
             {i === 0 ? <td rowSpan={rows.length} className="small">{r.failures.length ? r.failures.map((f, j) => <div key={j}>{f}</div>) : <span className="muted">—</span>}</td> : null}
             {c ? <><td className="mono">{c}</td><td className="num">{cell(g.comps[c]?.grade ?? null)}</td><td className="xs">{(g.comps[c]?.obs ?? []).length ? g.comps[c]?.obs.join(', ') : <span className="muted">{g.comps[c]?.grade ? 'at standard' : ''}</span>}</td></>
               : <><td className="muted">{r.grading.task_outcome_mode === 'pass_fail' ? 'Pass / fail' : r.grading.task_outcome_mode === 'scale_1_5' ? 'Task 1-5' : '—'}</td><td className="num">{r.grading.task_outcome_mode !== 'none' ? cell(g.result) : ''}</td><td className="xs muted">{r.grading.task_outcome_mode === 'none' ? (r.trainingOnly ? 'training phase, no grade' : 'not graded') : ''}</td></>}

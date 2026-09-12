@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react';
 import { useRouter } from 'next/navigation';
-import { AUTOMATION_STATES, AIMS_VISIBILITY, SETUP_ENTRY_KINDS, SNAPSHOT_ACTIONS, formatMinutes, type Grading, type Aims, type SetupEntryKind, type OptionGroupContent, type SectionContent, type TaskContent, type SetupContent } from '@/lib/program/shape';
+import { AUTOMATION_STATES, AIMS_VISIBILITY, SETUP_ENTRY_KINDS, SNAPSHOT_ACTIONS, PF_PM_COUNTERS, formatMinutes, type Grading, type Aims, type SetupEntryKind, type OptionGroupContent, type SectionContent, type TaskContent, type SetupContent } from '@/lib/program/shape';
 import { EVENT_CATEGORIES, type InspectorData, type InspectorNode } from './inspector-types';
 
 /**
@@ -199,7 +199,7 @@ function SectionPane({ node, data, save }: { node: Extract<InspectorNode, { kind
 
 const serialiseTask = (t: TaskContent) => ({
   time: t.minutes === null ? null : formatMinutes(t.minutes), pf: t.pf, setup: t.setup,
-  conduct: t.conduct, automation: t.automation, aims: t.aims, grading: t.grading, snapshot: t.snapshot, variants: t.variants,
+  conduct: t.conduct, automation: t.automation, aims: t.aims, grading: t.grading, snapshot: t.snapshot, pf_pm: t.pf_pm, variants: t.variants,
 });
 
 function ExercisePane({ node, data, save }: { node: Extract<InspectorNode, { kind: 'exercise' }>; data: InspectorData; save: (k: string, c: unknown) => Promise<boolean> }) {
@@ -209,8 +209,11 @@ function ExercisePane({ node, data, save }: { node: Extract<InspectorNode, { kin
       <div className="three">
         <Field label="Time"><TimeInput minutes={v.minutes} onCommit={(m) => setAndSave({ ...v, minutes: m })} /></Field>
         <Field label="Pilot flying"><select value={v.pf ?? ''} onChange={(e) => setAndSave({ ...v, pf: e.target.value || null })}><option value="">-</option>{data.vocab.pfSeats.map((s) => <option key={s} value={s}>{s}</option>)}</select></Field>
-        <Field label="Snapshot"><select value={v.snapshot ?? ''} onChange={(e) => setAndSave({ ...v, snapshot: (e.target.value || null) as TaskContent['snapshot'] })}><option value="">-</option>{SNAPSHOT_ACTIONS.map((s) => <option key={s} value={s}>{s === 'take' ? 'Take' : 'Recall'}</option>)}</select></Field>
+        <Field label="Snapshot"><select value={v.snapshot ?? ''} onChange={(e) => setAndSave({ ...v, snapshot: (e.target.value || null) as TaskContent['snapshot'] })}><option value="">-</option>{SNAPSHOT_ACTIONS.map((s) => <option key={s} value={s}>{s === 'take' ? 'Save Flight Plan' : 'Recall Flight Plan'}</option>)}</select></Field>
       </div>
+      <Field label="PF or PM recorded on the record" hint="For line flying: the instructor marks whether the trainee flew this as PF or PM; take-offs and landings as PF count on the line-flying status.">
+        <select value={v.pf_pm ?? ''} onChange={(e) => setAndSave({ ...v, pf_pm: (e.target.value || null) as TaskContent['pf_pm'] })}><option value="">Not recorded</option>{PF_PM_COUNTERS.map((s) => <option key={s} value={s}>{s === 'take_off' ? 'Recorded, counts as a take-off' : s === 'landing' ? 'Recorded, counts as a landing' : 'Recorded, no count'}</option>)}</select>
+      </Field>
       <div className="three" role="group" aria-label="Automation">
         {(['ap', 'athr', 'fd'] as const).map((k) => (
           <Field key={k} label={k === 'ap' ? 'AP' : k === 'athr' ? 'A/THR' : 'FD'}>

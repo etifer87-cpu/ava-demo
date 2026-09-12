@@ -46,6 +46,9 @@ export type SelectionPolicy = (typeof SELECTION_POLICIES)[number];
 
 export const SNAPSHOT_ACTIONS = ['take', 'recall'] as const;
 export type SnapshotAction = (typeof SNAPSHOT_ACTIONS)[number];
+/** What a PF/PM choice on an exercise counts as on the line-flying status: a take-off, a landing, or nothing in particular. */
+export const PF_PM_COUNTERS = ['take_off', 'landing', 'other'] as const;
+export type PfPmCounter = (typeof PF_PM_COUNTERS)[number];
 
 /** The seven set-up condition kinds. A key, so a picker can enumerate them in order. */
 export const SETUP_KINDS = ['airport', 'weather', 'mass_config', 'position', 'comms', 'reset', 'atc_script'] as const;
@@ -137,6 +140,9 @@ export interface TaskContent {
   readonly aims: Aims;
   readonly grading: Grading;
   readonly snapshot: SnapshotAction | null;
+  /** When set, the instructor records whether the trainee flew this exercise as PF or PM on each
+   *  record; the value says what the choice counts towards (take-offs, landings) on the status. */
+  readonly pf_pm: PfPmCounter | null;
   /** Per-device overrides keyed by asset_class code, e.g. "FFS-A320". Shallow: a key present replaces that key. */
   readonly variants: Readonly<Record<string, Readonly<Record<string, unknown>>>>;
 }
@@ -441,6 +447,7 @@ export function parseTaskContent(raw: unknown, vocab: ProgramVocab): Parsed<Task
     aims: aims(c, o.aims, 'aims'),
     grading,
     snapshot: oneOf(c, o, 'snapshot', SNAPSHOT_ACTIONS, null),
+    pf_pm: oneOf(c, o, 'pf_pm', PF_PM_COUNTERS, null),
     variants,
   };
   return { value, problems: c.problems };
@@ -588,6 +595,7 @@ export function serialiseTaskContent(t: TaskContent): Record<string, unknown> {
     aims: t.aims,
     grading: t.grading,
     snapshot: t.snapshot,
+    pf_pm: t.pf_pm,
     variants: t.variants,
   };
 }

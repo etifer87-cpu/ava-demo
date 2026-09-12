@@ -38,7 +38,7 @@ describe('generated program definitions', () => {
     it(`${f}: parses, builds, has no blocker and projects`, () => {
       const def = JSON.parse(readFileSync(path.join(DIR, f), 'utf8')) as Def;
       const built = buildTree(rows(def), def.template.setup, def.template.kind, vocab);
-      expect(built.problems.map((p) => `${p.at}: ${p.path} ${p.message}`)).toEqual([]);
+      expect(built.problems.map((p) => `${p.elementKey}: ${p.path} ${p.message}`)).toEqual([]);
       const findings = evaluate(built.tree, registry);
       expect(findings.filter((x) => x.severity === 'block').map((x) => `${x.rule} at ${x.at}`)).toEqual([]);
       expect(findings.filter((x) => x.rule === 'time.budget')).toEqual([]);

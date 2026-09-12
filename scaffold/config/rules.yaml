@@ -22,7 +22,7 @@
 # `source` is what the finding cites on screen, in the operator's language.
 # ---------------------------------------------------------------------------
 
-version: "1.2"
+version: "1.3"
 updated: "2026-09-12"
 
 rules:
@@ -64,6 +64,9 @@ rules:
 
   - id: task.max_competencies
     severity: warn
+    # Device programs only: on the line (line check, LFUS) an overall grading row carries every
+    # competency by design, and a warning that fires on every such row is one people walk past.
+    applies_to_kinds: [ebt_recurrent, proficiency_check, simulator_recurrent, type_rating, command_upgrade, low_visibility, upset_recovery]
     params:
       max: 3
     source: "Operator design guardrail"
