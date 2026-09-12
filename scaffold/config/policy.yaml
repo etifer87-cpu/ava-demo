@@ -20,9 +20,9 @@
 # No operator content. Every vocabulary below is a neutral starter list.
 # ---------------------------------------------------------------------------
 
-version: "1.7"
+version: "1.8"
 updated: "2026-09-12"
-note: "v1.7: A330 fleet and device withdrawn (A320 and B787 only). v1.6: reinf phase reads Additional training. v1.5: signature statements and the objection rule (section 5). v1.4: program builder vocabulary (section 9). v1.3: display labels (subject reads as Pilot). v1.2: Avianca operator context. Vocabularies replaced with the operator's own (bases, fleets, seats, instructor roles, EBT session kinds, outcome terms). v1.1: the db_kind mapping and the element-catalogue db_type mapping are gone - migrations 0032 and 0033 widened the schema to carry the real vocabulary, so both levels collapsed into one."
+note: "v1.8: roster section (section 10) - the pilot population the roster generator builds. v1.7: A330 fleet and device withdrawn (A320 and B787 only). v1.6: reinf phase reads Additional training. v1.5: signature statements and the objection rule (section 5). v1.4: program builder vocabulary (section 9). v1.3: display labels (subject reads as Pilot). v1.2: Avianca operator context. Vocabularies replaced with the operator's own (bases, fleets, seats, instructor roles, EBT session kinds, outcome terms). v1.1: the db_kind mapping and the element-catalogue db_type mapping are gone - migrations 0032 and 0033 widened the schema to carry the real vocabulary, so both levels collapsed into one."
 
 # ---------------------------------------------------------------------------
 # 1. Template kinds - docs/04_ETR.md section 4.
@@ -399,3 +399,75 @@ synthetic:
       reason: "Qualification holdings are QMS-owned (migrations 0060-0069). The QMS seed exercises VALID, WARNING, DUE, PLANNED, EXPIRED, MISSING, SUSPENDED and INACTIVE."
     - key: "data_quality.report_duplicates"
       reason: "Duplicate (record_id, element_key, instance_no, attempt) rows cannot be inserted: migrations 0029 and 0034 carry a UNIQUE constraint on exactly that tuple. The metric is exercised by an import fixture, not by the generator."
+
+# ---------------------------------------------------------------------------
+# 10. Roster - the pilot population scripts/gen-roster.mjs builds.
+#
+#    Read by the generator only; the seed reads the generated file. Every value
+#    is a demo choice: the hiring curve, the rank split, the bases, the
+#    instructor bench. Names are invented and combined deterministically; none
+#    describes a real person. Career ladder: hired as A320 FO, then B787 FO,
+#    then A320 CP, then B787 CP - the seniority list reads in that order.
+# ---------------------------------------------------------------------------
+roster:
+  seed: "avianca-roster-2026"
+  as_of: "2026-09-12"
+  total: 500
+  female_share: 0.12
+  # Ranks in seniority order, most senior first. The counts sum to `total`.
+  ranks:
+    - { fleet: B787, position: CP, count: 45 }
+    - { fleet: A320, position: CP, count: 185 }
+    - { fleet: B787, position: FO, count: 55 }
+    - { fleet: A320, position: FO, count: 215 }
+  # Hires per year, oldest first. The last year is to `as_of`. Sums to `total`.
+  hires_per_year:
+    1998: 3
+    1999: 3
+    2000: 4
+    2001: 3
+    2002: 4
+    2003: 4
+    2004: 5
+    2005: 5
+    2006: 5
+    2007: 6
+    2008: 6
+    2009: 4
+    2010: 6
+    2011: 7
+    2012: 7
+    2013: 8
+    2014: 8
+    2015: 9
+    2016: 9
+    2017: 9
+    2018: 10
+    2019: 60
+    2020: 10
+    2021: 25
+    2022: 60
+    2023: 60
+    2024: 60
+    2025: 60
+    2026: 40
+  # Base share by fleet (org_unit codes). The B787 flies from Bogotá only.
+  bases:
+    A320: { BOG: 0.60, MDE: 0.20, CLO: 0.12, CTG: 0.08 }
+    B787: { BOG: 1.0 }
+  # Years in rank before the next step, used for rank_since and hours on type.
+  years_in_rank: { A320_FO: [3, 5], B787_FO: [3, 5], A320_CP: [5, 9], B787_CP: [4, 8] }
+  hours_per_year: [550, 750]
+  hours_before_joining: [250, 1500]
+  # The instructor bench: captains only, except GI on first officers. Counts are absolute.
+  instructors:
+    captains: { TRE: 7, SFE: 3, TRI: 16, SFI: 6, LTC: 8, CRMI: 2 }
+    first_officers: { GI: 6 }
+    # Named placements override the draw.
+    named:
+      - { name: "Andrea Betancur", sex: F, fleet: A320, position: CP, roles: [TRI] }
+  candidates: 15
+  licence: { CP: "COL-ATPL-", FO: "COL-CPL-" }
+  given_names_male: ["Andrés", "Santiago", "Sebastián", "Juan Pablo", "Mateo", "Nicolás", "Felipe", "Alejandro", "Diego", "Tomás", "Carlos", "Julián", "Camilo", "Esteban", "Daniel", "David", "Jorge", "Luis", "Miguel", "Óscar", "Ricardo", "Rodrigo", "Samuel", "Simón", "Fabián", "Germán", "Hernán", "Iván", "Jaime", "Javier", "Leonardo", "Mauricio", "Pablo", "Rafael", "Raúl", "Sergio", "Álvaro", "Cristian", "Emilio", "Gonzalo", "Guillermo", "Héctor", "Jerónimo", "Lucas", "Martín", "Nelson", "Orlando", "Pedro", "Ramiro", "Vicente"]
+  given_names_female: ["Camila", "Valentina", "Mariana", "Daniela", "Isabella", "Laura", "Gabriela", "Sara", "Paula", "Manuela", "Andrea", "Carolina", "Catalina", "Juliana", "Natalia", "Alejandra", "Ana María", "Diana", "Lina", "Luisa", "María José", "Melissa", "Silvia", "Sofía", "Verónica"]
+  family_names: ["Restrepo", "Mejía", "Ochoa", "Velásquez", "Cárdenas", "Salazar", "Quintero", "Arango", "Betancur", "Zuluaga", "Montoya", "Giraldo", "Londoño", "Hoyos", "Ramírez", "Castaño", "Echeverri", "Vargas", "Osorio", "Jaramillo", "Acosta", "Aguilar", "Álvarez", "Ardila", "Barrera", "Beltrán", "Bermúdez", "Bonilla", "Cabrera", "Calderón", "Camacho", "Cano", "Carvajal", "Castro", "Cortés", "Delgado", "Duarte", "Escobar", "Espinosa", "Franco", "Galindo", "García", "Gómez", "González", "Guerrero", "Gutiérrez", "Herrera", "Hurtado", "Jiménez", "Lozano", "Marín", "Martínez", "Medina", "Molina", "Morales", "Moreno", "Muñoz", "Navarro", "Niño", "Ortiz", "Pardo", "Parra", "Peña", "Pérez", "Pineda", "Prieto", "Reyes", "Rincón", "Rivera", "Rodríguez", "Rojas", "Romero", "Ruiz", "Sánchez", "Sierra", "Suárez", "Torres", "Valencia", "Vélez", "Villamil"]

@@ -6,7 +6,7 @@ import Breadcrumbs from '@/components/ui/Breadcrumbs';
 import Chip from '@/components/ui/Chip';
 import DataTable, { type Column } from '@/components/ui/DataTable';
 import FilterBar, { TextFilter, SelectFilter } from '@/components/ui/FilterBar';
-import { labels } from '@/lib/config';
+import { labels, policy } from '@/lib/config';
 
 /**
  * /subjects - the roster.
@@ -39,6 +39,13 @@ interface SubjectRow {
   position: string | null;
   org_unit: string | null;
   asset_class: string | null;
+  seniority_number: number | null;
+  joined_on: string | null;
+  rank_since: string | null;
+  total_hours: number | null;
+  hours_on_type: number | null;
+  instructor_roles: string[];
+  roster_status: string;
   watch_list: boolean;
   concern_override: string | null;
   record_count: string;
@@ -60,6 +67,8 @@ export default async function SubjectsPage({
   const access = await resolveAccess(session);
   requireCapability(access, 'people.view');
   const L = labels();
+  const positions = policy().positions;
+  const instructorRoles = policy().instructor_roles;
 
   const sp = await searchParams;
   const q = one(sp.q);
@@ -67,6 +76,8 @@ export default async function SubjectsPage({
   const assetClass = one(sp.asset_class);
   const status = one(sp.status) || 'active';
   const watch = one(sp.watch);
+  const position = one(sp.position);
+  const instructor = one(sp.instructor);
 
   const visible = await visiblePersonIds(access, 'people.view');
 
@@ -81,8 +92,10 @@ export default async function SubjectsPage({
       where.push(`p.id = ANY($${params.length}::uuid[])`);
     }
   }
-  if (status === 'active') where.push('p.is_active');
-  if (status === 'inactive') where.push('NOT p.is_active');
+  if (status === 'active' || status === 'candidate' || status === 'left') { params.push(status); where.push(`p.roster_status = $${params.length}`); }
+  if (position) { params.push(position); where.push(`p.position = $${params.length}`); }
+  if (instructor === 'yes') where.push(`cardinality(p.instructor_roles) > 0`);
+  if (instructor && instructor !== 'yes') { params.push(instructor); where.push(`$${params.length} = ANY(p.instructor_roles)`); }
   if (watch === 'yes') where.push('p.watch_list');
   if (q) {
     params.push(`%${q}%`);
@@ -103,8 +116,9 @@ export default async function SubjectsPage({
               p.external_id,
               p.full_name,
               p.position,
-              ou.name AS org_unit,
-              ac.name AS asset_class,
+              ou.code AS org_unit,
+              ac.code AS asset_class,
+              p.seniority_number, p.joined_on::text, p.rank_since::text, p.total_hours, p.hours_on_type, p.instructor_roles, p.roster_status,
               p.watch_list,
               p.concern_override,
               count(r.id)::text          AS record_count,
@@ -114,35 +128,39 @@ export default async function SubjectsPage({
          LEFT JOIN asset_classes ac ON ac.id = p.asset_class_id
          LEFT JOIN records r        ON r.person_id = p.id AND r.deleted_at IS NULL
         WHERE ${where.join(' AND ')}
-        GROUP BY p.id, ou.name, ac.name
-        ORDER BY CASE WHEN p.external_id ~ '^[0-9]+$'
-                      THEN lpad(p.external_id, 20, '0')
-                      ELSE p.external_id END
-        LIMIT 500`,
+        GROUP BY p.id, ou.code, ac.code
+        ORDER BY p.seniority_number NULLS LAST,
+                 CASE WHEN p.external_id ~ '^[0-9]+$' THEN lpad(p.external_id, 20, '0') ELSE p.external_id END
+        LIMIT 600`,
       params,
     ),
     query<OptionRow>(
-      `SELECT id, name AS label FROM org_units WHERE deleted_at IS NULL AND is_active ORDER BY position, name`,
+      `SELECT id, code AS label FROM org_units WHERE deleted_at IS NULL AND is_active AND kind = 'base' ORDER BY position, name`,
     ),
     query<OptionRow>(
-      `SELECT id, name AS label FROM asset_classes WHERE deleted_at IS NULL AND is_active ORDER BY position, name`,
+      `SELECT id, code AS label FROM asset_classes WHERE deleted_at IS NULL AND is_active AND category = 'aircraft' ORDER BY position, name`,
     ),
   ]);
 
   const columns: Column<SubjectRow>[] = [
     {
       key: 'external_id',
-      head: 'Id',
+      head: 'Seniority',
+      numeric: true,
       cell: (r) => (
         <Link href={`/subjects/${r.id}`} className="mono">
-          {r.external_id}
+          {r.seniority_number ?? r.external_id}
         </Link>
       ),
     },
     { key: 'name', head: 'Name', cell: (r) => <Link href={`/subjects/${r.id}`}>{r.full_name}</Link> },
-    { key: 'position', head: 'Position', cell: (r) => r.position ?? <span className="muted">-</span> },
-    { key: 'org_unit', head: 'Org unit', cell: (r) => r.org_unit ?? <span className="muted">-</span> },
-    { key: 'asset_class', head: 'Asset class', cell: (r) => r.asset_class ?? <span className="muted">-</span> },
+    { key: 'position', head: 'Rank', cell: (r) => r.position ?? <span className="muted">candidate</span> },
+    { key: 'asset_class', head: 'Fleet', cell: (r) => r.asset_class ?? <span className="muted">-</span> },
+    { key: 'org_unit', head: 'Base', cell: (r) => r.org_unit ?? <span className="muted">-</span> },
+    { key: 'joined', head: 'Joined', numeric: true, cell: (r) => r.joined_on ?? <span className="muted">-</span> },
+    { key: 'rank_since', head: 'Rank since', numeric: true, cell: (r) => r.rank_since ?? <span className="muted">-</span> },
+    { key: 'hours', head: 'Hours · on type', numeric: true, cell: (r) => r.total_hours === null ? <span className="muted">-</span> : <span className="mono">{r.total_hours.toLocaleString('en-US')} · {(r.hours_on_type ?? 0).toLocaleString('en-US')}</span> },
+    { key: 'roles', head: 'Instructor', cell: (r) => r.instructor_roles.length ? <span className="mono xs">{r.instructor_roles.join(' ')}</span> : <span className="muted">-</span> },
     { key: 'records', head: 'Records', numeric: true, cell: (r) => r.record_count },
     {
       key: 'last',
@@ -170,9 +188,11 @@ export default async function SubjectsPage({
       <h1>{L.subject_plural}</h1>
 
       <FilterBar action="/subjects" resetHref="/subjects">
-        <TextFilter name="q" label="Name or id" value={q} placeholder="Search" />
-        <SelectFilter name="org_unit" label="Org unit" value={orgUnit} options={orgUnits.map((o) => ({ value: o.id, label: o.label }))} />
-        <SelectFilter name="asset_class" label="Asset class" value={assetClass} options={assetClasses.map((o) => ({ value: o.id, label: o.label }))} />
+        <TextFilter name="q" label="Name or seniority" value={q} placeholder="Search" />
+        <SelectFilter name="position" label="Rank" value={position} options={positions.map((p) => ({ value: p, label: p }))} />
+        <SelectFilter name="asset_class" label="Fleet" value={assetClass} options={assetClasses.map((o) => ({ value: o.id, label: o.label }))} />
+        <SelectFilter name="org_unit" label="Base" value={orgUnit} options={orgUnits.map((o) => ({ value: o.id, label: o.label }))} />
+        <SelectFilter name="instructor" label="Instructor" value={instructor} options={[{ value: 'yes', label: 'Any qualification' }, ...instructorRoles.map((r) => ({ value: r, label: r }))]} />
         <SelectFilter
           name="status"
           label="Roster status"
@@ -180,7 +200,8 @@ export default async function SubjectsPage({
           anyLabel="Any"
           options={[
             { value: 'active', label: 'Active' },
-            { value: 'inactive', label: 'Inactive' },
+            { value: 'candidate', label: 'Candidate' },
+            { value: 'left', label: 'Left' },
           ]}
         />
         <SelectFilter name="watch" label="Watch list" value={watch} options={[{ value: 'yes', label: 'On the watch list' }]} />
@@ -194,7 +215,7 @@ export default async function SubjectsPage({
         rowKey={(r) => r.id}
         emptyTitle={`No ${L.subject.toLowerCase()} matched`}
         emptyReason="No roster row matched these filters within the records this account may see. Reset the filters to check whether the scope or the filter is the reason."
-        countSuffix={rows.length === 500 ? '(page limit reached - narrow the filters)' : undefined}
+        countSuffix={rows.length === 600 ? '(page limit reached - narrow the filters)' : undefined}
       />
     </div>
   );
