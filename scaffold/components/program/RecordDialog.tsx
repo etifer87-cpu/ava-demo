@@ -45,7 +45,7 @@ export interface RecordListRow {
 
 const fmt = (iso: string | null | undefined) => (iso ? iso.slice(0, 16).replace('T', ' ') + (iso.length > 16 ? ' UTC' : '') : '—');
 
-export function RecordsTable({ rows, subjectLabel }: { readonly rows: readonly RecordListRow[]; readonly subjectLabel: string }) {
+export function RecordsTable({ rows, subjectLabel, showSubject = false }: { readonly rows: readonly RecordListRow[]; readonly subjectLabel: string; readonly showSubject?: boolean }) {
   const dialog = useRef<HTMLDialogElement | null>(null);
   const [open, setOpen] = useState<RecordListRow | null>(null);
   const show = (r: RecordListRow) => { setOpen(r); dialog.current?.showModal(); };
@@ -55,7 +55,7 @@ export function RecordsTable({ rows, subjectLabel }: { readonly rows: readonly R
     <>
       <table className="data" data-testid="subject-record-list">
         <caption>Records, most recent first <span className="muted">- click a row to open the record</span></caption>
-        <thead><tr><th scope="col" className="num">Date</th><th scope="col">Record</th><th scope="col">Kind</th><th scope="col">Fleet</th><th scope="col">Instructor</th><th scope="col">Outcome</th><th scope="col" className="num">Competencies</th></tr></thead>
+        <thead><tr><th scope="col" className="num">Date</th><th scope="col">Record</th><th scope="col">Kind</th><th scope="col">Fleet</th><th scope="col">{showSubject ? 'Trainee' : 'Instructor'}</th><th scope="col">Outcome</th><th scope="col" className="num">Competencies</th></tr></thead>
         <tbody>
           {rows.length === 0 ? <tr><td colSpan={7} className="muted small">No records yet for this {subjectLabel.toLowerCase()}.</td></tr> : rows.map((r) => (
             <tr key={r.id} className="row-click" onClick={() => show(r)} tabIndex={0} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); show(r); } }} role="button" aria-label={`Open record ${r.title}`}>
@@ -63,7 +63,7 @@ export function RecordsTable({ rows, subjectLabel }: { readonly rows: readonly R
               <td>{r.snapshot.template?.name ?? r.title}{r.snapshot.session?.check ? <span className="xs muted"> · {r.snapshot.session.check}</span> : null}{r.snapshot.session?.sector_number ? <span className="xs muted"> · sector {r.snapshot.session.sector_number}</span> : null}{r.is_hidden_from_subject ? <span className="xs muted"> · internal</span> : null}</td>
               <td>{r.record_kind ?? <span className="muted">-</span>}</td>
               <td>{r.asset_class ?? <span className="muted">-</span>}</td>
-              <td>{r.assessor_name ?? <span className="muted">-</span>}</td>
+              <td>{showSubject ? (r.snapshot.subject?.full_name ?? <span className="muted">-</span>) : (r.assessor_name ?? <span className="muted">-</span>)}</td>
               <td>{r.outcome_override ? <span className="chip chip-info"><span className="chip-dot" aria-hidden="true" />{r.outcome_override} (amended)</span> : r.outcome ? <span className={outcomeTone(r.outcome)}><span className="chip-dot" aria-hidden="true" />{r.outcome}</span> : <span className="muted">-</span>}</td>
               <td className="num">{r.competency_count}</td>
             </tr>
@@ -89,6 +89,7 @@ export function RecordArticle({ record: open, onClose: close }: { readonly recor
   const obs = new Map<string, { code: string; text: string }[]>();
   for (const ob of s.observable_behaviours ?? []) { if (!obs.has(ob.competency)) obs.set(ob.competency, []); obs.get(ob.competency)!.push(ob); }
   const compCodes = [...new Set([...scores.keys(), ...results.keys()])];
+  const repeated = (s.tasks ?? []).some((t) => t.attempt > 1); // the Attempt column only when an exercise was flown twice
 
   return (
     <article className="report" data-testid="record-dialog">

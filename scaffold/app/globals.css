@@ -550,3 +550,11 @@ dialog.modal-wide { max-width: 64rem; }
 .timeline-done .timeline-dot { background: var(--state-good); border-color: var(--state-good); }
 .timeline-current .timeline-dot { background: var(--state-info); border-color: var(--state-info); }
 .timeline-planned .timeline-dot { border-color: var(--state-warn); }
+
+/* --- instructor profile: residual bars around zero, grade distribution bars --- */
+.resid { position: relative; display: block; height: 10px; background: var(--surface-sunken); border-radius: 5px; overflow: hidden; }
+.resid-zero { position: absolute; left: 50%; top: 0; bottom: 0; width: 1px; background: var(--border-strong); }
+.resid-bar { position: absolute; top: 0; bottom: 0; border-radius: 5px; opacity: 0.85; }
+.dist { display: flex; align-items: center; gap: var(--space-2); }
+.dist-bar { display: inline-block; height: 12px; border-radius: 3px; min-width: 2px; }
+.dist-all { background: var(--border-strong); }
