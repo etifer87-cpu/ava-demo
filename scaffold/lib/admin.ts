@@ -93,6 +93,8 @@ export interface AccountRow {
   full_name: string | null;
   position: string | null;
   instructor_role: string | null;
+  instructor_roles: string[];
+  seniority_number: number | null;
   org_unit: string | null;
   asset_class: string | null;
   org_unit_id: string | null;
@@ -107,6 +109,7 @@ const ACCOUNTS_SQL = `
          (SELECT max(a.occurred_at)::text FROM audit_log a
            WHERE a.actor_user_id = u.id AND a.action = 'auth.login.success') AS last_login_at,
          p.id AS person_id, p.external_id, p.full_name, p.position, p.instructor_role,
+         COALESCE(p.instructor_roles, '{}') AS instructor_roles, p.seniority_number,
          ou.name AS org_unit, ac.name AS asset_class, p.org_unit_id, p.asset_class_id,
          COALESCE((
            SELECT json_agg(json_build_object(
@@ -207,4 +210,91 @@ export async function assetClassOptions(): Promise<Option[]> {
 }
 export async function roleOptions(): Promise<(Option & { module: string })[]> {
   return query<Option & { module: string }>(`SELECT code AS value, name AS label, module FROM roles WHERE code <> 'planner' ORDER BY position, code`);
+}
+
+/* ------------------------------------------------------------------ the directory: people and their accounts */
+
+/**
+ * One row per PERSON on the roster, with the account that belongs to them when there is one, plus
+ * the accounts that have no roster row (administrators, service accounts) at the end. This is what
+ * the Users page lists: an administrator manages people first and logins second, and "this pilot
+ * has no account yet" is a state that must be visible, not an absence.
+ */
+export interface DirectoryRow {
+  person_id: string | null;
+  seniority_number: number | null;
+  external_id: string | null;
+  full_name: string | null;
+  position: string | null;
+  fleet: string | null;
+  base: string | null;
+  instructor_roles: string[];
+  roster_status: string | null;
+  user_id: string | null;
+  username: string | null;
+  user_active: boolean | null;
+  locked: boolean | null;
+  must_change_password: boolean | null;
+  grants: GrantRow[];
+  total: string;
+}
+
+export async function listDirectory(opts: { q?: string; role?: string; fleet?: string; position?: string; account?: 'yes' | 'no' | ''; qual?: string; status?: string }, page: number, size: number): Promise<DirectoryRow[]> {
+  const where: string[] = ['(p.id IS NOT NULL OR u.id IS NOT NULL)'];
+  const params: unknown[] = [];
+  const status = opts.status ?? 'active';
+  if (status === 'active') where.push(`(p.roster_status = 'active' OR (p.id IS NULL AND u.is_active))`);
+  else if (status) { params.push(status); where.push(`p.roster_status = $${params.length}`); }
+  if (opts.q) {
+    params.push(`%${opts.q}%`);
+    where.push(`(p.full_name ILIKE $${params.length} OR p.external_id ILIKE $${params.length} OR u.username ILIKE $${params.length} OR u.email ILIKE $${params.length})`);
+  }
+  if (opts.role) { params.push(opts.role); where.push(`EXISTS (SELECT 1 FROM user_roles x WHERE x.user_id = u.id AND x.role_code = $${params.length})`); }
+  if (opts.fleet) { params.push(opts.fleet); where.push(`ac.code = $${params.length}`); }
+  if (opts.position) { params.push(opts.position); where.push(`p.position = $${params.length}`); }
+  if (opts.qual === 'any') where.push(`cardinality(p.instructor_roles) > 0`);
+  else if (opts.qual) { params.push(opts.qual); where.push(`$${params.length} = ANY(p.instructor_roles)`); }
+  if (opts.account === 'yes') where.push('u.id IS NOT NULL');
+  if (opts.account === 'no') where.push('u.id IS NULL');
+  return query<DirectoryRow>(`
+    SELECT p.id AS person_id, p.seniority_number, p.external_id, p.full_name, p.position, ac.code AS fleet, ou.code AS base,
+           COALESCE(p.instructor_roles, '{}') AS instructor_roles, p.roster_status,
+           u.id AS user_id, u.username, u.is_active AS user_active,
+           (u.locked_until IS NOT NULL AND u.locked_until > now()) AS locked, u.must_change_password,
+           COALESCE((
+             SELECT json_agg(json_build_object('role_code', ur.role_code, 'role_name', r.name, 'org_unit_code', gou.code, 'asset_class_code', gac.code, 'expires_at', ur.expires_at::text) ORDER BY r.position, gac.code NULLS FIRST)
+               FROM user_roles ur JOIN roles r ON r.code = ur.role_code
+               LEFT JOIN org_units gou ON gou.id = ur.org_unit_id LEFT JOIN asset_classes gac ON gac.id = ur.asset_class_id
+              WHERE ur.user_id = u.id AND (ur.expires_at IS NULL OR ur.expires_at > now())), '[]'::json) AS grants,
+           count(*) OVER ()::text AS total
+      FROM people p
+      FULL OUTER JOIN users u ON u.person_id = p.id AND u.deleted_at IS NULL
+      LEFT JOIN org_units ou ON ou.id = p.org_unit_id
+      LEFT JOIN asset_classes ac ON ac.id = p.asset_class_id
+     WHERE (p.id IS NULL OR p.deleted_at IS NULL) AND ${where.join(' AND ')}
+     ORDER BY p.seniority_number NULLS LAST, p.external_id NULLS LAST, u.username
+     LIMIT ${size} OFFSET ${(page - 1) * size}`, params);
+}
+
+export interface PersonHead { id: string; external_id: string; full_name: string; position: string | null; asset_class_id: string | null; org_unit_id: string | null; fleet: string | null; base: string | null; instructor_role: string | null; instructor_roles: string[]; joined_on: string | null; has_user: boolean }
+
+export async function getPerson(id: string): Promise<PersonHead | null> {
+  const rows = await query<PersonHead>(`
+    SELECT p.id, p.external_id, p.full_name, p.position, p.asset_class_id, p.org_unit_id, ac.code AS fleet, ou.code AS base, p.instructor_role,
+           COALESCE(p.instructor_roles, '{}') AS instructor_roles, p.joined_on::text,
+           EXISTS (SELECT 1 FROM users u WHERE u.person_id = p.id AND u.deleted_at IS NULL) AS has_user
+      FROM people p LEFT JOIN asset_classes ac ON ac.id = p.asset_class_id LEFT JOIN org_units ou ON ou.id = p.org_unit_id
+     WHERE p.id = $1::uuid AND p.deleted_at IS NULL`, [id]);
+  return rows[0] ?? null;
+}
+
+/** A username from a name - first initial and first surname, ASCII, lower - made unique with a number. */
+export async function suggestUsername(fullName: string): Promise<string> {
+  const parts = fullName.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().split(/\s+/).filter(Boolean);
+  const base = parts.length >= 2 ? `${parts[0]![0]}.${parts[1]}` : parts[0] ?? 'user';
+  const clean = base.replace(/[^a-z0-9._-]/g, '');
+  const taken = new Set((await query<{ username: string }>(`SELECT username FROM users WHERE username LIKE $1 AND deleted_at IS NULL`, [`${clean}%`])).map((r) => r.username));
+  if (!taken.has(clean)) return clean;
+  for (let i = 2; i < 100; i += 1) if (!taken.has(`${clean}${i}`)) return `${clean}${i}`;
+  return `${clean}${Date.now() % 1000}`;
 }

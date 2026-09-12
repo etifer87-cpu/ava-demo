@@ -4,6 +4,7 @@ import { requireSession } from '@/lib/session';
 import { resolveAccess, requireCapability } from '@/lib/access';
 import { audit, actorFromSession, requestContext, AUDIT_ACTIONS } from '@/lib/audit';
 import { flashCookie, temporaryPassword } from '@/lib/admin';
+import { policy } from '@/lib/config';
 
 /**
  * POST /api/admin/users/[id] - one account, one `_action`:
@@ -59,11 +60,13 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       case 'update_person': {
         requireCapability(access, 'platform.users.manage');
         if (!target.person_id) throw new Error('This account has no roster row.');
+        const order = policy().instructor_roles;
+        const quals = form.getAll('instructor_roles').map((v) => String(v)).filter((v) => order.includes(v)).sort((a, b) => order.indexOf(a) - order.indexOf(b));
         await query(
           `UPDATE people SET full_name = COALESCE(NULLIF($2, ''), full_name), position = NULLIF($3, ''),
-                  instructor_role = NULLIF($4, ''), asset_class_id = NULLIF($5, '')::uuid, org_unit_id = NULLIF($6, '')::uuid
+                  instructor_role = $4, instructor_roles = $5::text[], asset_class_id = NULLIF($6, '')::uuid, org_unit_id = NULLIF($7, '')::uuid
             WHERE id = $1::uuid`,
-          [target.person_id, str('full_name'), str('position', 20), str('instructor_role', 20), str('asset_class_id', 40), str('org_unit_id', 40)],
+          [target.person_id, str('full_name'), str('position', 20), quals[0] ?? null, quals, str('asset_class_id', 40), str('org_unit_id', 40)],
         );
         await audit({ action: AUDIT_ACTIONS.userUpdate, entityTable: 'users', entityId: id, capabilityCode: 'platform.users.manage', details: { roster: 'updated' } }, actor, ctx);
         return back(request, id, { kind: 'ok', message: 'Roster row saved.' });

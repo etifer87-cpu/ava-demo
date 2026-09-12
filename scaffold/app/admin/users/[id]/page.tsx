@@ -101,11 +101,11 @@ export default async function AccountPage({ params }: { params: Promise<{ id: st
                   </select>
                 </div>
                 <div className="field">
-                  <label htmlFor="instructor_role">Instructor role</label>
-                  <select id="instructor_role" name="instructor_role" defaultValue={account.instructor_role ?? ''} disabled={!manage}>
-                    <option value="">None</option>
-                    {p.instructor_roles.map((x) => <option key={x} value={x}>{x}</option>)}
-                  </select>
+                  <span className="label-text" style={{ display: 'block', marginBottom: 4 }}>Instructor qualifications</span>
+                  <div className="row" style={{ gap: 'var(--space-3)', flexWrap: 'wrap' }}>
+                    {p.instructor_roles.map((x) => <label key={x} className="check"><input type="checkbox" name="instructor_roles" value={x} defaultChecked={account.instructor_roles.includes(x)} disabled={!manage} /><span className="mono xs">{x}</span></label>)}
+                  </div>
+                  <span className="xs muted">The highest one is the kit&apos;s instructor role; examiner and instructor logins are granted below.</span>
                 </div>
                 <div className="field">
                   <label htmlFor="asset_class_id">Fleet</label>

@@ -1,21 +1,25 @@
 import Link from 'next/link';
 import { requireSession } from '@/lib/session';
 import { resolveAccess, requireCapability, can } from '@/lib/access';
-import { listAccounts, readFlash, roleOptions, type AccountRow } from '@/lib/admin';
+import { listDirectory, readFlash, roleOptions, type DirectoryRow } from '@/lib/admin';
+import { policy } from '@/lib/config';
 import Breadcrumbs from '@/components/ui/Breadcrumbs';
 import Chip from '@/components/ui/Chip';
 import DataTable, { type Column } from '@/components/ui/DataTable';
-import FilterBar, { TextFilter, SelectFilter } from '@/components/ui/FilterBar';
+import FilterBar, { SelectFilter } from '@/components/ui/FilterBar';
+import LiveSearch from '@/components/ui/LiveSearch';
+import Pager, { pageParams } from '@/components/ui/Pager';
 import { query } from '@/lib/db';
 
 /**
- * /admin/users - the account directory.
+ * /admin/users - people and their accounts.
  *
- * One row per login. The roster row (name, id, position, fleet, base) is joined when the account
- * is linked to a person; an unlinked account shows as such rather than as a blank name, because
- * "no roster row" is a state an administrator must be able to see. Roles are rendered as chips
- * with their fleet/base binding (migration 0142): "Instructor · A320" is a different grant from
- * "Instructor". Filters are a GET form; filtering is SQL. Gate: platform.users.view.
+ * One row per person on the roster, in seniority order, with the account that belongs to them
+ * when there is one; accounts with no roster row (administrators, service accounts) come last.
+ * A pilot without a login shows "Create account", which opens the new-account form filled from
+ * the roster row, so the administrator never retypes a name or an employee id. Roles are chips
+ * with their fleet/base binding. Filters are a GET form, the search applies while typing, and the
+ * list is paged. Gate: platform.users.view.
  */
 
 export const runtime = 'nodejs';
@@ -35,27 +39,41 @@ export default async function UsersPage({ searchParams }: { searchParams: Promis
   const q = one(sp.q);
   const role = one(sp.role);
   const fleet = one(sp.fleet);
-  const status = (one(sp.status) || 'active') as 'active' | 'inactive' | '';
+  const position = one(sp.position);
+  const qual = one(sp.qual);
+  const account = one(sp.account) as 'yes' | 'no' | '';
+  const status = one(sp.status) || 'active';
+  const { page, size } = pageParams(sp);
+  const p = policy();
 
   const [rows, roles, fleets, flash] = await Promise.all([
-    listAccounts({ q, role, fleet, status }),
+    listDirectory({ q, role, fleet, position, qual, account, status }, page, size),
     roleOptions(),
     query<{ value: string; label: string }>(`SELECT code AS value, code AS label FROM asset_classes WHERE deleted_at IS NULL AND is_active AND category = 'aircraft' ORDER BY position`),
     readFlash(),
   ]);
+  const total = Number(rows[0]?.total ?? 0);
+  const canCreate = can(access, 'platform.users.create');
+  const carry: Record<string, string> = Object.fromEntries(Object.entries({ q, role, fleet, position, qual, account, status }).filter(([, v]) => v !== ''));
 
-  const columns: Column<AccountRow>[] = [
-    { key: 'username', head: 'Username', cell: (r) => <Link href={`/admin/users/${r.id}`} className="mono">{r.username}</Link> },
-    { key: 'name', head: 'Name', cell: (r) => r.full_name ? <Link href={`/admin/users/${r.id}`}>{r.full_name}</Link> : <span className="muted">no roster row</span> },
-    { key: 'external_id', head: 'Employee id', cell: (r) => r.external_id ? <span className="mono">{r.external_id}</span> : <span className="muted">-</span> },
-    { key: 'position', head: 'Position', cell: (r) => r.position ?? <span className="muted">-</span> },
-    { key: 'fleet', head: 'Fleet', cell: (r) => r.asset_class ?? <span className="muted">-</span> },
-    { key: 'base', head: 'Base', cell: (r) => r.org_unit ?? <span className="muted">-</span> },
+  const columns: Column<DirectoryRow>[] = [
+    { key: 'seniority', head: 'Seniority', numeric: true, cell: (r) => r.person_id ? <span className="mono">{r.seniority_number ?? r.external_id}</span> : <span className="muted">-</span> },
+    { key: 'name', head: 'Name', cell: (r) => r.person_id ? (r.user_id ? <Link href={`/admin/users/${r.user_id}`}>{r.full_name}</Link> : <span>{r.full_name}</span>) : <span className="muted">no roster row</span> },
+    { key: 'position', head: 'Rank', cell: (r) => r.position ?? <span className="muted">{r.roster_status === 'candidate' ? 'candidate' : '-'}</span> },
+    { key: 'fleet', head: 'Fleet', cell: (r) => r.fleet ?? <span className="muted">-</span> },
+    { key: 'base', head: 'Base', cell: (r) => r.base ?? <span className="muted">-</span> },
+    { key: 'qual', head: 'Qualifications', cell: (r) => r.instructor_roles.length ? <span className="mono xs">{r.instructor_roles.join(' ')}</span> : <span className="muted">-</span> },
+    {
+      key: 'account', head: 'Account',
+      cell: (r) => r.user_id
+        ? <Link href={`/admin/users/${r.user_id}`} className="mono">{r.username}</Link>
+        : canCreate && r.person_id ? <Link href={`/admin/users/new?person=${r.person_id}`} className="button button-quiet xs" style={{ textDecoration: 'none' }}>Create account</Link> : <span className="muted">none</span>,
+    },
     {
       key: 'roles', head: 'Roles',
       cell: (r) => (
         <span className="row" style={{ gap: 'var(--space-1)' }}>
-          {r.grants.length === 0 ? <span className="muted">none</span> : r.grants.map((g) => (
+          {r.grants.length === 0 ? <span className="muted">{r.user_id ? 'none' : ''}</span> : r.grants.map((g) => (
             <Chip key={`${g.role_code}-${g.asset_class_code ?? ''}-${g.org_unit_code ?? ''}`} tone="info" title={g.role_code}>
               {g.role_name}{g.asset_class_code ? ` · ${g.asset_class_code}` : ''}{g.org_unit_code ? ` · ${g.org_unit_code}` : ''}
             </Chip>
@@ -67,13 +85,12 @@ export default async function UsersPage({ searchParams }: { searchParams: Promis
       key: 'status', head: 'Status',
       cell: (r) => (
         <span className="row" style={{ gap: 'var(--space-1)' }}>
-          {r.is_active ? <Chip tone="good">Active</Chip> : <Chip tone="bad">Inactive</Chip>}
+          {r.user_id ? (r.user_active ? <Chip tone="good">Active</Chip> : <Chip tone="bad">Inactive</Chip>) : <Chip tone="neutral">No login</Chip>}
           {r.locked ? <Chip tone="warn">Locked</Chip> : null}
           {r.must_change_password ? <Chip tone="neutral" title="Temporary password in force">Must change password</Chip> : null}
         </span>
       ),
     },
-    { key: 'last_login', head: 'Last sign-in', numeric: true, cell: (r) => r.last_login_at ? r.last_login_at.slice(0, 16).replace('T', ' ') : <span className="muted">never</span> },
   ];
 
   return (
@@ -81,8 +98,9 @@ export default async function UsersPage({ searchParams }: { searchParams: Promis
       <Breadcrumbs items={[{ label: 'Overview', href: '/' }, { label: 'Admin', href: '/admin' }, { label: 'Users' }]} />
       <div className="row">
         <h1 style={{ margin: 0 }}>Users</h1>
+        <span className="xs muted">people on the roster and their accounts</span>
         <span className="spacer" />
-        {can(access, 'platform.users.create') ? <Link href="/admin/users/new" className="button" style={{ textDecoration: 'none' }}>New user</Link> : null}
+        {canCreate ? <Link href="/admin/users/new" className="button" style={{ textDecoration: 'none' }}>New user</Link> : null}
       </div>
 
       {flash ? (
@@ -97,23 +115,27 @@ export default async function UsersPage({ searchParams }: { searchParams: Promis
         </div>
       ) : null}
 
-      <FilterBar action="/admin/users" resetHref="/admin/users">
-        <TextFilter name="q" label="Username, name, id or e-mail" value={q} placeholder="Search" />
-        <SelectFilter name="role" label="Role" value={role} options={roles.map((r) => ({ value: r.value, label: r.label }))} />
+      <FilterBar action="/admin/users" resetHref="/admin/users" carry={{ size: size === 20 ? undefined : String(size) }}>
+        <LiveSearch name="q" label="Name, seniority or username" value={q} placeholder="Type to search" />
+        <SelectFilter name="position" label="Rank" value={position} options={p.positions.map((x) => ({ value: x, label: x }))} />
         <SelectFilter name="fleet" label="Fleet" value={fleet} options={fleets} />
-        <SelectFilter name="status" label="Status" value={status} anyLabel="Any" options={[{ value: 'active', label: 'Active' }, { value: 'inactive', label: 'Inactive' }]} />
+        <SelectFilter name="qual" label="Qualification" value={qual} options={[{ value: 'any', label: 'Any qualification' }, ...p.instructor_roles.map((x) => ({ value: x, label: x }))]} />
+        <SelectFilter name="account" label="Account" value={account} options={[{ value: 'yes', label: 'Has an account' }, { value: 'no', label: 'No account yet' }]} />
+        <SelectFilter name="role" label="Role" value={role} options={roles.map((r) => ({ value: r.value, label: r.label }))} />
+        <SelectFilter name="status" label="Roster" value={status} anyLabel="Any" options={[{ value: 'active', label: 'Active' }, { value: 'candidate', label: 'Candidate' }, { value: 'left', label: 'Left' }]} />
       </FilterBar>
 
       <DataTable
         testId="user-list"
-        caption="Accounts"
+        caption="People and accounts"
         columns={columns}
         rows={rows}
-        rowKey={(r) => r.id}
-        emptyTitle="No account matched"
-        emptyReason="No login matched these filters. Reset the filters, or create the first account."
-        countSuffix={rows.length === 500 ? '(page limit reached - narrow the filters)' : undefined}
+        rowKey={(r) => r.person_id ?? r.user_id ?? 'x'}
+        emptyTitle="Nobody matched"
+        emptyReason="No person or account matched these filters. Reset the filters, or seed the roster."
+        countSuffix={total > rows.length ? `of ${total}` : undefined}
       />
+      <Pager path="/admin/users" params={carry} page={page} size={size} total={total} noun="people" />
     </div>
   );
 }
