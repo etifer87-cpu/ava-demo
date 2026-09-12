@@ -484,3 +484,9 @@ dialog.modal .field input, dialog.modal .field textarea { width: 100%; box-sizin
 .choose-card.is-chosen { border-color: var(--brand-accent); box-shadow: inset 3px 0 0 var(--brand-accent); background: var(--surface-sunken); }
 .grade-panel .field textarea { width: 100%; box-sizing: border-box; min-width: 0; }
 .report-outcome select { padding: 4px var(--space-2); border: 1px solid var(--border-strong); border-radius: var(--radius-sm); background: var(--surface); color: var(--ink); }
+
+/* Pager: page links and page size. */
+.pager { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-3); padding: var(--space-2) 0; }
+.pager-page, .pager-size { display: inline-block; min-width: 1.8rem; padding: 2px var(--space-2); text-align: center; border-radius: var(--radius-sm); font-size: var(--text-sm); text-decoration: none; color: var(--ink); border: 1px solid transparent; }
+.pager-page:hover, .pager-size:hover { background: var(--surface-sunken); }
+.pager-page.is-current, .pager-size.is-current { background: var(--surface-sunken); border-color: var(--border-strong); font-weight: 600; }

@@ -5,7 +5,9 @@ import { resolveAccess, requireCapability, visiblePersonIds, ALL_PEOPLE } from '
 import Breadcrumbs from '@/components/ui/Breadcrumbs';
 import Chip from '@/components/ui/Chip';
 import DataTable, { type Column } from '@/components/ui/DataTable';
-import FilterBar, { TextFilter, SelectFilter } from '@/components/ui/FilterBar';
+import FilterBar, { SelectFilter } from '@/components/ui/FilterBar';
+import LiveSearch from '@/components/ui/LiveSearch';
+import Pager, { pageParams } from '@/components/ui/Pager';
 import { labels, policy } from '@/lib/config';
 
 /**
@@ -42,14 +44,13 @@ interface SubjectRow {
   seniority_number: number | null;
   joined_on: string | null;
   rank_since: string | null;
-  total_hours: number | null;
-  hours_on_type: number | null;
   instructor_roles: string[];
   roster_status: string;
   watch_list: boolean;
   concern_override: string | null;
   record_count: string;
   last_record_on: string | null;
+  total: string;
 }
 
 interface OptionRow { id: string; label: string }
@@ -78,6 +79,7 @@ export default async function SubjectsPage({
   const watch = one(sp.watch);
   const position = one(sp.position);
   const instructor = one(sp.instructor);
+  const { page, size } = pageParams(sp);
 
   const visible = await visiblePersonIds(access, 'people.view');
 
@@ -118,11 +120,12 @@ export default async function SubjectsPage({
               p.position,
               ou.code AS org_unit,
               ac.code AS asset_class,
-              p.seniority_number, p.joined_on::text, p.rank_since::text, p.total_hours, p.hours_on_type, p.instructor_roles, p.roster_status,
+              p.seniority_number, p.joined_on::text, p.rank_since::text, p.instructor_roles, p.roster_status,
               p.watch_list,
               p.concern_override,
               count(r.id)::text          AS record_count,
-              max(r.training_date)::text AS last_record_on
+              max(r.training_date)::text AS last_record_on,
+              count(*) OVER ()::text     AS total
          FROM people p
          LEFT JOIN org_units ou     ON ou.id = p.org_unit_id
          LEFT JOIN asset_classes ac ON ac.id = p.asset_class_id
@@ -131,7 +134,7 @@ export default async function SubjectsPage({
         GROUP BY p.id, ou.code, ac.code
         ORDER BY p.seniority_number NULLS LAST,
                  CASE WHEN p.external_id ~ '^[0-9]+$' THEN lpad(p.external_id, 20, '0') ELSE p.external_id END
-        LIMIT 600`,
+        LIMIT ${size} OFFSET ${(page - 1) * size}`,
       params,
     ),
     query<OptionRow>(
@@ -141,6 +144,9 @@ export default async function SubjectsPage({
       `SELECT id, code AS label FROM asset_classes WHERE deleted_at IS NULL AND is_active AND category = 'aircraft' ORDER BY position, name`,
     ),
   ]);
+
+  const total = Number(rows[0]?.total ?? 0);
+  const carry: Record<string, string> = Object.fromEntries(Object.entries({ q, position, asset_class: assetClass, org_unit: orgUnit, instructor, status, watch }).filter(([, v]) => v !== ''));
 
   const columns: Column<SubjectRow>[] = [
     {
@@ -159,7 +165,6 @@ export default async function SubjectsPage({
     { key: 'org_unit', head: 'Base', cell: (r) => r.org_unit ?? <span className="muted">-</span> },
     { key: 'joined', head: 'Joined', numeric: true, cell: (r) => r.joined_on ?? <span className="muted">-</span> },
     { key: 'rank_since', head: 'Rank since', numeric: true, cell: (r) => r.rank_since ?? <span className="muted">-</span> },
-    { key: 'hours', head: 'Hours · on type', numeric: true, cell: (r) => r.total_hours === null ? <span className="muted">-</span> : <span className="mono">{r.total_hours.toLocaleString('en-US')} · {(r.hours_on_type ?? 0).toLocaleString('en-US')}</span> },
     { key: 'roles', head: 'Instructor', cell: (r) => r.instructor_roles.length ? <span className="mono xs">{r.instructor_roles.join(' ')}</span> : <span className="muted">-</span> },
     { key: 'records', head: 'Records', numeric: true, cell: (r) => r.record_count },
     {
@@ -187,8 +192,8 @@ export default async function SubjectsPage({
       <Breadcrumbs items={[{ label: 'Overview', href: '/' }, { label: L.subject_plural }]} />
       <h1>{L.subject_plural}</h1>
 
-      <FilterBar action="/subjects" resetHref="/subjects">
-        <TextFilter name="q" label="Name or seniority" value={q} placeholder="Search" />
+      <FilterBar action="/subjects" resetHref="/subjects" carry={{ size: size === 20 ? undefined : String(size) }}>
+        <LiveSearch name="q" label="Name or seniority" value={q} placeholder="Type to search" />
         <SelectFilter name="position" label="Rank" value={position} options={positions.map((p) => ({ value: p, label: p }))} />
         <SelectFilter name="asset_class" label="Fleet" value={assetClass} options={assetClasses.map((o) => ({ value: o.id, label: o.label }))} />
         <SelectFilter name="org_unit" label="Base" value={orgUnit} options={orgUnits.map((o) => ({ value: o.id, label: o.label }))} />
@@ -215,8 +220,9 @@ export default async function SubjectsPage({
         rowKey={(r) => r.id}
         emptyTitle={`No ${L.subject.toLowerCase()} matched`}
         emptyReason="No roster row matched these filters within the records this account may see. Reset the filters to check whether the scope or the filter is the reason."
-        countSuffix={rows.length === 600 ? '(page limit reached - narrow the filters)' : undefined}
+        countSuffix={total > rows.length ? `of ${total}` : undefined}
       />
+      <Pager path="/subjects" params={carry} page={page} size={size} total={total} noun={L.subject_plural.toLowerCase()} />
     </div>
   );
 }
