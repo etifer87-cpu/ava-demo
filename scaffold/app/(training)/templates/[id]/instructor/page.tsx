@@ -80,7 +80,6 @@ export default async function InstructorViewPage({ params, searchParams }: { par
         <InstructorDemo
           programName={template.name}
           kindLabel={template.kind_label ?? b.product.short_name}
-          device={program?.tree.setup.device ?? null}
           instructorName={session.fullName ?? session.username}
           view={view}
           report={report}

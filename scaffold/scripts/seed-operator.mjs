@@ -53,7 +53,18 @@ try {
     );
     n += 1;
   }
+  // Asset classes no longer listed in policy.yaml are retired, not deleted: a template or a grant
+  // may still point at them, and history must keep reading. Reactivation is listing them again.
+  const { rowCount: retired } = await client.query(
+    `UPDATE asset_classes SET is_active = false WHERE deleted_at IS NULL AND is_active AND NOT (code = ANY($1::text[]))`,
+    [assets.map((a) => a.code)],
+  );
+  await client.query(
+    `UPDATE asset_classes SET is_active = true WHERE deleted_at IS NULL AND NOT is_active AND code = ANY($1::text[])`,
+    [assets.map((a) => a.code)],
+  );
   await client.query('COMMIT');
+  if (retired) console.log(`retired ${retired} asset class(es) no longer in policy.yaml`);
   console.log(`operator context seeded: ${units.length} org units (${units.map((u) => u.code).join(', ')}), ${n} asset classes (${assets.map((a) => a.code).join(', ')})`);
 } catch (err) {
   await client.query('ROLLBACK');

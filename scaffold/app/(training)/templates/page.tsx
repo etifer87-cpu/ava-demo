@@ -12,8 +12,8 @@ import ProgramBatch from '@/components/program/ProgramBatch';
 /**
  * /templates - Programs. docs/06_PROGRAM_BUILDER.md section 5.1.
  *
- * One row per program: its kind, fleet, current version and status, what it holds, who last
- * touched it. Clicking a row opens the builder on the current version. "Create new program" asks
+ * One row per program: kind, fleet, module, year, current version and status, when it was last
+ * touched. Clicking a row opens the builder on the current version. "Create new program" asks
  * for the four things that freeze at creation and lands in the builder on an empty draft.
  *
  * Gate: training.templates.view to read the list; the create button and the builder's write
@@ -53,23 +53,14 @@ export default async function ProgramsPage({ searchParams }: { searchParams: Pro
     ...(canConfigure ? [{ key: 'pick', head: <span className="sr-only">Select</span>, cell: (r: ProgramRow) => <input type="checkbox" name="ids" value={r.id} form="batch" aria-label={`Select ${r.name}`} /> } as Column<ProgramRow>] : []),
     {
       key: 'name', head: 'Program',
-      cell: (r) => (
-        <span className="stack" style={{ gap: 2 }}>
-          <Link href={`/templates/${r.id}`}>{r.name}</Link>
-          <span className="xs muted mono">{r.code}{r.program_code ? ` · ${r.program_code}${r.program_day ? ` · day ${r.program_day}` : ''}` : ''}</span>
-        </span>
-      ),
+      cell: (r) => <Link href={`/templates/${r.id}`}>{r.name}</Link>,
     },
     { key: 'kind', head: 'Kind', cell: (r) => r.kind_label },
     { key: 'fleet', head: 'Fleet', cell: (r) => r.asset_class ?? <span className="muted">every fleet</span> },
+    { key: 'module', head: 'Module', cell: (r) => r.program_module ?? <span className="muted">-</span> },
+    { key: 'year', head: 'Year', numeric: true, cell: (r) => r.program_year ?? <span className="muted">-</span> },
     { key: 'version', head: 'Version', numeric: true, cell: (r) => r.version === null ? <span className="muted">-</span> : `v${r.version}` },
     { key: 'status', head: 'Status', cell: (r) => <span className="row" style={{ gap: 'var(--space-1)' }}><StatusChip status={r.status} />{!r.is_active ? <Chip tone="bad">Inactive</Chip> : null}</span> },
-    {
-      key: 'holds', head: 'Holds',
-      cell: (r) => r.element_count === 0
-        ? <span className="muted">empty</span>
-        : <span className="small">{r.task_count} task{r.task_count === 1 ? '' : 's'} · {r.element_count} element{r.element_count === 1 ? '' : 's'} · {r.competency_count} competenc{r.competency_count === 1 ? 'y' : 'ies'}</span>,
-    },
     { key: 'updated', head: 'Last edited', numeric: true, cell: (r) => <span title={r.updated_by ?? undefined}>{r.updated_at.slice(0, 16).replace('T', ' ')}</span> },
   ];
 
@@ -86,7 +77,7 @@ export default async function ProgramsPage({ searchParams }: { searchParams: Pro
       {flash ? <div className={`notice${flash.kind === 'bad' ? ' notice-bad' : flash.kind === 'warn' ? ' notice-warn' : ''}`} role="status"><p style={{ margin: 0 }}>{flash.message}</p></div> : null}
 
       <FilterBar action="/templates" resetHref="/templates">
-        <TextFilter name="q" label="Name, code or program" value={q} placeholder="Search" />
+        <TextFilter name="q" label="Name, code or module" value={q} placeholder="Search" />
         <SelectFilter name="kind" label="Kind" value={kind} options={kinds.map((k) => ({ value: k.value, label: k.label }))} />
         <SelectFilter name="fleet" label="Fleet" value={fleet} options={fleets.map((f) => ({ value: f.value, label: f.value }))} />
         <SelectFilter name="status" label="Status" value={status} anyLabel="Any" options={[{ value: 'draft', label: 'Draft' }, { value: 'published', label: 'Published' }, { value: 'retired', label: 'Retired' }]} />

@@ -176,7 +176,6 @@ export default async function ProgramPage({ params, searchParams }: { params: Pr
       <p className="small muted" style={{ margin: 0 }}>
         {template.kind_label} · {template.asset_class ?? 'every fleet'}
         {program?.tree.setup.program.code ? ` · ${program.tree.setup.program.code}${program.tree.setup.program.day ? ` day ${program.tree.setup.program.day}` : ''}` : ''}
-        {program?.tree.setup.device ? ` · ${program.tree.setup.device}` : ''}
         {planned !== null || period !== null ? <> · device <span className="mono">{planned === null ? '-' : formatMinutes(planned)}{period !== null ? ` of ${formatMinutes(period)}` : ''}</span>{planned !== null && period !== null ? <span> · {planned <= period ? `${formatMinutes(period - planned)} free` : `${formatMinutes(planned - period)} over`}</span> : null}</> : null}
         {bud.outside !== null ? <> · outside the device <span className="mono">{formatMinutes(bud.outside)}</span></> : null}
         {` · ${taskCount} exercise${taskCount === 1 ? '' : 's'}`}

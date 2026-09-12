@@ -10,7 +10,7 @@ import { parseMinutes, formatMinutes } from '@/lib/program/shape';
 /**
  * POST /api/templates - the Programs list's write path. `_action`:
  *
- *   create      name, code, kind, fleet, period, device, program_*, notes
+ *   create      name, code, kind, fleet, period, program_*, notes
  *   archive     ids[]                      is_active = false; the program leaves the default list
  *   unarchive   ids[]
  *   delete      ids[], password            soft delete (deleted_at) of the template and its versions.
@@ -56,23 +56,22 @@ export async function POST(request: NextRequest) {
   const fleet = str('fleet', 40) || null;
   const periodRaw = str('period', 10);
   const period = periodRaw ? parseMinutes(periodRaw) : null;
-  const device = str('device', 40) || null;
   const notes = str('notes', 300) || null;
   const intOrNull = (k: string, max: number) => { const v = str(k, 5); if (!v) return null; const n = Number(v); return Number.isInteger(n) && n >= 1 && n <= max ? n : NaN; };
   const day = intOrNull('program_day', 30);
   const cycle = intOrNull('cycle_months', 60);
+  const year = intOrNull('program_year', 2100);
 
   if (name.length < 3) return back({ kind: 'bad', message: 'A name of at least three characters is required.' });
   if (!CODE.test(code)) return back({ kind: 'bad', message: 'The code must be lowercase letters, digits, dot, dash or underscore, up to 63 characters.' });
   if (!kind) return back({ kind: 'bad', message: 'Choose a kind.' });
   if (periodRaw && period === null) return back({ kind: 'bad', message: 'The period must read like 4:00.' });
-  if (Number.isNaN(day) || Number.isNaN(cycle)) return back({ kind: 'bad', message: 'Day and cycle must be whole numbers.' });
+  if (Number.isNaN(day) || Number.isNaN(cycle) || Number.isNaN(year)) return back({ kind: 'bad', message: 'Day, cycle and year must be whole numbers.' });
   if (fleet && !/^[0-9a-f-]{36}$/i.test(fleet)) return back({ kind: 'bad', message: 'Choose a fleet from the list.' });
 
   const setup = {
-    program: { code: str('program_code', 40) || null, module: str('program_module', 40) || null, phase: str('program_phase', 40) || null, day, cycle_months: cycle },
+    program: { code: str('program_code', 40) || null, module: str('program_module', 40) || null, phase: str('program_phase', 40) || null, day, cycle_months: cycle, year },
     period: period === null ? null : formatMinutes(period),
-    device,
     aims: { aims: null, competency_focus: null, grading_criteria: null, visibility: 'instructor_only' },
   };
 
@@ -83,10 +82,6 @@ export async function POST(request: NextRequest) {
       if (fleet) {
         const f = await client.query(`SELECT 1 FROM asset_classes WHERE id = $1::uuid AND deleted_at IS NULL AND is_active`, [fleet]);
         if (!f.rows.length) throw new Error('That fleet does not exist.');
-      }
-      if (device) {
-        const d = await client.query(`SELECT 1 FROM asset_classes WHERE code = $1 AND deleted_at IS NULL AND is_active`, [device]);
-        if (!d.rows.length) throw new Error('That device does not exist.');
       }
       const dup = await client.query(`SELECT 1 FROM session_templates WHERE code = $1 AND deleted_at IS NULL`, [code]);
       if (dup.rows.length) throw new Error(`A program with code ${code} already exists.`);

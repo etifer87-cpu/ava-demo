@@ -63,7 +63,7 @@ export default async function ReviewPage({ params, searchParams }: { params: Pro
             <dl className="report-meta">
               <div><dt>Date</dt><dd className="muted">—</dd></div>
               <div><dt>Location</dt><dd className="muted">—</dd></div>
-              <div><dt>Device</dt><dd className="muted">{program?.tree.setup.device ?? '—'}</dd></div>
+              <div><dt>Device</dt><dd className="muted">—</dd></div>
               <div><dt>Trainee</dt><dd className="muted">—</dd></div>
               <div><dt>Position</dt><dd className="muted">—</dd></div>
               <div><dt>Instructor</dt><dd className="muted">{session.fullName ?? session.username}</dd></div>

@@ -19,7 +19,6 @@ export interface CompetencyDef { readonly code: string; readonly name: string; r
 export interface InstructorDemoProps {
   readonly programName: string;
   readonly kindLabel: string;
-  readonly device: string | null;
   readonly instructorName: string;
   readonly view: InstructorView;
   readonly report: ReportModel;
@@ -47,6 +46,7 @@ export function InstructorDemo(p: InstructorDemoProps) {
   const [grades, setGrades] = useState<Record<string, ExerciseGrade>>({});
   const [outcome, setOutcome] = useState<string>('');
   const [remarks, setRemarks] = useState('');
+  const [sectionNotes, setSectionNotes] = useState<Record<string, string>>({});
   const [additional, setAdditional] = useState(false);
   const [signed, setSigned] = useState<{ instructor: string | null; subject: string | null }>({ instructor: null, subject: null });
   const [objection, setObjection] = useState<{ reason: string; by: string; at: string } | null>(null);
@@ -106,6 +106,13 @@ export function InstructorDemo(p: InstructorDemoProps) {
                   <span className="mono xs muted">task 00:00 · session 0:00</span>
                 </div>
                 <StepBody step={current.st} section={current.section} grade={gradeOf(current.st.key)} onGrade={(g) => setGrade(current.st.key, g)} comps={comps} locked={locked} />
+                {current.section.trainingOnly ? (
+                  <div className="grade-panel" style={{ marginTop: 'var(--space-3)' }} data-testid="section-comment">
+                    <div className="xs muted" style={{ letterSpacing: '0.04em' }}>{current.section.title.toUpperCase()} · INSTRUCTOR COMMENTS{locked ? ' · locked by a signature' : ''}</div>
+                    <p className="xs muted" style={{ margin: '4px 0 0' }}>Not graded. What was trained, what was repeated and why; this goes on the record as text.</p>
+                    <div className="field" style={{ marginTop: 'var(--space-2)' }}><textarea rows={4} value={sectionNotes[current.section.key] ?? ''} onChange={(e) => setSectionNotes((n) => ({ ...n, [current.section.key]: e.target.value }))} disabled={locked} placeholder="Items trained and observations." /></div>
+                  </div>
+                ) : null}
                 <div className="row" style={{ marginTop: 'var(--space-3)' }}>
                   <button type="button" className="button button-quiet" onClick={() => setIdx(Math.max(0, idx - 1))} disabled={idx === 0}>Previous</button>
                   <span className="spacer" />
@@ -116,7 +123,7 @@ export function InstructorDemo(p: InstructorDemoProps) {
           </section>
         </div>
       ) : (
-        <Record p={p} grades={grades} steps={steps} outcome={outcome} setOutcome={setOutcome} remarks={remarks} setRemarks={setRemarks} additional={additional} setAdditional={setAdditional} signed={signed} setSigned={setSigned} objection={objection} setObjection={setObjection} now={now} locked={locked} />
+        <Record p={p} grades={grades} sectionNotes={sectionNotes} steps={steps} outcome={outcome} setOutcome={setOutcome} remarks={remarks} setRemarks={setRemarks} additional={additional} setAdditional={setAdditional} signed={signed} setSigned={setSigned} objection={objection} setObjection={setObjection} now={now} locked={locked} />
       )}
     </div>
   );
@@ -140,7 +147,7 @@ function StepBody({ step, section, grade, onGrade, comps, locked }: { step: Inst
             <h2 style={{ margin: 0 }}>{step.title}</h2>
             {step.pf ? <span className="chip chip-info"><span className="chip-dot" aria-hidden="true" />PF {step.pf}</span> : null}
             {step.minutes !== null ? <span className="mono xs muted">planned {fmt(step.minutes)}</span> : null}
-            {step.snapshot ? <span className="chip"><span className="chip-dot" aria-hidden="true" />{step.snapshot === 'take' ? 'Take snapshot' : 'Recall snapshot'}</span> : null}
+            {step.snapshot ? <span className="chip"><span className="chip-dot" aria-hidden="true" />{step.snapshot === 'take' ? 'Save Flight Plan' : 'Recall Flight Plan'}</span> : null}
             {section.trainingOnly ? <span className="chip"><span className="chip-dot" aria-hidden="true" />Training only</span> : null}
           </div>
           <div className="row" style={{ gap: 'var(--space-2)' }}>{(['ap', 'athr', 'fd'] as const).map((k) => <span key={k} className={`auto-chip auto-${step.automation[k]}`}>{k === 'ap' ? 'AP' : k === 'athr' ? 'A/THR' : 'FD'} · {AUTO[step.automation[k]] ?? step.automation[k]}</span>)}</div>
@@ -196,7 +203,7 @@ function StepBody({ step, section, grade, onGrade, comps, locked }: { step: Inst
             {step.lines.map((l) => <tr key={l.label}><th scope="row" style={{ width: '9rem' }}>{l.label}</th><td>{l.values.map((v, i) => <div key={i} className={l.label === 'Airport' ? 'mono' : ''}>{v}</div>)}</td></tr>)}
             {step.mass.zfw || step.mass.zfwcg || step.mass.fuel ? <tr><th scope="row">Mass & config</th><td className="mono">{[step.mass.zfw && `ZFW ${step.mass.zfw}`, step.mass.zfwcg && `ZFWCG ${step.mass.zfwcg}`, step.mass.fuel && `FUEL ${step.mass.fuel}`].filter(Boolean).join(' · ')}</td></tr> : null}
           </tbody></table>
-          {step.snapshot ? <span className="chip"><span className="chip-dot" aria-hidden="true" />{step.snapshot === 'take' ? 'Take a snapshot here' : 'Recall the snapshot here'}</span> : null}
+          {step.snapshot ? <span className="chip"><span className="chip-dot" aria-hidden="true" />{step.snapshot === 'take' ? 'Save Flight Plan' : 'Recall Flight Plan'}</span> : null}
           {step.notes ? <p className="small" style={{ margin: 0, whiteSpace: 'pre-wrap' }}>{step.notes}</p> : null}
         </div>
       );
@@ -228,8 +235,8 @@ function ChoiceStep({ step }: { step: Extract<InstructorStep, { kind: 'malfuncti
 
 /* ------------------------------------------------------------------ */
 
-function Record(props: { p: InstructorDemoProps; grades: Record<string, ExerciseGrade>; steps: { st: InstructorStep }[]; outcome: string; setOutcome: (v: string) => void; remarks: string; setRemarks: (v: string) => void; additional: boolean; setAdditional: (v: boolean) => void; signed: { instructor: string | null; subject: string | null }; setSigned: (v: { instructor: string | null; subject: string | null }) => void; objection: { reason: string; by: string; at: string } | null; setObjection: (v: { reason: string; by: string; at: string } | null) => void; now: () => string; locked: boolean }) {
-  const { p, grades, outcome, setOutcome, remarks, setRemarks, additional, setAdditional, signed, setSigned, objection, setObjection, now, locked } = props;
+function Record(props: { p: InstructorDemoProps; grades: Record<string, ExerciseGrade>; sectionNotes: Record<string, string>; steps: { st: InstructorStep }[]; outcome: string; setOutcome: (v: string) => void; remarks: string; setRemarks: (v: string) => void; additional: boolean; setAdditional: (v: boolean) => void; signed: { instructor: string | null; subject: string | null }; setSigned: (v: { instructor: string | null; subject: string | null }) => void; objection: { reason: string; by: string; at: string } | null; setObjection: (v: { reason: string; by: string; at: string } | null) => void; now: () => string; locked: boolean }) {
+  const { p, grades, sectionNotes, outcome, setOutcome, remarks, setRemarks, additional, setAdditional, signed, setSigned, objection, setObjection, now, locked } = props;
   const dialog = useRef<HTMLDialogElement | null>(null);
   const [reason, setReason] = useState(''); const [by, setBy] = useState('');
   const gradeOf = (key: string): ExerciseGrade => grades[key] ?? { result: null, comps: {}, comment: '' };
@@ -246,7 +253,7 @@ function Record(props: { p: InstructorDemoProps; grades: Record<string, Exercise
         <dl className="report-meta">
           <div><dt>Date</dt><dd>{new Date().toISOString().slice(0, 10)}</dd></div>
           <div><dt>Location</dt><dd className="muted">—</dd></div>
-          <div><dt>Device</dt><dd>{p.device ?? '—'}</dd></div>
+          <div><dt>Device</dt><dd className="muted">— (chosen when the session is created)</dd></div>
           <div><dt>Trainee</dt><dd className="muted">Trainee (demo)</dd></div>
           <div><dt>Position</dt><dd className="muted">—</dd></div>
           <div><dt>Instructor</dt><dd>{p.instructorName}</dd></div>
@@ -257,7 +264,7 @@ function Record(props: { p: InstructorDemoProps; grades: Record<string, Exercise
         <thead><tr><th scope="col">Exercise</th><th scope="col">Assessed on</th><th scope="col">Competency</th><th scope="col" className="num">Grade</th><th scope="col">Observable behaviours</th></tr></thead>
         <tbody>
           {p.report.sections.map((s) => (
-            <SectionRows key={s.key} s={s} gradeOf={gradeOf} cell={cell} phaseLabel={new Map(p.phaseLabels)} />
+            <SectionRows key={s.key} s={s} gradeOf={gradeOf} cell={cell} phaseLabel={new Map(p.phaseLabels)} note={sectionNotes[s.key]?.trim() || null} />
           ))}
         </tbody>
       </table>
@@ -312,10 +319,11 @@ function Record(props: { p: InstructorDemoProps; grades: Record<string, Exercise
   );
 }
 
-function SectionRows({ s, gradeOf, cell, phaseLabel }: { s: ReportModel['sections'][number]; gradeOf: (k: string) => ExerciseGrade; cell: (v: ExerciseGrade['result'] | CompGrade['grade']) => string; phaseLabel: Map<string, string> }): ReactNode {
+function SectionRows({ s, gradeOf, cell, phaseLabel, note }: { s: ReportModel['sections'][number]; gradeOf: (k: string) => ExerciseGrade; cell: (v: ExerciseGrade['result'] | CompGrade['grade']) => string; phaseLabel: Map<string, string>; note: string | null }): ReactNode {
   return (
     <>
       <tr className="report-section"><th scope="rowgroup" colSpan={5}>{s.title}{s.phase ? <span className="xs muted"> · {phaseLabel.get(s.phase) ?? s.phase}</span> : null}{s.trainingOnly ? <span className="xs muted"> · training only, not graded</span> : null}</th></tr>
+      {s.trainingOnly ? <tr><td colSpan={5} className="small">{note ? <><span className="xs muted">Instructor comments: </span><span style={{ whiteSpace: 'pre-wrap' }}>{note}</span></> : <span className="muted">No instructor comments.</span>}</td></tr> : null}
       {s.rows.map((r) => {
         const g = gradeOf(r.key);
         const comps = r.grading.competency_grade_mode !== 'none' ? r.competencies : [];

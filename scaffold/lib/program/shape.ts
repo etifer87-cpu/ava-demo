@@ -207,11 +207,12 @@ export interface VersionSetup {
     readonly phase: string | null;
     readonly day: number | null;
     readonly cycle_months: number | null;
+    /** The year the program applies to, e.g. 2026. */
+    readonly year: number | null;
   };
   /** The declared period, in minutes. The time rules measure against this. */
   readonly period_minutes: number | null;
-  /** Default device, an asset_class code. */
-  readonly device: string | null;
+  /* No device here: the device is chosen when a session (an ETR) is created, never on the program. */
   /** Program-level aims, inherited by every element beneath. */
   readonly aims: Aims;
 }
@@ -556,9 +557,9 @@ export function parseVersionSetup(raw: unknown): Parsed<VersionSetup> {
       phase: str(pc, p, 'phase', 40),
       day: int(pc, p, 'day'),
       cycle_months: int(pc, p, 'cycle_months'),
+      year: int(pc, p, 'year'),
     },
     period_minutes: minutes(c, o, 'period'),
-    device: str(c, o, 'device', 40),
     aims: aims(c, o.aims, 'aims'),
   };
   c.problems.push(...pc.problems);

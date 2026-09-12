@@ -26,6 +26,8 @@ export interface ProgramRow {
   task_count: number;
   competency_count: number;
   program_code: string | null;
+  program_module: string | null;
+  program_year: number | null;
   program_day: number | null;
   updated_at: string;
   updated_by: string | null;
@@ -34,7 +36,7 @@ export interface ProgramRow {
 export async function listPrograms(opts: { q?: string; kind?: string; fleet?: string; status?: string }): Promise<ProgramRow[]> {
   const where: string[] = ['t.deleted_at IS NULL'];
   const params: unknown[] = [];
-  if (opts.q) { params.push(`%${opts.q}%`); where.push(`(t.name ILIKE $${params.length} OR t.code ILIKE $${params.length} OR v.setup->'program'->>'code' ILIKE $${params.length})`); }
+  if (opts.q) { params.push(`%${opts.q}%`); where.push(`(t.name ILIKE $${params.length} OR t.code ILIKE $${params.length} OR v.setup->'program'->>'code' ILIKE $${params.length} OR v.setup->'program'->>'module' ILIKE $${params.length})`); }
   if (opts.kind) { params.push(opts.kind); where.push(`t.template_kind = $${params.length}`); }
   if (opts.fleet) { params.push(opts.fleet); where.push(`ac.code = $${params.length}`); }
   if (opts.status === 'draft' || opts.status === 'published' || opts.status === 'retired') { params.push(opts.status); where.push(`v.status = $${params.length}`); }
@@ -48,6 +50,8 @@ export async function listPrograms(opts: { q?: string; kind?: string; fleet?: st
            (SELECT count(*)::int FROM template_elements e WHERE e.template_version_id = v.id AND e.element_type = 'task') AS task_count,
            (SELECT count(*)::int FROM template_competencies tc WHERE tc.template_version_id = v.id) AS competency_count,
            v.setup->'program'->>'code' AS program_code,
+           v.setup->'program'->>'module' AS program_module,
+           NULLIF(v.setup->'program'->>'year', '')::int AS program_year,
            NULLIF(v.setup->'program'->>'day', '')::int AS program_day,
            GREATEST(t.updated_at, COALESCE(v.updated_at, t.updated_at))::text AS updated_at,
            COALESCE(p.full_name, u.username) AS updated_by
@@ -74,7 +78,7 @@ export async function fleetOptions(): Promise<(Option & { id: string })[]> {
   return query<Option & { id: string }>(`SELECT id, code AS value, name AS label FROM asset_classes WHERE deleted_at IS NULL AND is_active AND category = 'aircraft' ORDER BY position, code`);
 }
 
-/** Simulator classes, for the version's default device. */
+/** Simulator classes. Not used by the program: the device is chosen when a session (an ETR) is created. */
 export async function deviceOptions(): Promise<Option[]> {
   return query<Option>(`SELECT code AS value, name AS label FROM asset_classes WHERE deleted_at IS NULL AND is_active AND category = 'simulator' ORDER BY position, code`);
 }

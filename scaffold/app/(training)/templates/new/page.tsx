@@ -1,6 +1,6 @@
 import { requireSession } from '@/lib/session';
 import { resolveAccess, requireCapability } from '@/lib/access';
-import { kindOptions, fleetOptions, deviceOptions } from '@/lib/templates';
+import { kindOptions, fleetOptions } from '@/lib/templates';
 import { readFlash } from '@/lib/admin';
 import Breadcrumbs from '@/components/ui/Breadcrumbs';
 import Card from '@/components/ui/Card';
@@ -10,7 +10,8 @@ import Card from '@/components/ui/Card';
  *
  * Asks only for what freezes at creation - name, code, kind, fleet - plus the version-level
  * set-up that the builder's rules read from the first minute: the declared period and the program
- * grouping (code, module, phase, day). Everything else is authored in the builder. The template
+ * grouping (code, module, phase, day, year). The device is not asked: it is chosen when a session
+ * (an ETR) is created. Everything else is authored in the builder. The template
  * and its version 1 draft are created together; a template with no version is a row nothing can
  * open. Gate: training.templates.configure.
  */
@@ -24,7 +25,8 @@ export default async function NewProgramPage() {
   const access = await resolveAccess(session);
   requireCapability(access, 'training.templates.configure');
 
-  const [kinds, fleets, devices, flash] = await Promise.all([kindOptions(), fleetOptions(), deviceOptions(), readFlash()]);
+  const [kinds, fleets, flash] = await Promise.all([kindOptions(), fleetOptions(), readFlash()]);
+  const thisYear = new Date().getFullYear();
 
   return (
     <div className="stack" data-testid="template-new" style={{ maxWidth: '52rem' }}>
@@ -37,7 +39,7 @@ export default async function NewProgramPage() {
         <input type="hidden" name="_action" value="create" />
         <Card title="Identity" note="Name and code identify the program; kind and fleet decide what the builder offers. Kind and fleet cannot be changed afterwards - a different kind is a different program.">
           <div className="form-grid">
-            <div className="field"><label htmlFor="name">Name *</label><input id="name" name="name" required minLength={3} maxLength={120} placeholder="e.g. EBT M1 Phase II - Day 1 (A320)" /></div>
+            <div className="field"><label htmlFor="name">Name *</label><input id="name" name="name" required minLength={3} maxLength={120} placeholder="e.g. EBT Module 1" /></div>
             <div className="field"><label htmlFor="code">Code</label><input id="code" name="code" maxLength={63} pattern="[a-z0-9][a-z0-9_.-]{0,62}" className="mono" placeholder="left empty: made from the name" /></div>
             <div className="field">
               <label htmlFor="kind">Kind *</label>
@@ -59,16 +61,10 @@ export default async function NewProgramPage() {
         <Card title="Set-up" note="The declared period is what the time budget is measured against. The program grouping ties the days of one module together on the list; leave it empty for a standalone program.">
           <div className="form-grid">
             <div className="field"><label htmlFor="period">Period (H:MM)</label><input id="period" name="period" defaultValue="4:00" pattern="\d{1,2}:[0-5]\d" className="mono" /></div>
-            <div className="field">
-              <label htmlFor="device">Default device</label>
-              <select id="device" name="device" defaultValue="">
-                <option value="">-</option>
-                {devices.map((d) => <option key={d.value} value={d.value}>{d.value} - {d.label}</option>)}
-              </select>
-            </div>
-            <div className="field"><label htmlFor="program_code">Program</label><input id="program_code" name="program_code" maxLength={40} className="mono" placeholder="e.g. M1-PII" /></div>
-            <div className="field"><label htmlFor="program_module">Module</label><input id="program_module" name="program_module" maxLength={40} placeholder="e.g. M1" /></div>
+            <div className="field"><label htmlFor="program_code">Program</label><input id="program_code" name="program_code" maxLength={40} className="mono" placeholder="e.g. EBT-REC" /></div>
+            <div className="field"><label htmlFor="program_module">Module</label><input id="program_module" name="program_module" maxLength={40} placeholder="e.g. Module 1" /></div>
             <div className="field"><label htmlFor="program_phase">Phase</label><input id="program_phase" name="program_phase" maxLength={40} placeholder="e.g. II" /></div>
+            <div className="field"><label htmlFor="program_year">Year</label><input id="program_year" name="program_year" type="number" min={2000} max={2100} defaultValue={thisYear} className="mono" /></div>
             <div className="field"><label htmlFor="program_day">Day</label><input id="program_day" name="program_day" type="number" min={1} max={30} /></div>
             <div className="field"><label htmlFor="cycle_months">Cycle (months)</label><input id="cycle_months" name="cycle_months" type="number" min={1} max={60} /></div>
           </div>
