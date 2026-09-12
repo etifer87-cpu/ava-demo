@@ -30,7 +30,9 @@
     "seed:program": "node --env-file=.env scripts/seed-program.mjs",
     "gen:programs": "node scripts/gen-programs.mjs",
     "gen:roster": "node scripts/gen-roster.mjs",
-    "seed:roster": "node --env-file=.env scripts/seed-roster.mjs"
+    "seed:roster": "node --env-file=.env scripts/seed-roster.mjs",
+    "gen:history": "node --env-file=.env scripts/seed-history.mjs --plan",
+    "seed:history": "node --env-file=.env scripts/seed-history.mjs"
   },
   "dependencies": {
     "next": "^16.0.0",

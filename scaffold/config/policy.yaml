@@ -20,9 +20,9 @@
 # No operator content. Every vocabulary below is a neutral starter list.
 # ---------------------------------------------------------------------------
 
-version: "1.8"
+version: "1.9"
 updated: "2026-09-12"
-note: "v1.8: roster section (section 10) - the pilot population the roster generator builds. v1.7: A330 fleet and device withdrawn (A320 and B787 only). v1.6: reinf phase reads Additional training. v1.5: signature statements and the objection rule (section 5). v1.4: program builder vocabulary (section 9). v1.3: display labels (subject reads as Pilot). v1.2: Avianca operator context. Vocabularies replaced with the operator's own (bases, fleets, seats, instructor roles, EBT session kinds, outcome terms). v1.1: the db_kind mapping and the element-catalogue db_type mapping are gone - migrations 0032 and 0033 widened the schema to carry the real vocabulary, so both levels collapsed into one."
+note: "v1.9: history section (section 11) - the training history the generator writes. v1.8: roster section (section 10) - the pilot population the roster generator builds. v1.7: A330 fleet and device withdrawn (A320 and B787 only). v1.6: reinf phase reads Additional training. v1.5: signature statements and the objection rule (section 5). v1.4: program builder vocabulary (section 9). v1.3: display labels (subject reads as Pilot). v1.2: Avianca operator context. Vocabularies replaced with the operator's own (bases, fleets, seats, instructor roles, EBT session kinds, outcome terms). v1.1: the db_kind mapping and the element-catalogue db_type mapping are gone - migrations 0032 and 0033 widened the schema to carry the real vocabulary, so both levels collapsed into one."
 
 # ---------------------------------------------------------------------------
 # 1. Template kinds - docs/04_ETR.md section 4.
@@ -471,3 +471,45 @@ roster:
   given_names_male: ["Andrés", "Santiago", "Sebastián", "Juan Pablo", "Mateo", "Nicolás", "Felipe", "Alejandro", "Diego", "Tomás", "Carlos", "Julián", "Camilo", "Esteban", "Daniel", "David", "Jorge", "Luis", "Miguel", "Óscar", "Ricardo", "Rodrigo", "Samuel", "Simón", "Fabián", "Germán", "Hernán", "Iván", "Jaime", "Javier", "Leonardo", "Mauricio", "Pablo", "Rafael", "Raúl", "Sergio", "Álvaro", "Cristian", "Emilio", "Gonzalo", "Guillermo", "Héctor", "Jerónimo", "Lucas", "Martín", "Nelson", "Orlando", "Pedro", "Ramiro", "Vicente"]
   given_names_female: ["Camila", "Valentina", "Mariana", "Daniela", "Isabella", "Laura", "Gabriela", "Sara", "Paula", "Manuela", "Andrea", "Carolina", "Catalina", "Juliana", "Natalia", "Alejandra", "Ana María", "Diana", "Lina", "Luisa", "María José", "Melissa", "Silvia", "Sofía", "Verónica"]
   family_names: ["Restrepo", "Mejía", "Ochoa", "Velásquez", "Cárdenas", "Salazar", "Quintero", "Arango", "Betancur", "Zuluaga", "Montoya", "Giraldo", "Londoño", "Hoyos", "Ramírez", "Castaño", "Echeverri", "Vargas", "Osorio", "Jaramillo", "Acosta", "Aguilar", "Álvarez", "Ardila", "Barrera", "Beltrán", "Bermúdez", "Bonilla", "Cabrera", "Calderón", "Camacho", "Cano", "Carvajal", "Castro", "Cortés", "Delgado", "Duarte", "Escobar", "Espinosa", "Franco", "Galindo", "García", "Gómez", "González", "Guerrero", "Gutiérrez", "Herrera", "Hurtado", "Jiménez", "Lozano", "Marín", "Martínez", "Medina", "Molina", "Morales", "Moreno", "Muñoz", "Navarro", "Niño", "Ortiz", "Pardo", "Parra", "Peña", "Pérez", "Pineda", "Prieto", "Reyes", "Rincón", "Rivera", "Rodríguez", "Rojas", "Romero", "Ruiz", "Sánchez", "Sierra", "Suárez", "Torres", "Valencia", "Vélez", "Villamil"]
+
+# ---------------------------------------------------------------------------
+# 11. History - the training history scripts/seed-history.mjs writes.
+#
+#    Three years of sessions and records for the roster against the published
+#    programs; see docs/avianca/07_HISTORY_GENERATOR.md. Rates and the grade
+#    model are demo choices; the planted patterns are what the analytics is
+#    expected to find, and data/history/patterns.json names who carries them.
+# ---------------------------------------------------------------------------
+history:
+  seed: "avianca-history-2026"
+  from: "2024-01-01"
+  as_of: "2026-09-12"
+  new_hire_grace_days: 90
+  routes:
+    A320: [[SKBO, SKCL], [SKBO, SKRG], [SKCL, SKRG], [SKRG, SKBO], [SKCL, SKBO], [SKRG, SKCL]]
+    B787: [[SKBO, KJFK], [KJFK, SKBO]]
+  grades:
+    mean: 3.45         # latent ability, grade units
+    pilot_sd: 0.35
+    session_sd: 0.4
+  rates:
+    objection: 0.005
+    repeat_passes: 0.9
+    fail_below: 2.2            # a pass/fail item fails when the latent draw is below this
+    not_proficient_twos: 5     # an EBT record with this many competencies at 2 (or any 1) is NOT PROFICIENT
+    line_check_fail_twos: 4
+  assessors:
+    usual_share: 0.6   # share of a pilot's sessions with the same instructor
+  lfus:
+    sectors_after_hire: 6      # line training after the type rating, before the first line check
+    sectors_after_upgrade: 10
+    sectors_after_fleet_change: 6
+  patterns:
+    decline_from: "2025-03-01"
+    decline_per_month: 0.06
+    strict_bias: 0.4
+    lenient_bias: 0.35
+    wlm_revision_from: "2025-03-01"
+    wlm_gain: 0.25
+    clo_weak_year: 2024
+    clo_penalty: 0.5
