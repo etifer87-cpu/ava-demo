@@ -38,7 +38,8 @@ const ROUTES = H.routes;
 /* ------------------------------------------------------------------ inputs */
 
 const roster = JSON.parse(await readFile(path.join(KIT_ROOT, 'data', 'roster', 'pilots.json'), 'utf8'));
-const pilots = roster.pilots.filter((p) => p.roster_status === 'active');
+const pilots = roster.pilots.filter((p) => p.roster_status === 'active' && !p.training_course);
+const trainees = roster.pilots.filter((p) => p.roster_status === 'active' && p.training_course);
 const candidates = roster.pilots.filter((p) => p.roster_status === 'candidate');
 const PROG_DIR = path.join(KIT_ROOT, 'data', 'programs');
 const programs = new Map();
@@ -66,7 +67,12 @@ function gradedExercises(def) {
 /* ------------------------------------------------------------------ the population model */
 
 const rng = makeRng(H.seed, 'history');
-const gauss = () => { let u = 0; let v = 0; while (u === 0) u = rng.next(); while (v === 0) v = rng.next(); return Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * v); };
+const gaussFrom = (r) => () => { let u = 0; let v = 0; while (u === 0) u = r.next(); while (v === 0) v = r.next(); return Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * v); };
+const gaussLine = gaussFrom(rng);
+const gauss = gaussLine;
+// Initial-training trainees draw from their own stream, so adding a course never moves a line pilot's history.
+const rngInitial = makeRng(H.seed, 'initial-training');
+const gaussInitial = gaussFrom(rngInitial);
 const COMPS = ['KNO', 'PRO', 'COM', 'FPA', 'FPM', 'LTW', 'PSD', 'SAW', 'WLM'];
 const byId = new Map(roster.pilots.map((p) => [p.external_id, p]));
 
@@ -74,8 +80,9 @@ const byId = new Map(roster.pilots.map((p) => [p.external_id, p]));
 const model = new Map();
 for (const p of roster.pilots) {
   const ability = {};
-  const base = H.grades.mean + gauss() * H.grades.pilot_sd;
-  for (const c of COMPS) ability[c] = base + gauss() * 0.18 + (p.fleet === 'B787' ? (c === 'KNO' ? 0.12 : c === 'FPM' ? -0.12 : 0) : 0);
+  const g = p.training_course ? gaussInitial : gauss;
+  const base = H.grades.mean + g() * H.grades.pilot_sd - (p.training_course ? 0.35 : 0);
+  for (const c of COMPS) ability[c] = base + g() * 0.18 + (p.fleet === 'B787' ? (c === 'KNO' ? 0.12 : c === 'FPM' ? -0.12 : 0) : 0);
   model.set(p.external_id, { ability, bias: 0, obHabit: null, decline: null });
 }
 const patterns = { declining: [], strict: null, lenient: null, habits: [], wlm_revision_from: H.patterns.wlm_revision_from, clo_scenario_year: H.patterns.clo_weak_year };
@@ -156,6 +163,34 @@ for (const p of pilots) {
 for (const [i, c] of candidates.entries()) {
   plans.push({ id: planId('screen', c.external_id, ''), kind: 'screen', program: 'screen.a320', fleet: 'A320', date: weekday(monthDay(AS_OF.getUTCFullYear(), 5 + Math.floor(i / 6), (i * 4) % 27)), subjects: [c.external_id], pool: 'examiner', screening: i < 3 ? 'RECOMMENDED' : i < 5 ? 'NOT RECOMMENDED' : 'PENDING' });
 }
+// Initial training: the type-rating pipeline per course, from the course start date. Sessions after
+// as_of stay planned, which is how the training-status page knows the stage each course is at.
+{
+  const T = H.initial_training;
+  const courses = new Map();
+  for (const t of trainees) { if (!courses.has(t.training_course)) courses.set(t.training_course, []); courses.get(t.training_course).push(t); }
+  for (const [code, members] of courses) {
+    const start = parseDate(members[0].joined_on); const fleet = members[0].fleet; const year = start.getUTCFullYear();
+    const ids = members.map((m) => m.external_id);
+    plans.push({ id: planId('trg', code, ''), kind: 'gs', program: `tr.${fleet.toLowerCase()}.${year}.ground`, fleet, date: weekday(addDays(start, T.ground_days)), subjects: ids, pool: 'ground', course: code, stage: 'ground' });
+    const crews = []; for (let i = 0; i < members.length; i += 2) crews.push(members.slice(i, i + 2));
+    let day = T.ground_days;
+    for (let n = 1; n <= T.ffs_sessions; n += 1) {
+      day += T.ffs_every_days;
+      for (const [ci, crew] of crews.entries()) plans.push({ id: planId('trffs', `${code}-${n}-${ci}`, ''), kind: 'trffs', program: `tr.${fleet.toLowerCase()}.${year}.ffs${n}`, fleet, date: weekday(addDays(start, day + (ci % 2))), subjects: crew.map((m) => m.external_id), pool: 'instructor', course: code, stage: 'simulator', session: n });
+    }
+    day += T.skill_test_after_days;
+    for (const [ci, crew] of crews.entries()) plans.push({ id: planId('trpc', `${code}-${ci}`, ''), kind: 'pc', program: `pc.${fleet.toLowerCase()}.${year}`, fleet, date: weekday(addDays(start, day + (ci % 2))), subjects: crew.map((m) => m.external_id), pool: 'examiner', check: 'LPC', course: code, stage: 'skill_test' });
+    for (const m of members) {
+      let d = day + T.skill_test_after_days;
+      for (let sct = 1; sct <= T.lfus_sectors; sct += 1) {
+        d += T.lfus_every_days;
+        plans.push({ id: planId('trlfus', `${m.external_id}-${sct}`, ''), kind: 'lfus', program: 'lfus.sector', fleet, date: weekday(addDays(start, d)), subjects: [m.external_id], pool: 'ltc', sector: sct, route: ROUTES[fleet][(m.seniority + sct) % ROUTES[fleet].length], pfOdd: sct % 2 === 1, course: code, stage: 'lfus' });
+      }
+      plans.push({ id: planId('trlc', m.external_id, ''), kind: 'lc', program: 'lc.line-check', fleet, date: weekday(addDays(start, d + T.line_check_after_days)), subjects: [m.external_id], pool: 'examiner', route: ROUTES[fleet][m.seniority % ROUTES[fleet].length], course: code, stage: 'line_check' });
+    }
+  }
+}
 plans.sort((a, b) => a.date - b.date || a.id.localeCompare(b.id));
 const planned = plans.filter((p) => p.date > AS_OF);
 const flown = plans.filter((p) => p.date <= AS_OF && p.date >= FROM);
@@ -190,7 +225,8 @@ const GRADES_C = ['C', 'NC'];
 
 function competencyDraw(plan, subjectId, assessor, comp, date) {
   const m = model.get(subjectId); const a = model.get(assessor.external_id);
-  let x = m.ability[comp] + a.bias + gauss() * H.grades.session_sd;
+  const g = plan.course ? gaussInitial : gaussLine;
+  let x = m.ability[comp] + a.bias + g() * H.grades.session_sd;
   if (m.decline && date >= m.decline.from && m.decline.comps.includes(comp)) x += m.decline.perMonth * ((date - m.decline.from) / (30.4 * 86400000));
   if (comp === 'WLM' && date >= parseDate(H.patterns.wlm_revision_from)) x += H.patterns.wlm_gain;
   return x;
@@ -200,6 +236,7 @@ const clip = (x) => Math.max(1, Math.min(5, Math.round(x)));
 function gradeSession(plan, subject, assessor) {
   const prog = programs.get(plan.program);
   const p = byId.get(subject);
+  const gauss = plan.course ? gaussInitial : gaussLine;
   const tasks = []; const comps = new Map(); let failed = 0;
   // One latent per competency for the session; tasks read their focus competencies.
   const latent = {}; for (const c of COMPS) latent[c] = competencyDraw(plan, subject, assessor, c, plan.date);
@@ -232,6 +269,7 @@ function outcomeFor(plan, graded) {
   const repeatedOk = graded.tasks.filter((t) => t.attempt === 2).length;
   switch (plan.kind) {
     case 'ebt': return ones > 0 || twos >= H.rates.not_proficient_twos ? 'NOT PROFICIENT' : 'PROFICIENT';
+    case 'trffs': return graded.tasks.filter((t) => Number(t.grade) <= 2).length >= 2 ? 'REPEAT' : 'PROGRESS';
     case 'pc': return fails - repeatedOk > 0 ? 'FAIL' : fails > 0 || ones > 0 ? 'PARTIAL PASS' : 'PASS';
     case 'lc': return ones > 0 || twos >= H.rates.line_check_fail_twos ? 'FAIL' : 'PASS';
     case 'gs': return graded.tasks.filter((t) => Number(t.grade) <= 2).length >= 4 ? 'NOT PROFICIENT' : 'PROFICIENT';
@@ -246,7 +284,8 @@ function outcomeFor(plan, graded) {
 const summary = {
   seed: H.seed, from: H.from, as_of: H.as_of, pilots: pilots.length, candidates: candidates.length,
   sessions_flown: flown.length, sessions_planned: planned.length,
-  by_kind: Object.fromEntries(['ebt', 'pc', 'gs', 'lc', 'lfus', 'screen'].map((k) => [k, flown.filter((p) => p.kind === k).length])),
+  by_kind: Object.fromEntries(['ebt', 'pc', 'gs', 'lc', 'lfus', 'screen', 'trffs'].map((k) => [k, flown.filter((p) => p.kind === k).length])),
+  initial_training: Object.fromEntries([...new Set(plans.filter((p) => p.course).map((p) => p.course))].map((c) => [c, { flown: flown.filter((p) => p.course === c).length, planned: planned.filter((p) => p.course === c).length, stage: (flown.filter((p) => p.course === c).at(-1)?.stage ?? 'not started') }])),
   records_expected: flown.reduce((n, p) => n + p.subjects.length, 0),
 };
 await mkdir(path.join(KIT_ROOT, 'data', 'history'), { recursive: true });
@@ -312,7 +351,7 @@ try {
     const signAt = `${date}T${plan.kind === 'gs' ? '17:30' : '16:45'}:00Z`;
     const subjectsGraded = isPlanned ? [] : plan.subjects.map((s) => ({ s, g: gradeSession(plan, s, assessor) }));
     const objected = !isPlanned && plan.kind !== 'screen' && rng.chance(H.rates.objection) ? subjectsGraded[0] : null;
-    const setup = { plan_seed: H.seed, plan_id: plan.id, kind: plan.kind, ...(plan.check ? { check: plan.check } : {}), ...(plan.route ? { departure: plan.route[0], arrival: plan.route[1], aircraft_type: plan.fleet, registration: plan.fleet === 'B787' ? 'N787AV' : 'N320AV' } : {}), ...(plan.sector ? { sector_number: plan.sector } : {}), ...(objected ? { objection: { reason: 'The grade on the second sector does not reflect what was flown; the failure was inserted before the briefing was complete.', by: people.get(objected.s).full_name, at: `${date}T18:10:00Z` } } : {}) };
+    const setup = { plan_seed: H.seed, plan_id: plan.id, kind: plan.kind, ...(plan.course ? { course: plan.course, stage: plan.stage, session_number: plan.session ?? null } : {}), ...(plan.check ? { check: plan.check } : {}), ...(plan.route ? { departure: plan.route[0], arrival: plan.route[1], aircraft_type: plan.fleet, registration: plan.fleet === 'B787' ? 'N787AV' : 'N320AV' } : {}), ...(plan.sector ? { sector_number: plan.sector } : {}), ...(objected ? { objection: { reason: 'The grade on the second sector does not reflect what was flown; the failure was inserted before the briefing was complete.', by: people.get(objected.s).full_name, at: `${date}T18:10:00Z` } } : {}) };
     const status = isPlanned ? 'in_progress' : objected ? 'submitted' : 'finalized';
     const { rows: srows } = await client.query(
       `INSERT INTO sessions (template_version_id, framework_id, org_unit_id, asset_class_id, session_date, facility, facility_kind, assessor_person_id, status, outcome, remarks, setup, assessor_signed_at, created_at)

@@ -36,17 +36,17 @@ try {
     for (const r of p.instructor_roles) if (!ROLE_ORDER.includes(r)) throw new Error(`${p.external_id}: instructor role ${r} is not in policy.yaml instructor_roles`);
     await client.query(
       `INSERT INTO people (external_id, full_name, position, org_unit_id, asset_class_id, instructor_role, is_active, joined_on,
-                           seniority_number, sex, licence_number, total_hours, hours_on_type, rank_since, fleet_since, instructor_roles, roster_status, left_on)
-       VALUES ($1, $2, $3, $4::uuid, $5::uuid, $6, $7, $8::date, $9, $10, $11, $12, $13, $14::date, $15::date, $16::text[], $17, $18::date)
+                           seniority_number, sex, licence_number, total_hours, hours_on_type, rank_since, fleet_since, instructor_roles, roster_status, left_on, training_course)
+       VALUES ($1, $2, $3, $4::uuid, $5::uuid, $6, $7, $8::date, $9, $10, $11, $12, $13, $14::date, $15::date, $16::text[], $17, $18::date, $19)
        ON CONFLICT (external_id) WHERE deleted_at IS NULL DO UPDATE SET
          full_name = EXCLUDED.full_name, position = EXCLUDED.position, org_unit_id = EXCLUDED.org_unit_id, asset_class_id = EXCLUDED.asset_class_id,
          instructor_role = EXCLUDED.instructor_role, is_active = EXCLUDED.is_active, joined_on = EXCLUDED.joined_on,
          seniority_number = EXCLUDED.seniority_number, sex = EXCLUDED.sex, licence_number = EXCLUDED.licence_number, total_hours = EXCLUDED.total_hours,
          hours_on_type = EXCLUDED.hours_on_type, rank_since = EXCLUDED.rank_since, fleet_since = EXCLUDED.fleet_since, instructor_roles = EXCLUDED.instructor_roles,
-         roster_status = EXCLUDED.roster_status, left_on = EXCLUDED.left_on`,
+         roster_status = EXCLUDED.roster_status, left_on = EXCLUDED.left_on, training_course = EXCLUDED.training_course`,
       [p.external_id, p.full_name, p.position, p.base ? orgByCode.get(p.base) : null, p.fleet ? fleetByCode.get(p.fleet) : null, highest(p.instructor_roles),
        p.roster_status === 'active', p.joined_on, p.seniority, p.sex, p.licence_number, p.total_hours, p.hours_on_type, p.rank_since, p.fleet_since,
-       p.instructor_roles, p.roster_status, p.left_on ?? null],
+       p.instructor_roles, p.roster_status, p.left_on ?? null, p.training_course ?? null],
     );
     n += 1;
   }

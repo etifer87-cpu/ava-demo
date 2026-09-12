@@ -20,9 +20,9 @@
 # No operator content. Every vocabulary below is a neutral starter list.
 # ---------------------------------------------------------------------------
 
-version: "1.10"
+version: "1.12"
 updated: "2026-09-12"
-note: "v1.10: competency display names for compact titles. v1.9: history section (section 11) - the training history the generator writes. v1.8: roster section (section 10) - the pilot population the roster generator builds. v1.7: A330 fleet and device withdrawn (A320 and B787 only). v1.6: reinf phase reads Additional training. v1.5: signature statements and the objection rule (section 5). v1.4: program builder vocabulary (section 9). v1.3: display labels (subject reads as Pilot). v1.2: Avianca operator context. Vocabularies replaced with the operator's own (bases, fleets, seats, instructor roles, EBT session kinds, outcome terms). v1.1: the db_kind mapping and the element-catalogue db_type mapping are gone - migrations 0032 and 0033 widened the schema to carry the real vocabulary, so both levels collapsed into one."
+note: "v1.12: training status items (section 13). v1.11: initial training courses (roster) and the type-rating pipeline (history). v1.10: competency display names for compact titles. v1.9: history section (section 11) - the training history the generator writes. v1.8: roster section (section 10) - the pilot population the roster generator builds. v1.7: A330 fleet and device withdrawn (A320 and B787 only). v1.6: reinf phase reads Additional training. v1.5: signature statements and the objection rule (section 5). v1.4: program builder vocabulary (section 9). v1.3: display labels (subject reads as Pilot). v1.2: Avianca operator context. Vocabularies replaced with the operator's own (bases, fleets, seats, instructor roles, EBT session kinds, outcome terms). v1.1: the db_kind mapping and the element-catalogue db_type mapping are gone - migrations 0032 and 0033 widened the schema to carry the real vocabulary, so both levels collapsed into one."
 
 # ---------------------------------------------------------------------------
 # 1. Template kinds - docs/04_ETR.md section 4.
@@ -467,6 +467,16 @@ roster:
     named:
       - { name: "Andrea Betancur", sex: F, fleet: A320, position: CP, roles: [TRI] }
   candidates: 15
+  # New first officers in initial training, on top of `total`. Each course is one intake: seniority
+  # continues after the last line pilot, all A320 FO, hours on type zero. The stage each course has
+  # reached on `as_of` follows from its start date and the pipeline in `history.initial_training`.
+  initial_training:
+    courses:
+      - { code: "TR-2026-1", start: "2026-06-01", size: 12 }   # in line training (LFUS) on as_of
+      - { code: "TR-2026-2", start: "2026-07-27", size: 12 }   # in the simulator phase
+      - { code: "TR-2026-3", start: "2026-08-24", size: 12 }   # in ground school
+    fleet: A320
+    hours_before_joining: [250, 1200]
   licence: { CP: "COL-ATPL-", FO: "COL-CPL-" }
   given_names_male: ["Andrés", "Santiago", "Sebastián", "Juan Pablo", "Mateo", "Nicolás", "Felipe", "Alejandro", "Diego", "Tomás", "Carlos", "Julián", "Camilo", "Esteban", "Daniel", "David", "Jorge", "Luis", "Miguel", "Óscar", "Ricardo", "Rodrigo", "Samuel", "Simón", "Fabián", "Germán", "Hernán", "Iván", "Jaime", "Javier", "Leonardo", "Mauricio", "Pablo", "Rafael", "Raúl", "Sergio", "Álvaro", "Cristian", "Emilio", "Gonzalo", "Guillermo", "Héctor", "Jerónimo", "Lucas", "Martín", "Nelson", "Orlando", "Pedro", "Ramiro", "Vicente"]
   given_names_female: ["Camila", "Valentina", "Mariana", "Daniela", "Isabella", "Laura", "Gabriela", "Sara", "Paula", "Manuela", "Andrea", "Carolina", "Catalina", "Juliana", "Natalia", "Alejandra", "Ana María", "Diana", "Lina", "Luisa", "María José", "Melissa", "Silvia", "Sofía", "Verónica"]
@@ -504,6 +514,17 @@ history:
     sectors_after_hire: 6      # line training after the type rating, before the first line check
     sectors_after_upgrade: 10
     sectors_after_fleet_change: 6
+  # The type-rating pipeline for an initial-training course, in days from the course start:
+  # ground school (one record at the end of the phase), FFS sessions every `ffs_every_days`,
+  # the skill test, then line flying under supervision and the first line check.
+  initial_training:
+    ground_days: 28
+    ffs_sessions: 8
+    ffs_every_days: 3
+    skill_test_after_days: 4
+    lfus_sectors: 20
+    lfus_every_days: 3
+    line_check_after_days: 5
   patterns:
     decline_from: "2025-03-01"
     decline_per_month: 0.06
@@ -523,3 +544,24 @@ competency_display_names:
   PRO: "Procedures and Compliance with Regulations"
   FPA: "Flight Path Management, automation"
   FPM: "Flight Path Management, manual control"
+
+# ---------------------------------------------------------------------------
+# 13. Training status - the recurrent items every line pilot must hold, and
+#    how long each is valid from the date of the last record. `kind` is the
+#    template kind whose records count; the status vocabulary and the warning
+#    window are the kit's (analytics.yaml `currency`). Initial-training pilots
+#    are shown by their course stage instead, read from their sessions.
+# ---------------------------------------------------------------------------
+training_status:
+  warning_days: 60
+  items:
+    - { key: ebt,          label: "EBT",          kind: ebt_recurrent,     validity_months: 6 }
+    - { key: opc_lpc,      label: "OPC / LPC",    kind: proficiency_check, validity_months: 12 }
+    - { key: line_check,   label: "Line check",   kind: line_check,        validity_months: 12 }
+    - { key: ground,       label: "Ground school", kind: ground_school,    validity_months: 12 }
+  stages:
+    ground:     "Ground school"
+    simulator:  "Simulator"
+    skill_test: "Skill test"
+    lfus:       "Line training (LFUS)"
+    line_check: "Line check"
