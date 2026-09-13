@@ -74,8 +74,8 @@ export default async function InstructorPage({ params, searchParams }: { params:
   const statusTone = prof.status === 'current' ? 'good' : prof.status === 'dormant' ? 'warn' : 'neutral';
   const maxDist = Math.max(1, ...prof.distribution.map((d) => Math.max(d.own / Math.max(1, prof.ownGrades), d.all / Math.max(1, prof.allGrades))));
   const residualRange = Math.max(0.5, ...prof.monthly.map((m) => Math.abs(m.value ?? 0)));
-  // analytics.yaml assessor_fairness.expected is read by the SQL views; the page reads one threshold from it for the caveat.
-  const maxFallback = (cfg.assessor_fairness as { expected?: { max_share_above_level_1_for_banding?: number } }).expected?.max_share_above_level_1_for_banding ?? 0.1;
+  // The share of expected grades that fell back past level 1, above which banding is stated with a caveat.
+  const maxFallback = cfg.assessor_fairness.expected.max_share_above_level_1_for_banding;
 
   return (
     <div className="stack" data-testid="instructor-profile">

@@ -72,7 +72,7 @@ export function DeltaScatter({
   return (
     <figure style={{ margin: 0 }}>
       <svg viewBox={`0 0 ${width} ${height}`} width="100%" role="img" aria-labelledby={`${cid}-t`} style={{ fontFamily: tokens.fontStack }}>
-        <title id={`${cid}-t`}>Adjusted leniency against the grades behind it, {points.length} instructors</title>
+        <title id={`${cid}-t`}>{`Adjusted leniency against the grades behind it, ${points.length} instructors`}</title>
 
         {rings.map((r) => (
           <g key={r.label}>

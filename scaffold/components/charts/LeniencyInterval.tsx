@@ -13,6 +13,10 @@ import { chartId, PAD } from './chart-tokens';
  * The INTERVAL is the point of the chart. A delta of +0.30 whose interval spans zero is a different
  * statement from a delta of +0.30 that sits clear of it, and a single number cannot tell them apart.
  *
+ * An SVG <title> takes ONE string child, never interleaved text and expressions: React separates
+ * adjacent text children with comment nodes on the server, the browser's SVG parser drops them, and
+ * the mismatch makes React throw the subtree away and re-render it.
+ *
  * Server component, no hooks: `id` is a required prop (see chartId).
  */
 export function LeniencyInterval({

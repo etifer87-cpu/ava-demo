@@ -38,7 +38,7 @@ export function AsiHistogram({
   return (
     <figure style={{ margin: 0 }}>
       <svg viewBox={`0 0 ${width} ${height}`} width="100%" role="img" aria-labelledby={`${cid}-t`} style={{ fontFamily: tokens.fontStack }}>
-        <title id={`${cid}-t`}>Standardisation index across {scores.length} banded instructors</title>
+        <title id={`${cid}-t`}>{`Standardisation index across ${scores.length} banded instructors`}</title>
         {[0, 0.5, 1].map((f) => (
           <line key={f} x1={PAD.left} x2={width - PAD.right} y1={PAD.top + innerH - f * innerH} y2={PAD.top + innerH - f * innerH} stroke={tokens.surface.grid} strokeWidth="1" />
         ))}

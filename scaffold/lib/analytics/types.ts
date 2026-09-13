@@ -119,6 +119,23 @@ export interface AnalyticsConfig {
   };
   flagged_record: { grade_1_at_least: number; grade_2_at_least: number };
   assessor_fairness: {
+    expected: {
+      half_life: number;
+      window_rank: number;
+      min_grades: number;
+      /** Above this share of rows resolving past level 1, a surface states the caveat rather than banding quietly. */
+      max_share_above_level_1_for_banding: number;
+    };
+    justification: {
+      /** A grade at or below this needs a substantive remark; the rule is definitional. */
+      grade_max: number;
+      /** Below this word count a remark is not substantive. */
+      min_words: number;
+      /** Grades at or above this with no comment are never penalised, anywhere. */
+      never_penalise_grade_min: number;
+      /** A keyword rule alone must never cap a band; masking needs the model layer. */
+      masking_requires_model?: boolean;
+    };
     adjusted_delta: {
       k_shrink: number;
       ci_z: number;

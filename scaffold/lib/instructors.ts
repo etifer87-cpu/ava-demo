@@ -395,7 +395,7 @@ export async function benchAnalysis(f: BenchFilters, visible: Set<string> | null
       provisional: rows.filter((r) => r.is_provisional).length,
       outliers: rows.filter((r) => r.is_outlier).length,
       grades: rows.reduce((s, r) => s + r.n_grades, 0),
-      fellBack: rows.filter((r) => (r.share_above_level_1 ?? 0) > ((cfg.assessor_fairness as { expected?: { max_share_above_level_1_for_banding?: number } }).expected?.max_share_above_level_1_for_banding ?? 0.1)).length,
+      fellBack: rows.filter((r) => (r.share_above_level_1 ?? 0) > (cfg.assessor_fairness.expected.max_share_above_level_1_for_banding)).length,
     },
   };
 }
