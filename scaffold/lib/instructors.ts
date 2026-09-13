@@ -57,6 +57,38 @@ export const LEANING_TONE: Record<Leaning, 'good' | 'warn' | 'bad' | 'info' | 'n
 
 const num = (v: string | number | null | undefined): number | null => (v === null || v === undefined ? null : Number(v));
 
+/** The habit quantities the standardisation index is built from, per instructor. */
+export interface AsiInputs {
+  delta_adjusted: number | null;
+  sigma_grade: number | null;
+  n_records: number;
+  n_halo: number; n_halo_eligible: number;
+  n_below: number; n_substantive: number;
+  nr_excess: number | null;
+  /** One point per month with grades: x in days, y the mean residual. */
+  monthly: { x: number; mean_residual: number | null }[];
+}
+
+export interface AsiDerived { asi: AsiResult; halo_rate: number | null; justification_rate: number | null; drift: number | null }
+
+/**
+ * The index and the three rates behind it, from lib/analytics/assessor-fairness.ts. One function so
+ * the bench, the profile and the analysis page cannot disagree: a term is unavailable here exactly
+ * where its input cannot exist, which is what makes the rescaling honest (docs/06 §13.5).
+ */
+export function computeAsi(i: AsiInputs, cfg: AnalyticsConfig): AsiDerived {
+  const halo_rate = i.n_halo_eligible > 0 ? i.n_halo / i.n_halo_eligible : null;
+  const justification_rate = justificationRate(i.n_substantive, i.n_below);
+  const points = i.monthly.filter((m) => m.mean_residual !== null).map((m) => ({ x: m.x, y: m.mean_residual as number }));
+  const slope = points.length >= cfg.trend.min_points ? olsSlope(points) : null;
+  const drift = slope === null ? null : slope * cfg.trend.slope_interval_days;
+  const asi = standardisationIndex({
+    delta: i.delta_adjusted, sigma: i.sigma_grade, justificationRate: justification_rate, haloRate: halo_rate,
+    drift, notObservedExcess: i.nr_excess, nRecords: i.n_records,
+  }, {}, cfg);
+  return { asi, halo_rate, justification_rate, drift };
+}
+
 interface RawBench {
   id: string; external_id: string; seniority_number: number | null; full_name: string; position: string | null; fleet: string | null; base: string | null; instructor_roles: string[] | null;
   sessions_12m: number; sim_12m: number; line_12m: number; ground_12m: number; planned: number; last_session: string | null;
@@ -196,19 +228,15 @@ export async function getInstructor(id: string): Promise<InstructorProfile | nul
 
   const nHalo = Number(halo?.n_halo_records ?? 0); const nHaloEligible = Number(halo?.n_eligible_records ?? 0);
   const nBelow = Number(just?.n_below_standard ?? 0); const nSubstantive = Number(just?.n_substantive ?? 0);
-  const haloRate = nHaloEligible > 0 ? nHalo / nHaloEligible : null;
-  const jRate = justificationRate(nSubstantive, nBelow);
   const nrExcess = num(nr?.nr_excess as string | null);
-
-  // Drift: OLS slope of the monthly mean residual over time, expressed per slope interval.
-  const slopeDays = cfg.trend.slope_interval_days;
-  const monthPoints = monthly.filter((m) => m.mean_residual !== null).map((m) => ({ x: Number(m.x), y: Number(m.mean_residual) }));
-  const slope = monthPoints.length >= 3 ? olsSlope(monthPoints) : null;
-  const drift = slope === null ? null : slope * slopeDays;
-
-  const asi = adj ? standardisationIndex({
-    delta: adj.delta_adjusted, sigma: adj.sigma_grade, justificationRate: jRate, haloRate, drift, notObservedExcess: nrExcess, nRecords: adj.n_records,
-  }, {}, cfg) : null;
+  const derived = adj ? computeAsi({
+    delta_adjusted: adj.delta_adjusted, sigma_grade: adj.sigma_grade, n_records: adj.n_records,
+    n_halo: nHalo, n_halo_eligible: nHaloEligible, n_below: nBelow, n_substantive: nSubstantive, nr_excess: nrExcess,
+    monthly: monthly.map((m) => ({ x: Number(m.x), mean_residual: m.mean_residual === null ? null : Number(m.mean_residual) })),
+  }, cfg) : null;
+  const haloRate = derived?.halo_rate ?? null;
+  const jRate = derived?.justification_rate ?? null;
+  const asi = derived?.asi ?? null;
 
   const lastGraded = activity?.last_session as string | null;
   const dormantDays = cfg.assessor_fairness.status.dormant_after_days;
@@ -232,5 +260,142 @@ export async function getInstructor(id: string): Promise<InstructorProfile | nul
     obHabits: obs.map((o) => ({ code: String(o.code), text: String(o.text), competency: String(o.competency), own_n: Number(o.own_n), own_share: Number(o.own_share), all_share: Number(o.all_share) })),
     monthly: monthly.map((m) => ({ on: String(m.on), value: m.mean_residual === null ? null : Number(m.mean_residual), label: `${String(m.on).slice(0, 7)} · ${m.n} grades · mean residual ${Number(m.mean_residual).toFixed(2)}` })),
     asi,
+  };
+}
+
+// ------------------------------------------------------------------- the bench, analysed together
+
+export interface AnalysisRow {
+  id: string; external_id: string; seniority_number: number | null; full_name: string; position: string | null;
+  fleet: string | null; base: string | null; instructor_roles: string[];
+  n_grades: number; n_records: number; n_subjects: number;
+  mean_grade: number | null; sigma_grade: number | null;
+  delta_adjusted: number | null; delta_unadjusted: number | null; ci_half_width: number | null;
+  is_provisional: boolean; is_outlier: boolean; share_above_level_1: number | null;
+  asi: AsiResult | null; halo_rate: number | null; justification_rate: number | null; drift: number | null;
+  /** Own mean per competency id, and the raw residual, for the bias heatmap. */
+  cells: Record<string, { n: number; own_mean: number | null; mean_residual: number | null }>;
+}
+
+export interface BenchAnalysis {
+  rows: AnalysisRow[];
+  competencies: { id: string; code: string; name: string; colour: string; group_mean: number | null; n: number }[];
+  groupMean: number | null;
+  /** Median adjusted delta over the instructors that are banded; the reference rule on every chart. */
+  peerMedianDelta: number | null;
+  totals: { instructors: number; banded: number; provisional: number; outliers: number; grades: number; fellBack: number };
+}
+
+/**
+ * The whole bench with its standardisation figures, for /instructors/analysis.
+ *
+ * Reads the materialised assessor views only (migration 0147), so this is a handful of indexed
+ * scans rather than the expected-grade join. Every instructor's ASI is computed by computeAsi, the
+ * same function the individual profile uses.
+ *
+ * Baselines - the peer mean per competency, the group mean, the median delta - are computed over
+ * EVERY instructor, including one the caller cannot see: excluding them would give each viewer a
+ * different baseline, which is the distinction docs/06 §13.7 requires the surface to state. The
+ * ROWS honour the caller's scope, which for this capability excludes the caller themselves.
+ */
+export async function benchAnalysis(f: BenchFilters, visible: Set<string> | null): Promise<BenchAnalysis> {
+  const cfg = analyticsConfig<AnalyticsConfig>();
+  const where: string[] = ["p.deleted_at IS NULL AND p.roster_status = 'active' AND cardinality(p.instructor_roles) > 0"];
+  const params: unknown[] = [];
+  if (visible) { if (visible.size === 0) where.push('false'); else { params.push([...visible]); where.push(`p.id = ANY($${params.length}::uuid[])`); } }
+  if (f.q) { params.push(`%${f.q}%`); where.push(`(p.full_name ILIKE $${params.length} OR p.external_id ILIKE $${params.length})`); }
+  if (f.fleet) { params.push(f.fleet); where.push(`ac.code = $${params.length}`); }
+  if (f.base) { params.push(f.base); where.push(`ou.code = $${params.length}`); }
+  if (f.qual) { params.push(f.qual); where.push(`$${params.length} = ANY(p.instructor_roles)`); }
+
+  type R = Record<string, string | number | boolean | string[] | null>;
+  const people = await query<R>(`
+    SELECT p.id, p.external_id, p.seniority_number, p.full_name, p.position, ac.code AS fleet, ou.code AS base, p.instructor_roles,
+           a.n_grades, a.n_records, a.n_subjects, a.mean_grade::text AS mean_grade, a.sigma_grade::text AS sigma_grade,
+           a.delta_adjusted::text AS delta_adjusted, a.delta_unadjusted::text AS delta_unadjusted, a.ci_half_width::text AS ci_half_width,
+           a.is_provisional, a.is_outlier, a.share_above_level_1::text AS share_above_level_1,
+           h.n_halo_records, h.n_eligible_records, j.n_below_standard, j.n_substantive, nr.nr_excess::text AS nr_excess
+      FROM people p
+      LEFT JOIN asset_classes ac ON ac.id = p.asset_class_id
+      LEFT JOIN org_units ou ON ou.id = p.org_unit_id
+      JOIN mv_assessor_adjusted a ON a.assessor_id = p.id
+      LEFT JOIN mv_assessor_halo h ON h.assessor_id = p.id
+      LEFT JOIN mv_assessor_justification j ON j.assessor_id = p.id
+      LEFT JOIN mv_assessor_nr_excess nr ON nr.assessor_id = p.id
+     WHERE ${where.join(' AND ')}
+     ORDER BY a.delta_adjusted DESC NULLS LAST`, params);
+  const ids = people.map((r) => String(r.id));
+
+  const [monthly, cells, comps] = await Promise.all([
+    ids.length ? query<R>(`SELECT assessor_id, (sum_x / NULLIF(n_grades, 0))::text AS x, (sum_r / NULLIF(n_grades, 0))::text AS mean_residual
+                             FROM mv_assessor_monthly WHERE assessor_id = ANY($1::uuid[]) ORDER BY period_month`, [ids]) : [],
+    ids.length ? query<R>(`SELECT assessor_id, competency_id, n, own_mean::text AS own_mean, mean_residual::text AS mean_residual
+                             FROM mv_assessor_competency_raw WHERE assessor_id = ANY($1::uuid[])`, [ids]) : [],
+    query<R>(`
+      SELECT c.id, c.code, c.name, c.colour, g.group_mean::text AS group_mean, COALESCE(g.n, 0) AS n
+        FROM competencies c JOIN competency_frameworks fr ON fr.id = c.framework_id AND fr.is_active
+        LEFT JOIN mv_assessor_group g ON g.competency_id = c.id AND NOT g.everyone
+       WHERE c.is_active ORDER BY c.position, c."index"`),
+  ]);
+  const overall = await queryOne<R>(`SELECT group_mean::text AS m FROM mv_assessor_group WHERE everyone`);
+
+  const monthsBy = new Map<string, { x: number; mean_residual: number | null }[]>();
+  for (const m of monthly) {
+    const k = String(m.assessor_id);
+    if (!monthsBy.has(k)) monthsBy.set(k, []);
+    monthsBy.get(k)!.push({ x: Number(m.x), mean_residual: num(m.mean_residual as string | null) });
+  }
+  const cellsBy = new Map<string, AnalysisRow['cells']>();
+  for (const c of cells) {
+    const k = String(c.assessor_id);
+    if (!cellsBy.has(k)) cellsBy.set(k, {});
+    cellsBy.get(k)![String(c.competency_id)] = { n: Number(c.n), own_mean: num(c.own_mean as string | null), mean_residual: num(c.mean_residual as string | null) };
+  }
+
+  const rows: AnalysisRow[] = people.map((r) => {
+    const id = String(r.id);
+    const delta_adjusted = num(r.delta_adjusted as string | null);
+    const sigma_grade = num(r.sigma_grade as string | null);
+    const n_records = Number(r.n_records);
+    const derived = computeAsi({
+      delta_adjusted, sigma_grade, n_records,
+      n_halo: Number(r.n_halo_records ?? 0), n_halo_eligible: Number(r.n_eligible_records ?? 0),
+      n_below: Number(r.n_below_standard ?? 0), n_substantive: Number(r.n_substantive ?? 0),
+      nr_excess: num(r.nr_excess as string | null),
+      monthly: monthsBy.get(id) ?? [],
+    }, cfg);
+    return {
+      id, external_id: String(r.external_id), seniority_number: num(r.seniority_number as number | null), full_name: String(r.full_name),
+      position: r.position as string | null, fleet: r.fleet as string | null, base: r.base as string | null,
+      instructor_roles: (r.instructor_roles as string[] | null) ?? [],
+      n_grades: Number(r.n_grades), n_records, n_subjects: Number(r.n_subjects),
+      mean_grade: num(r.mean_grade as string | null), sigma_grade,
+      delta_adjusted, delta_unadjusted: num(r.delta_unadjusted as string | null), ci_half_width: num(r.ci_half_width as string | null),
+      is_provisional: Boolean(r.is_provisional), is_outlier: Boolean(r.is_outlier),
+      share_above_level_1: num(r.share_above_level_1 as string | null),
+      asi: derived.asi, halo_rate: derived.halo_rate, justification_rate: derived.justification_rate, drift: derived.drift,
+      cells: cellsBy.get(id) ?? {},
+    };
+  });
+
+  const banded = rows.filter((r) => !r.is_provisional && r.delta_adjusted !== null);
+  const sorted = banded.map((r) => r.delta_adjusted as number).sort((a, b) => a - b);
+  const peerMedianDelta = sorted.length === 0 ? null
+    : sorted.length % 2 ? sorted[(sorted.length - 1) / 2]!
+    : ((sorted[sorted.length / 2 - 1]! + sorted[sorted.length / 2]!) / 2);
+
+  return {
+    rows,
+    competencies: comps.map((c) => ({ id: String(c.id), code: String(c.code), name: String(c.name), colour: String(c.colour), group_mean: num(c.group_mean as string | null), n: Number(c.n) })),
+    groupMean: num(overall?.m as string | null),
+    peerMedianDelta,
+    totals: {
+      instructors: rows.length,
+      banded: banded.length,
+      provisional: rows.filter((r) => r.is_provisional).length,
+      outliers: rows.filter((r) => r.is_outlier).length,
+      grades: rows.reduce((s, r) => s + r.n_grades, 0),
+      fellBack: rows.filter((r) => (r.share_above_level_1 ?? 0) > ((cfg.assessor_fairness as { expected?: { max_share_above_level_1_for_banding?: number } }).expected?.max_share_above_level_1_for_banding ?? 0.1)).length,
+    },
   };
 }

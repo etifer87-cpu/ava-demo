@@ -84,6 +84,8 @@ export default async function InstructorsPage({ searchParams }: { searchParams: 
       <div className="row" style={{ alignItems: 'baseline' }}>
         <h1 style={{ margin: 0 }}>{L.assessor_plural}</h1>
         <span className="xs muted">the bench, and how each instructor grades against what the same pilots earned with others</span>
+        <span className="spacer" />
+        <Link href="/instructors/analysis" className="button" style={{ textDecoration: 'none' }}>Analysis</Link>
       </div>
 
       <FilterBar action="/instructors" resetHref="/instructors" carry={{ size: size === 20 ? undefined : String(size), sort: f.sort || undefined }}>

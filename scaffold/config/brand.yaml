@@ -26,7 +26,7 @@
 # the checker; docs/13 section 7 states the pairs that must be checked.
 # ---------------------------------------------------------------------------
 
-version: "1.3"
+version: "1.4"
 updated: "2026-09-11"
 
 # Colour scheme. "light" pins the interface to the light palette regardless of the viewer's OS
@@ -195,6 +195,16 @@ shape:
 # the pilot profile bars, and every analytics view that colours a mean. Lower bound inclusive;
 # the last band is the top of the scale. Grade-by-grade colours stay in grade_palette above.
 # ---------------------------------------------------------------------------
+# The diverging scale the instructor bias heatmap paints with: how far an instructor's own mean for
+# a competency sits from the peer mean for that competency. `full` is the difference at which the
+# tint reaches full strength, in grade points. The signed value is always printed in the cell as
+# well - colour never carries the reading on its own.
+residual_scale:
+  lenient: "#B91C1C"        # graded above what the same pilots earned elsewhere
+  strict:  "#1D4ED8"        # graded below it
+  neutral: "#F1F5F9"        # at the peer mean
+  full: 0.75
+
 average_bands:
   - { from: 1.0, colour: "#F4A3A3", label: "Well below standard" }   # light red, below 1.1
   - { from: 1.1, colour: "#F6C97A", label: "Below standard" }        # light amber, 1.1 - 2.9

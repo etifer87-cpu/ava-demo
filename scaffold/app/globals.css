@@ -558,3 +558,8 @@ dialog.modal-wide { max-width: 64rem; }
 .dist { display: flex; align-items: center; gap: var(--space-2); }
 .dist-bar { display: inline-block; height: 12px; border-radius: 3px; min-width: 2px; }
 .dist-all { background: var(--border-strong); }
+
+/* --- instructor bias heatmap: a dense grid, so tighter cells and a sticky first column --- */
+.heatmap th, .heatmap td { padding: var(--space-1) var(--space-2); }
+.heatmap .heat-cell { font-size: var(--text-xs); text-align: right; }
+.heatmap tfoot td, .heatmap tfoot th { border-top: 2px solid var(--border-strong); background: var(--surface-sunken); }

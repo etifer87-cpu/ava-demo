@@ -167,6 +167,18 @@ export function competencyDisplayName(code: string, fullName: string, p: PolicyC
 }
 
 /** The colour an average grade (a mean, 1-5) is shown in: the band whose lower bound it reaches. */
+export interface ResidualScale { lenient: string; strict: string; neutral: string; full: number }
+
+/**
+ * brand.yaml `residual_scale`: the two ends of the diverging tint the bias heatmap uses, and the
+ * difference at which the tint saturates. Returns null when the operator has not defined one, so a
+ * surface can fall back to printing numbers with no colour rather than inventing a palette.
+ */
+export function residualScale(b: BrandConfig = brand()): ResidualScale | null {
+  const s = (b as unknown as { residual_scale?: ResidualScale }).residual_scale;
+  return s && s.lenient && s.strict ? { ...s, full: s.full || 0.75 } : null;
+}
+
 export function averageBand(mean: number | null, b: BrandConfig = brand()): { colour: string; label: string } | null {
   if (mean === null || !Number.isFinite(mean)) return null;
   const bands = [...(b.average_bands ?? [])].sort((x, y) => x.from - y.from);
