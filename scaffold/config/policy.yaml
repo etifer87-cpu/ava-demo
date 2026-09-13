@@ -20,9 +20,9 @@
 # No operator content. Every vocabulary below is a neutral starter list.
 # ---------------------------------------------------------------------------
 
-version: "1.14"
+version: "1.15"
 updated: "2026-09-12"
-note: "v1.14: FFS check label, per-pilot LFUS cadence range. v1.13: initial-training board (check stages, released label, board settings in section 13). v1.12: training status items (section 13). v1.11: initial training courses (roster) and the type-rating pipeline (history). v1.10: competency display names for compact titles. v1.9: history section (section 11) - the training history the generator writes. v1.8: roster section (section 10) - the pilot population the roster generator builds. v1.7: A330 fleet and device withdrawn (A320 and B787 only). v1.6: reinf phase reads Additional training. v1.5: signature statements and the objection rule (section 5). v1.4: program builder vocabulary (section 9). v1.3: display labels (subject reads as Pilot). v1.2: Avianca operator context. Vocabularies replaced with the operator's own (bases, fleets, seats, instructor roles, EBT session kinds, outcome terms). v1.1: the db_kind mapping and the element-catalogue db_type mapping are gone - migrations 0032 and 0033 widened the schema to carry the real vocabulary, so both levels collapsed into one."
+note: "v1.15: is_check on the template kinds that are checks, read by the instructor check-versus-training comparison. v1.14: FFS check label, per-pilot LFUS cadence range. v1.13: initial-training board (check stages, released label, board settings in section 13). v1.12: training status items (section 13). v1.11: initial training courses (roster) and the type-rating pipeline (history). v1.10: competency display names for compact titles. v1.9: history section (section 11) - the training history the generator writes. v1.8: roster section (section 10) - the pilot population the roster generator builds. v1.7: A330 fleet and device withdrawn (A320 and B787 only). v1.6: reinf phase reads Additional training. v1.5: signature statements and the objection rule (section 5). v1.4: program builder vocabulary (section 9). v1.3: display labels (subject reads as Pilot). v1.2: Avianca operator context. Vocabularies replaced with the operator's own (bases, fleets, seats, instructor roles, EBT session kinds, outcome terms). v1.1: the db_kind mapping and the element-catalogue db_type mapping are gone - migrations 0032 and 0033 widened the schema to carry the real vocabulary, so both levels collapsed into one."
 
 # ---------------------------------------------------------------------------
 # 1. Template kinds - docs/04_ETR.md section 4.
@@ -61,11 +61,13 @@ template_kinds:
     supports_attempts: true
   - kind: proficiency_check
     label: "OPC / LPC"                    # kept beside EBT: licence and operator proficiency checks
+    is_check: true                        # graded as a pass/fail event rather than as training
     facility_kind: ffs
     fan_out_on_signature: false
     supports_attempts: true
   - kind: line_check
     label: "Line check"
+    is_check: true
     facility_kind: line
     fan_out_on_signature: false
     supports_attempts: false        # NOT zeroed. Repeat logic is skipped entirely.

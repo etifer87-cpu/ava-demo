@@ -167,6 +167,39 @@ export function competencyDisplayName(code: string, fullName: string, p: PolicyC
 }
 
 /** The colour an average grade (a mean, 1-5) is shown in: the band whose lower bound it reaches. */
+/**
+ * The template kinds the operator marks `is_check` in policy.yaml - the checks, as opposed to
+ * training. Read by the instructor check-versus-training comparison, so nothing splits a population
+ * by matching on a label.
+ */
+export function checkKinds(p: PolicyConfig = policy()): string[] {
+  return p.template_kinds.filter((k) => k.is_check).map((k) => k.kind);
+}
+
+/**
+ * The outcome values that READ as a failure, from policy.yaml `grading.outcomes` and
+ * `outcome_equivalents`: 'FAIL' itself plus anything the operator maps to it (NOT PROFICIENT in EBT
+ * vocabulary). PARTIAL PASS is deliberately absent - the config says it is never folded into either
+ * side, so a surface that needs a pass/fail reading of it must ask, not assume.
+ */
+export function failOutcomes(p: PolicyConfig = policy()): string[] {
+  const eq = p.grading?.outcome_equivalents ?? {};
+  const mapped = Object.entries(eq).filter(([, v]) => String(v).toUpperCase() === 'FAIL').map(([k]) => k);
+  return [...new Set(['FAIL', ...mapped])];
+}
+
+export interface LeniencyZone { to: number | null; colour: string; label: string }
+
+/**
+ * brand.yaml `leniency_zones`, innermost first, with `to` as a multiple of the outlier threshold.
+ * Returns an empty list when none is configured, so a chart draws no zones rather than guessing
+ * where the boundaries are.
+ */
+export function leniencyZones(b: BrandConfig = brand()): LeniencyZone[] {
+  const z = (b as unknown as { leniency_zones?: LeniencyZone[] }).leniency_zones ?? [];
+  return [...z].sort((x, y) => (x.to ?? Number.POSITIVE_INFINITY) - (y.to ?? Number.POSITIVE_INFINITY));
+}
+
 export interface ResidualScale { lenient: string; strict: string; neutral: string; full: number }
 
 /**
@@ -251,14 +284,14 @@ export interface PolicyConfig {
     statements?: { assessor?: string; subject?: string; subject_by_kind?: Record<string, string> };
     objection?: { allowed?: boolean; label?: string; prompt?: string; marks_record?: string; notifies_role?: string };
   };
-  grading?: { outcomes?: string[] };
+  grading?: { outcomes?: string[]; outcome_equivalents?: Record<string, string> };
   competency_display_names?: Record<string, string>;
   training_status?: { warning_days: number; items: { key: string; label: string; kind: string; validity_months: number }[]; stages: Record<string, string>; check_stages?: string[]; released_label?: string; board?: { finishing_days: number } };
   positions: string[];
   instructor_roles: string[];
   assessor_role_codes: string[];
   seats: { subject_roles: string[]; default_subject_role: string; pf_roles: string[]; max_subjects_per_session: number };
-  template_kinds: { kind: string; label: string }[];
+  template_kinds: { kind: string; label: string; is_check?: boolean }[];
 }
 
 /** The training policy, loose like analyticsConfig: only the vocabularies screens read are typed. */

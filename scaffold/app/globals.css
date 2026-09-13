@@ -563,3 +563,12 @@ dialog.modal-wide { max-width: 64rem; }
 .heatmap th, .heatmap td { padding: var(--space-1) var(--space-2); }
 .heatmap .heat-cell { font-size: var(--text-xs); text-align: right; }
 .heatmap tfoot td, .heatmap tfoot th { border-top: 2px solid var(--border-strong); background: var(--surface-sunken); }
+
+/* --- alert queue: the decision sits in the row, so the note cannot be skipped on the way past --- */
+.alert-decide { display: flex; gap: var(--space-2); align-items: center; flex-wrap: wrap; }
+.alert-note {
+  font: inherit; font-size: var(--text-xs); padding: 2px var(--space-2); min-width: 12rem;
+  border: 1px solid var(--border-strong); border-radius: var(--radius-sm, 6px);
+  background: var(--surface); color: var(--ink);
+}
+.alert-note:invalid { border-color: var(--state-warn); }

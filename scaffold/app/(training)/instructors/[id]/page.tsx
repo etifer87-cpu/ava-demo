@@ -86,6 +86,7 @@ export default async function InstructorPage({ params, searchParams }: { params:
         <span className="mono xs">{prof.person.instructor_roles.join(' ')}</span>
         <Chip tone={statusTone}>{prof.status === 'no_grades' ? 'No grades yet' : prof.status}</Chip>
         <span className="spacer" />
+        <Link href={`/instructors/${id}/analysis`} className="button" style={{ textDecoration: 'none' }}>Analysis</Link>
         <Link href={`/subjects/${prof.person.id}`} className="button button-quiet xs" style={{ textDecoration: 'none' }}>Pilot page</Link>
       </div>
 

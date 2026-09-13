@@ -2,7 +2,7 @@ import Link from 'next/link';
 import { query } from '@/lib/db';
 import { requireSession } from '@/lib/session';
 import { resolveAccess, requireCapability, visiblePersonIds, ALL_PEOPLE } from '@/lib/access';
-import { labels, policy, analyticsConfig, gradePalette, residualScale } from '@/lib/config';
+import { labels, policy, analyticsConfig, gradePalette, residualScale, leniencyZones } from '@/lib/config';
 import { benchAnalysis, leaning, LEANING_LABEL, LEANING_TONE } from '@/lib/instructors';
 import type { AnalyticsConfig } from '@/lib/analytics';
 import { buildChartTokens } from '@/components/charts/chart-tokens';
@@ -67,6 +67,7 @@ export default async function InstructorAnalysisPage({ searchParams }: { searchP
     grades: gradePalette(),
   });
   const scale = residualScale();
+  const zones = leniencyZones();
   const banded = a.rows.filter((r) => !r.is_provisional && r.asi?.score !== null && r.asi?.score !== undefined);
   const scores = banded.map((r) => r.asi!.score as number);
   const meanAsi = scores.length ? scores.reduce((s, x) => s + x, 0) / scores.length : null;
@@ -121,14 +122,20 @@ export default async function InstructorAnalysisPage({ searchParams }: { searchP
         <KpiTile id="kpi-outliers" caption="Outside the band" value={String(a.totals.outliers)} band={a.totals.outliers ? 'red' : 'green'} bandLabel={a.totals.outliers ? 'for review' : 'none'} context={`beyond ±${outlierAbs} grade points`} tokens={tokens} />
       </div>
 
-      <div className="profile-grid">
-        <Card title="Standardisation index across the bench" note="One bar per index bucket, coloured by band. Instructors below the banding minimum are counted beside the chart, never inside it.">
-          <AsiHistogram id="asi-hist" scores={scores} notBanded={a.totals.provisional} bands={si.bands} tokens={tokens} />
-        </Card>
-        <Card title="Adjusted leniency against the evidence behind it" note="Zero is agreement with what the same pilots earned from other instructors. Vertical position is how many grades the figure rests on.">
-          <DeltaScatter id="delta-scatter" points={a.rows.filter((r) => r.delta_adjusted !== null).map((r) => ({ id: r.id, label: r.full_name, x: r.delta_adjusted as number, y: r.n_grades, provisional: r.is_provisional, outlier: r.is_outlier }))} outlierAbs={outlierAbs} peerMedian={a.peerMedianDelta} tokens={tokens} />
-        </Card>
-      </div>
+      <Card title="Standardisation index across the bench" note="One bar per index bucket, coloured by band. Instructors below the banding minimum are counted beside the chart, never inside it.">
+        <AsiHistogram id="asi-hist" scores={scores} notBanded={a.totals.provisional} bands={si.bands} tokens={tokens} width={900} height={210} />
+      </Card>
+
+      <Card
+        title="Adjusted leniency against the evidence behind it"
+        note="Zero is agreement with what the same pilots earned from other instructors. The bands step outward from zero, so how far an instructor sits from the bench is read from the band as well as the position; vertical height is how many grades the figure rests on."
+      >
+        <DeltaScatter
+          id="delta-scatter"
+          points={a.rows.filter((r) => r.delta_adjusted !== null).map((r) => ({ id: r.id, label: r.full_name, x: r.delta_adjusted as number, y: r.n_grades, provisional: r.is_provisional, outlier: r.is_outlier }))}
+          outlierAbs={outlierAbs} peerMedian={a.peerMedianDelta} zones={zones} tokens={tokens}
+        />
+      </Card>
 
       <Card
         title="Outside the band"

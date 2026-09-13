@@ -1,6 +1,6 @@
 import { query, queryOne } from '@/lib/db';
-import { analyticsConfig } from '@/lib/config';
-import { standardisationIndex, justificationRate, olsSlope, type AnalyticsConfig, type AsiResult } from '@/lib/analytics';
+import { analyticsConfig, checkKinds, failOutcomes, policy } from '@/lib/config';
+import { standardisationIndex, justificationRate, olsSlope, welch, type AnalyticsConfig, type AsiResult, type WelchResult } from '@/lib/analytics';
 
 /**
  * lib/instructors.ts - the instructor bench and one instructor's grading profile.
@@ -397,5 +397,217 @@ export async function benchAnalysis(f: BenchFilters, visible: Set<string> | null
       grades: rows.reduce((s, r) => s + r.n_grades, 0),
       fellBack: rows.filter((r) => (r.share_above_level_1 ?? 0) > ((cfg.assessor_fairness as { expected?: { max_share_above_level_1_for_banding?: number } }).expected?.max_share_above_level_1_for_banding ?? 0.1)).length,
     },
+  };
+}
+
+// ------------------------------------------------------- one instructor, analysed (chart 35, 39, 41)
+
+export interface Side { n: number; records: number; mean_residual: number | null; sd_residual: number | null; mean_grade: number | null }
+
+export interface CheckVsTraining {
+  checks: Side;
+  training: Side;
+  welch: WelchResult | null;
+  minPerSide: number;
+  /** 'insufficient' whenever either side is under comparison.min_n_per_side - never "no difference". */
+  verdict: 'insufficient' | 'no_difference' | 'harder_in_checks' | 'softer_in_checks';
+  byKind: { kind: string; label: string; is_check: boolean; n: number; records: number; mean_residual: number | null; mean_grade: number | null }[];
+}
+
+export type AlertType = 'unjustified_low' | 'halo_record' | 'outcome_mismatch' | 'masking';
+export type AlertStatus = 'open' | 'dismissed' | 'confirmed';
+
+export interface AlertRow {
+  key: string;
+  alert_type: AlertType;
+  record_id: string;
+  competency_id: string | null;
+  training_date: string;
+  subject_id: string;
+  subject_name: string;
+  template_name: string;
+  competency_code: string | null;
+  grade: string | null;
+  remark: string | null;
+  remark_words: number | null;
+  /** One line naming what the rule found, for the row itself. */
+  detail: string;
+  status: AlertStatus;
+  reviewer_note: string | null;
+  decided_at: string | null;
+  decided_by_name: string | null;
+}
+
+export interface InstructorAnalysis {
+  peerMedianDelta: number | null;
+  peerDeltas: number[];
+  checkVsTraining: CheckVsTraining;
+  alerts: AlertRow[];
+  counts: Record<AlertType, { open: number; confirmed: number; dismissed: number }>;
+}
+
+const ALERT_LABEL: Record<AlertType, string> = {
+  unjustified_low: 'Low grade with no substantive remark',
+  halo_record: 'One grade across the whole record',
+  outcome_mismatch: 'Outcome disagrees with the grades',
+  masking: 'Remark reads worse than the grade',
+};
+export function alertLabel(t: AlertType): string { return ALERT_LABEL[t]; }
+
+/**
+ * The individual analysis surface: the peer distribution this instructor is read against, how they
+ * grade in checks versus in training, and the alert queue.
+ *
+ * The comparison unit is the RESIDUAL, not the raw grade (docs/06 §13.2): "did this instructor mark
+ * the same pilots differently in a check than in training" is answerable, where "are their check
+ * grades lower" is mostly a statement about who gets sent to a check.
+ *
+ * Nominations are derived here, every time, from the materialised corpus - migration 0148 stores
+ * only decisions. `masking` is never nominated: §13.3 requires the model layer for it and forbids a
+ * keyword rule from capping a band on its own, and this build runs no model.
+ */
+export async function getInstructorAnalysis(id: string): Promise<InstructorAnalysis> {
+  const cfg = analyticsConfig<AnalyticsConfig>();
+  const P = policy();
+  const checks = checkKinds(P);
+  const kindLabel = new Map(P.template_kinds.map((k) => [k.kind, k.label]));
+  const minPerSide = cfg.comparison.min_n_per_side;
+  const gradeMax = cfg.assessor_fairness.justification.grade_max;
+  const minWords = cfg.assessor_fairness.justification.min_words;
+  const haloMin = cfg.assessor_fairness.habits.halo.min_competencies_graded;
+  const fails = failOutcomes(P);
+
+  type R = Record<string, string | number | boolean | null>;
+  const [peers, sides, byKind, low, halo, mismatch, decisions] = await Promise.all([
+    query<R>(`SELECT delta_adjusted::text AS d FROM mv_assessor_adjusted WHERE NOT is_provisional AND delta_adjusted IS NOT NULL`),
+    query<R>(`
+      SELECT (g.template_kind = ANY($2::text[])) AS is_check,
+             count(*)::int AS n, count(DISTINCT r.record_id)::int AS records,
+             avg(r.residual)::text AS mean_residual, stddev_samp(r.residual)::text AS sd_residual, avg(r.grade_value)::text AS mean_grade
+        FROM mv_assessor_residual r
+        JOIN mv_assessor_grades g ON g.record_id = r.record_id AND g.competency_id = r.competency_id AND g.grade_kind = 'competency'
+       WHERE r.assessor_id = $1::uuid AND g.template_kind IS NOT NULL
+       GROUP BY 1`, [id, checks]),
+    query<R>(`
+      SELECT g.template_kind AS kind, count(*)::int AS n, count(DISTINCT r.record_id)::int AS records,
+             avg(r.residual)::text AS mean_residual, avg(r.grade_value)::text AS mean_grade
+        FROM mv_assessor_residual r
+        JOIN mv_assessor_grades g ON g.record_id = r.record_id AND g.competency_id = r.competency_id AND g.grade_kind = 'competency'
+       WHERE r.assessor_id = $1::uuid AND g.template_kind IS NOT NULL
+       GROUP BY 1 ORDER BY 2 DESC`, [id]),
+    query<R>(`
+      SELECT g.record_id, g.competency_id, c.code AS competency_code, g.grade, g.remark, g.remark_words,
+             r.training_date::text AS training_date, g.subject_id, s.full_name AS subject_name,
+             COALESCE(r.snapshot->'template'->>'name', r.title) AS template_name
+        FROM mv_assessor_grades g
+        JOIN records r ON r.id = g.record_id AND r.deleted_at IS NULL
+        JOIN people s ON s.id = g.subject_id
+        LEFT JOIN competencies c ON c.id = g.competency_id
+       WHERE g.assessor_id = $1::uuid AND g.grade_kind = 'competency'
+         AND g.grade_value IS NOT NULL AND g.grade_value <= $2 AND COALESCE(g.remark_words, 0) < $3
+       ORDER BY r.training_date DESC LIMIT 250`, [id, gradeMax, minWords]),
+    query<R>(`
+      WITH per_record AS (
+        SELECT g.record_id, g.subject_id,
+               count(*) FILTER (WHERE g.grade_value IS NOT NULL)::int AS graded,
+               count(DISTINCT g.grade_value)::int AS distinct_grades,
+               max(g.grade) AS the_grade
+          FROM mv_assessor_grades g
+         WHERE g.assessor_id = $1::uuid AND g.grade_kind = 'competency'
+         GROUP BY 1, 2)
+      SELECT pr.record_id, pr.subject_id, pr.graded, pr.the_grade AS grade,
+             r.training_date::text AS training_date, s.full_name AS subject_name,
+             COALESCE(r.snapshot->'template'->>'name', r.title) AS template_name
+        FROM per_record pr
+        JOIN records r ON r.id = pr.record_id AND r.deleted_at IS NULL
+        JOIN people s ON s.id = pr.subject_id
+       WHERE pr.graded >= $2 AND pr.distinct_grades = 1
+       ORDER BY r.training_date DESC LIMIT 250`, [id, haloMin]),
+    query<R>(`
+      WITH per_record AS (
+        SELECT g.record_id, g.subject_id,
+               count(*) FILTER (WHERE g.is_below_standard)::int AS below,
+               count(*) FILTER (WHERE g.grade_value IS NOT NULL)::int AS graded
+          FROM mv_assessor_grades g
+         WHERE g.assessor_id = $1::uuid AND g.grade_kind = 'competency'
+         GROUP BY 1, 2)
+      SELECT pr.record_id, pr.subject_id, pr.below, pr.graded,
+             COALESCE(r.outcome_override, r.outcome) AS outcome,
+             COALESCE((r.snapshot->>'additional_training')::boolean, false) AS additional_training,
+             r.training_date::text AS training_date, s.full_name AS subject_name,
+             COALESCE(r.snapshot->'template'->>'name', r.title) AS template_name
+        FROM per_record pr
+        JOIN records r ON r.id = pr.record_id AND r.deleted_at IS NULL
+        JOIN people s ON s.id = pr.subject_id
+       WHERE pr.graded > 0 AND COALESCE(r.outcome_override, r.outcome) IS NOT NULL
+         AND ( (pr.below > 0 AND NOT (COALESCE(r.outcome_override, r.outcome) = ANY($2::text[]))
+                            AND NOT COALESCE((r.snapshot->>'additional_training')::boolean, false))
+            OR (pr.below = 0 AND COALESCE(r.outcome_override, r.outcome) = ANY($2::text[])) )
+       ORDER BY r.training_date DESC LIMIT 250`, [id, fails]),
+    query<R>(`
+      SELECT a.record_id, a.competency_id, a.alert_type, a.status, a.reviewer_note, a.decided_at::text AS decided_at,
+             COALESCE(dp.full_name, u.username) AS decided_by_name
+        FROM assessor_remark_audit a
+        LEFT JOIN users u ON u.id = a.decided_by
+        LEFT JOIN people dp ON dp.id = u.person_id
+       WHERE a.assessor_person_id = $1::uuid AND a.deleted_at IS NULL`, [id]),
+  ]);
+
+  const side = (isCheck: boolean): Side => {
+    const r = sides.find((x) => Boolean(x.is_check) === isCheck);
+    return {
+      n: Number(r?.n ?? 0), records: Number(r?.records ?? 0),
+      mean_residual: num(r?.mean_residual as string | null), sd_residual: num(r?.sd_residual as string | null),
+      mean_grade: num(r?.mean_grade as string | null),
+    };
+  };
+  const c = side(true); const tr = side(false);
+  const w = c.mean_residual !== null && c.sd_residual !== null && tr.mean_residual !== null && tr.sd_residual !== null
+    ? welch({ mean: c.mean_residual, sd: c.sd_residual, n: c.n }, { mean: tr.mean_residual, sd: tr.sd_residual, n: tr.n }, cfg.comparison.ci_z)
+    : null;
+  const verdict: CheckVsTraining['verdict'] =
+    c.n < minPerSide || tr.n < minPerSide || w === null ? 'insufficient'
+    : w.ciLo <= 0 && w.ciHi >= 0 ? 'no_difference'
+    : w.diff < 0 ? 'harder_in_checks' : 'softer_in_checks';
+
+  const decided = new Map(decisions.map((d) => [`${d.record_id}:${d.competency_id ?? ''}:${d.alert_type}`, d]));
+  const rows: AlertRow[] = [];
+  const push = (alert_type: AlertType, r: R, competency_id: string | null, detail: string) => {
+    const key = `${String(r.record_id)}:${competency_id ?? ''}:${alert_type}`;
+    const d = decided.get(key);
+    rows.push({
+      key, alert_type, record_id: String(r.record_id), competency_id,
+      training_date: String(r.training_date), subject_id: String(r.subject_id), subject_name: String(r.subject_name),
+      template_name: String(r.template_name ?? '—'), competency_code: (r.competency_code as string | null) ?? null,
+      grade: (r.grade as string | null) ?? null, remark: (r.remark as string | null) ?? null,
+      remark_words: r.remark_words === null || r.remark_words === undefined ? null : Number(r.remark_words),
+      detail,
+      status: (d?.status as AlertStatus | undefined) ?? 'open',
+      reviewer_note: (d?.reviewer_note as string | null) ?? null,
+      decided_at: (d?.decided_at as string | null) ?? null,
+      decided_by_name: (d?.decided_by_name as string | null) ?? null,
+    });
+  };
+  for (const r of low) push('unjustified_low', r, String(r.competency_id), `Grade ${r.grade} with ${Number(r.remark_words ?? 0)} word${Number(r.remark_words ?? 0) === 1 ? '' : 's'} of remark; ${minWords} is the minimum for a substantive one.`);
+  for (const r of halo) push('halo_record', r, null, `All ${Number(r.graded)} graded competencies carry ${r.grade}.`);
+  for (const r of mismatch) push('outcome_mismatch', r, null, Number(r.below) > 0
+    ? `${Number(r.below)} competency grade${Number(r.below) === 1 ? '' : 's'} below standard, outcome ${r.outcome}, no additional training recommended.`
+    : `Outcome ${r.outcome} with no competency graded below standard.`);
+  rows.sort((a, b) => (a.status === b.status ? b.training_date.localeCompare(a.training_date) : a.status === 'open' ? -1 : b.status === 'open' ? 1 : 0));
+
+  const counts = { unjustified_low: { open: 0, confirmed: 0, dismissed: 0 }, halo_record: { open: 0, confirmed: 0, dismissed: 0 }, outcome_mismatch: { open: 0, confirmed: 0, dismissed: 0 }, masking: { open: 0, confirmed: 0, dismissed: 0 } };
+  for (const r of rows) counts[r.alert_type][r.status] += 1;
+
+  const deltas = peers.map((p) => Number(p.d)).sort((a, b) => a - b);
+  const median = deltas.length === 0 ? null
+    : deltas.length % 2 ? deltas[(deltas.length - 1) / 2]!
+    : (deltas[deltas.length / 2 - 1]! + deltas[deltas.length / 2]!) / 2;
+
+  return {
+    peerMedianDelta: median,
+    peerDeltas: deltas,
+    checkVsTraining: { checks: c, training: tr, welch: w, minPerSide, verdict, byKind: byKind.map((k) => ({ kind: String(k.kind), label: kindLabel.get(String(k.kind)) ?? String(k.kind), is_check: checks.includes(String(k.kind)), n: Number(k.n), records: Number(k.records), mean_residual: num(k.mean_residual as string | null), mean_grade: num(k.mean_grade as string | null) })) },
+    alerts: rows,
+    counts,
   };
 }

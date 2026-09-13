@@ -26,7 +26,7 @@
 # the checker; docs/13 section 7 states the pairs that must be checked.
 # ---------------------------------------------------------------------------
 
-version: "1.4"
+version: "1.5"
 updated: "2026-09-11"
 
 # Colour scheme. "light" pins the interface to the light palette regardless of the viewer's OS
@@ -195,6 +195,17 @@ shape:
 # the pilot profile bars, and every analytics view that colours a mean. Lower bound inclusive;
 # the last band is the top of the scale. Grade-by-grade colours stay in grade_palette above.
 # ---------------------------------------------------------------------------
+# The zones the adjusted-leniency scatter paints, read outward from zero. `to` is a MULTIPLE of
+# assessor_fairness.adjusted_delta.outlier_abs in analytics.yaml - the statistical threshold stays
+# there and only its presentation lives here, so moving the threshold moves the zones with it. The
+# last zone carries `to: null`, meaning "everything beyond". Colours are the average-band palette, so
+# a dot and a competency average of the same standing read the same way across the product.
+leniency_zones:
+  - { to: 0.5,  colour: "#1B7F4B", label: "In line" }            # dark green, inside half the threshold
+  - { to: 1.0,  colour: "#9FD8A4", label: "Slight leaning" }     # light green, up to the threshold
+  - { to: 1.5,  colour: "#F6C97A", label: "Outside the band" }   # light amber, past it
+  - { to: null, colour: "#F4A3A3", label: "Well outside" }       # light red
+
 # The diverging scale the instructor bias heatmap paints with: how far an instructor's own mean for
 # a competency sits from the peer mean for that competency. `full` is the difference at which the
 # tint reaches full strength, in grade points. The signed value is always printed in the cell as
