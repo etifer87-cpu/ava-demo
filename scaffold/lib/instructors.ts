@@ -5,7 +5,8 @@ import { standardisationIndex, justificationRate, olsSlope, type AnalyticsConfig
 /**
  * lib/instructors.ts - the instructor bench and one instructor's grading profile.
  *
- * Reads the kit's assessor analytics views (db/migrations/0111-0116): every figure here is the
+ * Reads the kit's assessor analytics views (db/migrations/0111-0116, materialised as mv_* by 0147
+ * and refreshed by the history seeder / npm run analytics:refresh): every figure here is the
  * SAME figure the views define - the adjusted (shrunk) leniency delta measured against what the
  * same pilots scored with other instructors, the halo and justification habits, the not-observed
  * excess, the monthly residual rollup - and the standardisation index is the pure function in
@@ -93,8 +94,8 @@ export async function listInstructors(f: BenchFilters, visible: Set<string> | nu
       LEFT JOIN asset_classes ac ON ac.id = p.asset_class_id
       LEFT JOIN org_units ou ON ou.id = p.org_unit_id
       LEFT JOIN given g ON g.id = p.id
-      LEFT JOIN av_assessor_adjusted a ON a.assessor_id = p.id
-      LEFT JOIN av_assessor_halo h ON h.assessor_id = p.id
+      LEFT JOIN mv_assessor_adjusted a ON a.assessor_id = p.id
+      LEFT JOIN mv_assessor_halo h ON h.assessor_id = p.id
      WHERE ${where.join(' AND ')}
      ORDER BY ${order}, p.seniority_number NULLS LAST
      LIMIT ${size} OFFSET ${(page - 1) * size}`, params);
@@ -148,20 +149,21 @@ export async function getInstructor(id: string): Promise<InstructorProfile | nul
              (SELECT count(DISTINCT ss.person_id) FROM sessions s2 JOIN session_subjects ss ON ss.session_id = s2.id
                WHERE s2.assessor_person_id = $1::uuid AND s2.deleted_at IS NULL AND s2.status NOT IN ('in_progress','void') AND s2.session_date >= CURRENT_DATE - INTERVAL '12 months')::int AS pilots_12m
         FROM sessions s WHERE s.assessor_person_id = $1::uuid AND s.deleted_at IS NULL AND s.status <> 'void'`, [id]),
-    queryOne<Row>(`SELECT n_grades, n_records, n_subjects, mean_grade::text AS mean_grade, sigma_grade::text AS sigma_grade, delta_adjusted::text AS delta_adjusted, delta_unadjusted::text AS delta_unadjusted, ci_half_width::text AS ci_half_width, is_provisional, is_outlier, share_above_level_1::text AS share_above_level_1 FROM av_assessor_adjusted WHERE assessor_id = $1::uuid`, [id]),
-    queryOne<Row>(`SELECT avg(grade_value)::text AS m FROM av_assessor_occurrence`),
+    queryOne<Row>(`SELECT n_grades, n_records, n_subjects, mean_grade::text AS mean_grade, sigma_grade::text AS sigma_grade, delta_adjusted::text AS delta_adjusted, delta_unadjusted::text AS delta_unadjusted, ci_half_width::text AS ci_half_width, is_provisional, is_outlier, share_above_level_1::text AS share_above_level_1 FROM mv_assessor_adjusted WHERE assessor_id = $1::uuid`, [id]),
+    queryOne<Row>(`SELECT group_mean::text AS m FROM mv_assessor_group WHERE everyone`),
     query<Row>(`
       SELECT c.id, c.code, c.name, c.colour, COALESCE(o.n, 0)::int AS n, o.own_mean::text AS own_mean, o.mean_residual::text AS mean_residual, g.group_mean::text AS group_mean
         FROM competencies c JOIN competency_frameworks f ON f.id = c.framework_id AND f.is_active
-        LEFT JOIN av_assessor_competency_raw o ON o.competency_id = c.id AND o.assessor_id = $1::uuid
-        LEFT JOIN (SELECT competency_id, avg(grade_value) AS group_mean FROM av_assessor_occurrence GROUP BY competency_id) g ON g.competency_id = c.id
+        LEFT JOIN mv_assessor_competency_raw o ON o.competency_id = c.id AND o.assessor_id = $1::uuid
+        LEFT JOIN mv_assessor_group g ON g.competency_id = c.id AND NOT g.everyone
        WHERE c.is_active ORDER BY c.position, c."index"`, [id]),
     query<Row>(`
-      SELECT grade_value::int AS grade, count(*) FILTER (WHERE assessor_id = $1::uuid)::int AS own, count(*)::int AS "all"
-        FROM av_assessor_grades WHERE grade_kind = 'competency' AND grade_value IS NOT NULL GROUP BY grade_value ORDER BY grade_value`, [id]),
-    queryOne<Row>(`SELECT n_eligible_records, n_halo_records FROM av_assessor_halo WHERE assessor_id = $1::uuid`, [id]),
-    queryOne<Row>(`SELECT n_below_standard, n_substantive FROM av_assessor_justification WHERE assessor_id = $1::uuid`, [id]),
-    queryOne<Row>(`SELECT actual_nr_rate::text AS actual_nr_rate, expected_nr_rate::text AS expected_nr_rate, nr_excess::text AS nr_excess FROM av_assessor_nr_excess WHERE assessor_id = $1::uuid`, [id]),
+      SELECT g.grade, COALESCE(o.n, 0)::int AS own, g.n::int AS "all"
+        FROM mv_assessor_distribution g LEFT JOIN mv_assessor_distribution o ON o.grade = g.grade AND o.assessor_id = $1::uuid AND NOT o.everyone
+       WHERE g.everyone ORDER BY g.grade`, [id]),
+    queryOne<Row>(`SELECT n_eligible_records, n_halo_records FROM mv_assessor_halo WHERE assessor_id = $1::uuid`, [id]),
+    queryOne<Row>(`SELECT n_below_standard, n_substantive FROM mv_assessor_justification WHERE assessor_id = $1::uuid`, [id]),
+    queryOne<Row>(`SELECT actual_nr_rate::text AS actual_nr_rate, expected_nr_rate::text AS expected_nr_rate, nr_excess::text AS nr_excess FROM mv_assessor_nr_excess WHERE assessor_id = $1::uuid`, [id]),
     query<Row>(`
       SELECT COALESCE(r.outcome_override, r.outcome, 'no outcome') AS outcome, count(*)::int AS n,
              count(*) FILTER (WHERE COALESCE((r.snapshot->>'additional_training')::boolean, false))::int AS additional
@@ -182,7 +184,7 @@ export async function getInstructor(id: string): Promise<InstructorProfile | nul
         JOIN observable_behaviours ob ON ob.id = own.obid JOIN competencies c ON c.id = ob.competency_id
        ORDER BY own.n DESC, ob.code LIMIT 6`, [id]),
     query<Row>(`SELECT period_month::text AS on, n_grades::int AS n, (sum_r / NULLIF(n_grades, 0))::text AS mean_residual, (sum_x / NULLIF(n_grades, 0))::text AS x
-                  FROM av_assessor_monthly WHERE assessor_id = $1::uuid ORDER BY period_month`, [id]),
+                  FROM mv_assessor_monthly WHERE assessor_id = $1::uuid ORDER BY period_month`, [id]),
   ]);
 
   const adj = adjusted ? {

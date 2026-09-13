@@ -442,6 +442,11 @@ try {
     if (counts.sessions % 500 === 0) console.log(`  ${counts.sessions} sessions written...`);
   }
   await client.query('COMMIT');
+  // The assessor analytics are materialised (migration 0147); rebuild them so the bench reads what was just written.
+  const t0 = Date.now();
+  await client.query(`SET statement_timeout = 0`);
+  await client.query(`SELECT refresh_assessor_analytics()`);
+  console.log(`assessor analytics refreshed in ${((Date.now() - t0) / 1000).toFixed(1)}s`);
   console.log(`history seeded: ${counts.sessions} sessions (${counts.planned} planned, ${counts.skipped} already present), ${counts.records} records, ${counts.tasks} task grades, ${counts.comps} competency grades, ${counts.obs} OB selections, ${counts.sectors} sectors, ${counts.objections} objections`);
 } catch (err) {
   await client.query('ROLLBACK').catch(() => {});

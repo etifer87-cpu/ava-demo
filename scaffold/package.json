@@ -33,7 +33,8 @@
     "seed:roster": "node --env-file=.env scripts/seed-roster.mjs",
     "publish:programs": "node --env-file=.env scripts/publish-programs.mjs",
     "gen:history": "node --env-file=.env scripts/seed-history.mjs --plan",
-    "seed:history": "node --env-file=.env scripts/seed-history.mjs"
+    "seed:history": "node --env-file=.env scripts/seed-history.mjs",
+    "analytics:refresh": "node --env-file=.env scripts/refresh-analytics.mjs"
   },
   "dependencies": {
     "next": "^16.0.0",
