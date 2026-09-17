@@ -59,7 +59,7 @@ export default async function TrainingStatusPage({ searchParams }: { searchParam
   const today = new Date().toISOString().slice(0, 10);
 
   const sp = await searchParams;
-  const q = one(sp.q); const fleet = one(sp.fleet); const base = one(sp.base); const position = one(sp.position); const status = one(sp.status); const group = one(sp.group) || 'line'; const course = one(sp.course); const view = group === 'initial' ? (one(sp.view) === 'table' ? 'table' : 'board') : 'table';
+  const q = one(sp.q); const fleet = one(sp.fleet); const base = one(sp.base); const position = one(sp.position); const status = one(sp.status); const item = one(sp.item); const group = one(sp.group) || 'line'; const course = one(sp.course); const view = group === 'initial' ? (one(sp.view) === 'table' ? 'table' : 'board') : 'table';
   const { page, size } = pageParams(sp);
 
   const visible = await visiblePersonIds(access, 'people.view');
@@ -139,13 +139,19 @@ export default async function TrainingStatusPage({ searchParams }: { searchParam
     return { status: 'VALID', expires, days };
   };
   const evaluated = rows.map((r) => ({ r, s: Object.fromEntries(items.map((it) => [it.key, statusOf(it, r.items[it.recordKind])])) }));
-  const filtered = status ? evaluated.filter(({ s }) => Object.values(s).some((x) => x.status === status)) : evaluated;
+  // `status` alone means "any item has this status" - the select in the filter bar. `item` narrows it to
+  // one policy item, which is what a counter on an item's card means: EBT · EXPIRED 6 must return 6 rows,
+  // not every pilot expired on anything. The counter link carries both; the filter bar carries neither, so
+  // submitting the form deliberately widens back to any item.
+  const filtered = status
+    ? evaluated.filter(({ s }) => (item && s[item] ? s[item]!.status === status : Object.values(s).some((x) => x.status === status)))
+    : evaluated;
   const total = filtered.length;
   const pageRows = filtered.slice((page - 1) * size, page * size);
   const counts: Record<string, Record<Status, number>> = {};
   for (const it of items) { counts[it.key] = { VALID: 0, WARNING: 0, EXPIRED: 0, PLANNED: 0, MISSING: 0 }; for (const { s } of evaluated) counts[it.key]![s[it.key]!.status] += 1; }
   const tone = (st: Status) => st === 'VALID' ? 'good' : st === 'WARNING' || st === 'PLANNED' ? 'warn' : st === 'EXPIRED' ? 'bad' : 'neutral';
-  const carry: Record<string, string> = Object.fromEntries(Object.entries({ q, fleet, base, position, status, group, course, view: group === 'initial' && view === 'table' ? 'table' : '' }).filter(([, v]) => v !== ''));
+  const carry: Record<string, string> = Object.fromEntries(Object.entries({ q, fleet, base, position, status, item, group, course, view: group === 'initial' && view === 'table' ? 'table' : '' }).filter(([, v]) => v !== ''));
   const [fleets, bases, courses] = await Promise.all([
     query<{ code: string }>(`SELECT code FROM asset_classes WHERE deleted_at IS NULL AND is_active AND category = 'aircraft' ORDER BY position`),
     query<{ code: string }>(`SELECT code FROM org_units WHERE deleted_at IS NULL AND is_active AND kind = 'base' ORDER BY position`),
@@ -184,7 +190,7 @@ export default async function TrainingStatusPage({ searchParams }: { searchParam
       cell: ({ r }) => { const c = cardOf.get(r.id)!; return (
         <span className="stack" style={{ gap: 2 }}>
           <span className="small">{c.stage === 'simulator' ? `FFS ${c.ffs.done} of ${c.ffs.total}` : c.stage === 'lfus' || c.released ? <>Sector {c.lfus.flown} of {c.lfus.total} · <strong>{c.lfus.pf}</strong> take-offs and landings as PF</> : c.stageLabel}{c.overdue ? <span className="chip chip-warn" style={{ marginLeft: 'var(--space-2)' }}>{c.overdue} overdue</span> : null}</span>
-          <span className="kanban-bar" style={{ width: 160 }}><span style={{ width: `${c.progress}%` }} /></span>
+          <span className={`kanban-bar bar-${c.rag}`} style={{ width: 160 }}><span style={{ width: `${c.progress}%` }} /></span>
         </span>
       ); },
     },
@@ -210,7 +216,7 @@ export default async function TrainingStatusPage({ searchParams }: { searchParam
             <div key={it.key} className="card" style={{ padding: 'var(--space-3)' }}>
               <div className="xs muted" style={{ letterSpacing: '0.04em' }}>{it.label.toUpperCase()} · {it.validity_months} months</div>
               <div className="row" style={{ gap: 'var(--space-2)', marginTop: 'var(--space-2)', flexWrap: 'wrap' }}>
-                {(['VALID', 'WARNING', 'PLANNED', 'EXPIRED', 'MISSING'] as Status[]).map((st) => counts[it.key]![st] ? <Link key={st} href={`/subjects/status?${new URLSearchParams({ ...carry, status: st })}`} style={{ textDecoration: 'none' }}><Chip tone={tone(st)}>{st} {counts[it.key]![st]}</Chip></Link> : null)}
+                {(['VALID', 'WARNING', 'PLANNED', 'EXPIRED', 'MISSING'] as Status[]).map((st) => counts[it.key]![st] ? <Link key={st} href={`/subjects/status?${new URLSearchParams({ ...carry, status: st, item: it.key })}`} style={{ textDecoration: 'none' }}><Chip tone={tone(st)}>{st} {counts[it.key]![st]}</Chip></Link> : null)}
               </div>
             </div>
           ))}
@@ -225,6 +231,14 @@ export default async function TrainingStatusPage({ searchParams }: { searchParam
         {group === 'line' ? <SelectFilter name="status" label="Any item" value={status} options={(['WARNING', 'EXPIRED', 'PLANNED', 'MISSING', 'VALID'] as Status[]).map((st) => ({ value: st, label: st }))} /> : null}
         {group === 'initial' ? <SelectFilter name="course" label="Course" value={course} options={courses.map((c) => ({ value: c.code, label: c.code }))} /> : null}
       </FilterBar>
+
+      {group === 'line' && status && item ? (
+        <div className="row" style={{ gap: 'var(--space-2)', alignItems: 'baseline' }}>
+          <span className="xs muted">Filtered by</span>
+          <Chip tone={tone(status as Status)}>{items.find((it) => it.key === item)?.label ?? item} · {status}</Chip>
+          <Link href={`/subjects/status?${new URLSearchParams(Object.fromEntries(Object.entries(carry).filter(([k]) => k !== 'status' && k !== 'item')))}`} className="xs">Clear</Link>
+        </div>
+      ) : null}
 
       {group === 'initial' ? (
         <div className="row" style={{ gap: 'var(--space-2)' }}>

@@ -219,7 +219,11 @@ table.data { width: 100%; border-collapse: collapse; font-size: var(--text-sm); 
 table.data caption { text-align: left; padding: var(--space-3) var(--space-4); color: var(--ink-muted); font-size: var(--text-sm); }
 table.data th, table.data td { padding: var(--space-2) var(--space-3); border-bottom: 1px solid var(--border); text-align: left; vertical-align: top; }
 table.data thead th { background: var(--surface-raised); font-weight: 600; position: sticky; top: 0; }
-table.data td.num, table.data th.num { text-align: right; font-variant-numeric: tabular-nums; font-family: var(--font-mono); }
+/* Figures and column headings wear the INTERFACE font, not the monospace one. Monospace is for a
+   thing you compare character by character - an id, a hash, an external reference. A count, a date
+   and a column title are none of those, and setting them in monospace made every table read like a
+   terminal. tabular-nums keeps the digits in columns, which is the only thing mono was buying. */
+table.data td.num, table.data th.num { text-align: right; font-variant-numeric: tabular-nums; font-family: var(--font-sans); }
 table.data tbody tr:last-child td { border-bottom: 0; }
 table.data tbody tr:hover { background: var(--surface-sunken); }
 
@@ -274,6 +278,22 @@ table.data tbody tr:hover { background: var(--surface-sunken); }
 }
 
 /* --- administration module (2026-09-09) ------------------------------- */
+
+.app-footer {
+  margin: var(--space-6, 2rem) 0 0;
+  padding: var(--space-4) var(--space-5);
+  border-top: 1px solid var(--border);
+  text-align: center;
+}
+.app-footer p {
+  margin: 0;
+  font-size: var(--text-xs, 0.75rem);
+  color: var(--ink-muted);
+  letter-spacing: 0.02em;
+}
+/* The footer is chrome, not content: it never prints on a record, which carries its own
+   attestation line and a hash. */
+@media print { .app-footer { display: none; } }
 
 .app-report { margin-left: var(--space-2); color: var(--brand-accent); }
 .app-report[aria-current="page"] { border-bottom-color: var(--brand-accent); }
@@ -464,10 +484,10 @@ dialog.modal .field input, dialog.modal .field textarea { width: 100%; box-sizin
 .report-meta dt { font-size: var(--text-xs); color: var(--ink-muted); letter-spacing: 0.04em; text-transform: uppercase; }
 .report-meta dd { margin: 0; font-size: var(--text-sm); }
 .report-table { margin-top: var(--space-3); width: 100%; }
-.report-table .num { text-align: right; font-family: var(--font-mono); }
+.report-table .num { text-align: right; font-family: var(--font-sans); font-variant-numeric: tabular-nums; }
 .report-section th { background: var(--surface-sunken); text-align: left; font-weight: 600; }
 .report-comment, .report-outcome { margin-top: var(--space-4); padding: var(--space-3); border: 1px solid var(--border); border-radius: var(--radius-sm); }
-.outcome-value { font-family: var(--font-mono); font-size: var(--text-lg); font-weight: 700; letter-spacing: 0.06em; }
+.outcome-value { font-family: var(--font-sans); font-size: var(--text-lg); font-weight: 700; letter-spacing: 0.06em; }
 .signatures { display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-3); margin-top: var(--space-4); }
 @media (max-width: 40rem) { .signatures { grid-template-columns: 1fr; } .report-meta { grid-template-columns: 1fr 1fr; } }
 .sig-block { border: 1px solid var(--border-strong); border-radius: var(--radius-sm); padding: var(--space-3); display: flex; flex-direction: column; gap: var(--space-2); }
@@ -500,7 +520,45 @@ dialog.modal .field input, dialog.modal .field textarea { width: 100%; box-sizin
 .averages li:last-child { border-bottom: 0; }
 .avg-bar { display: block; height: 8px; border-radius: 4px; background: var(--surface-sunken); overflow: hidden; }
 .avg-bar > span { display: block; height: 100%; border-radius: 4px; background: var(--brand-accent); }
-.avg-value { text-align: right; font-weight: 700; font-family: var(--font-mono); }
+.avg-value { text-align: right; font-weight: 700; font-family: var(--font-sans); font-variant-numeric: tabular-nums; }
+
+/* Training picture - competency averages, one row per competency.
+   The page emits four spans per row (name, bar, mean, caption). Until this rule existed only
+   .avg-bar was defined: .avg-row and .avg-name matched nothing, so the row was not a grid, the
+   spans ran inline, and the mean printed hard against the count - "3.423037 graded" read as a
+   single number on the screen the demo opens with. A class the markup uses and the stylesheet
+   does not define fails silently; there is no error anywhere, only a layout nobody chose. */
+.avg-row {
+  display: grid;
+  /* The name gets the elastic column and the widest minimum: these are the competency names of
+     the framework, and a name that wraps to three lines pushes the card past a screenful. The
+     bar is capped short because its job is comparison between rows, not precision - the number
+     beside it is the precise reading. */
+  grid-template-columns: minmax(13rem, 1fr) minmax(5rem, 9rem) 3.5rem minmax(8rem, auto);
+  grid-template-areas: "name bar value note";
+  gap: var(--space-3);
+  align-items: center;
+  padding: 6px 0;
+  font-size: var(--text-sm);
+}
+/* EVERY ONE OF THESE IS SCOPED TO .avg-row, and that is not tidiness.
+   .avg-name, .avg-bar and .avg-value are ALSO used by .averages li on the pilot profile, which is a
+   different grid with no named areas. An unscoped `grid-area: name` there resolves to nothing and
+   throws each span into its own implicit row, so the profile rendered the bar, then the number, then
+   the competency name underneath its own value. Naming a grid area only works inside the grid that
+   declares it. */
+.avg-row .avg-name { grid-area: name; min-width: 0; }
+.avg-row .avg-bar { grid-area: bar; }
+.avg-row .avg-value { grid-area: value; text-align: left; }
+.avg-row .avg-note { grid-area: note; }
+/* Narrow: the bar and the caption each take the full width rather than being squeezed to nothing. */
+@media (max-width: 48rem) {
+  .avg-row {
+    grid-template-columns: 1fr auto;
+    grid-template-areas: "name value" "bar bar" "note note";
+    gap: var(--space-1) var(--space-2);
+  }
+}
 .avg-total { padding-top: var(--space-2); }
 @media (max-width: 48rem) { .profile-grid { grid-template-columns: 1fr; } }
 .trend-card { display: block; width: 100%; text-align: left; font: inherit; color: inherit; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: var(--space-2); cursor: zoom-in; }
@@ -515,6 +573,58 @@ dialog.modal .field input, dialog.modal .field textarea { width: 100%; box-sizin
 .row-click:hover td { background: var(--surface-sunken); }
 .row-click:focus-visible { outline: 2px solid var(--brand-accent); outline-offset: -2px; }
 dialog.modal-wide { max-width: 64rem; }
+
+/* A chart that opens larger. The button is a transparent wrapper, not a control that looks like
+   one: the chart is the affordance, and the hint only appears on hover or keyboard focus so the
+   resting page is not littered with instructions. */
+.chart-zoom {
+  display: block; width: 100%; position: relative;
+  padding: 0; margin: 0; border: 0; background: none; color: inherit; font: inherit;
+  cursor: zoom-in; text-align: left; border-radius: var(--radius);
+}
+.chart-zoom:focus-visible { outline: 2px solid var(--brand-accent); outline-offset: 3px; }
+.chart-zoom-hint {
+  position: absolute; top: 0; right: 0; opacity: 0;
+  padding: 2px 6px; border-radius: var(--radius); background: var(--surface-raised);
+  border: 1px solid var(--border); transition: opacity 120ms ease-in-out;
+}
+.chart-zoom:hover .chart-zoom-hint, .chart-zoom:focus-visible .chart-zoom-hint { opacity: 1; }
+@media (prefers-reduced-motion: reduce) { .chart-zoom-hint { transition: none; } }
+@media print { .chart-zoom-hint { display: none; } }
+
+/* The last few grades in a competency, oldest first. The numeral is always printed: the colour is
+   the operator's ordered grade ramp, whose adjacent steps are close by design, so it is never the
+   only thing carrying the value. */
+.matrix-summary {
+  cursor: pointer; padding: var(--space-2) 0; font-size: var(--text-sm);
+  color: var(--brand-accent); list-style-position: inside;
+}
+.matrix-summary:focus-visible { outline: 2px solid var(--brand-accent); outline-offset: 2px; }
+.matrix-details[open] .matrix-summary { margin-bottom: var(--space-2); }
+
+/* A competency or observable-behaviour code - KNO, FPM, OB 7.7. It reads as an abbreviation of a
+   name, which is what it is, so it wears the interface font. This is deliberately NOT .mono: an id,
+   a content hash and a staff number stay monospace, because those are compared character by
+   character and a monospace column is how you spot a difference in one. */
+.ccode {
+  font-family: var(--font-sans); font-weight: 700; letter-spacing: 0.03em;
+  font-feature-settings: "tnum" 1;
+}
+
+.grade-strip { display: inline-flex; gap: 3px; }
+.grade-chip {
+  display: inline-flex; align-items: center; justify-content: center;
+  min-width: 22px; height: 22px; padding: 0 4px; border-radius: 4px;
+  font-size: var(--text-sm); font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  /* The ink comes from the fill, not from a literal: on the 2026-09-17 palette a white numeral on
+     grade 2 is 1.40:1. lib/config.ts emits --grade-N-ink beside --grade-N. */
+  color: var(--grade-ink, #FFFFFF);
+  /* Grades 2 and 3 are paler than the page (1.36:1 and 1.81:1), so a bare fill would be a shape
+     with no edge. A hairline of the fill's own ink gives every chip a boundary without inventing a
+     colour. */
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--grade-ink, #FFFFFF) 22%, transparent);
+}
 
 /* --- initial-training board (Kanban): columns per stage, a lane per course, cards placed by milestone --- */
 .kanban-wrap { overflow-x: auto; padding-bottom: var(--space-2); }
@@ -537,7 +647,12 @@ dialog.modal-wide { max-width: 64rem; }
 .kanban-card:hover, .kanban-card:focus-visible { border-color: var(--brand-accent); box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08); outline: none; }
 .kanban-name { font-size: var(--text-sm); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .kanban-bar { display: block; height: 6px; border-radius: 3px; background: var(--surface-sunken); border: 1px solid var(--border); overflow: hidden; }
-.kanban-bar > span { display: block; height: 100%; background: var(--brand-accent); }
+/* The fill carries the card's RAG, not the brand accent. On a board where every bar was Avianca red
+   next to a red "at risk" dot, a healthy course and a failing one looked identical from across a
+   room. Red on this board now means only one thing. */
+.kanban-bar > span { display: block; height: 100%; background: var(--state-good); }
+.kanban-bar.bar-warn > span { background: var(--state-warn); }
+.kanban-bar.bar-bad > span { background: var(--state-bad); }
 .rag { display: inline-block; width: 10px; height: 10px; border-radius: 50%; flex: none; }
 .rag-good { background: var(--state-good); }
 .rag-warn { background: var(--state-warn); }

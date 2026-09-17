@@ -4,9 +4,24 @@
  * Nothing above this module knows the vendor, the auth scheme, the wire format or the
  * response shape. Everything is three environment variables:
  *
- *   LLM_BASE_URL     an OpenAI-compatible endpoint, no trailing slash. Empty = degraded mode.
+ *   LLM_BASE_URL     the endpoint, no trailing slash. Empty = degraded mode.
  *   LLM_MODEL_FAST   classify, extract, map step
  *   LLM_MODEL_DEEP   structured findings, narrative, report assembly
+ *
+ * and one more that says only which WIRE FORMAT the endpoint speaks:
+ *
+ *   LLM_WIRE         "openai" (default) or "anthropic"
+ *
+ * The wire is not the vendor and not a feature flag. Two providers are reached today - an
+ * OpenAI-compatible endpoint (vLLM, Ollama, OpenAI itself, and the Corvanox sovereign gateway
+ * when it exists) and Anthropic's Messages API, which differs in three mechanical ways: the path
+ * is /messages rather than /chat/completions, the key travels in x-api-key with a version header
+ * rather than in Authorization, and the system prompt is a top-level field rather than the first
+ * message. Nothing else about it differs, and nothing above this module is allowed to care.
+ *
+ * Keeping that difference to one branch inside one function is what makes moving to a self-hosted
+ * model later a change of three environment variables rather than a rewrite. If a third wire is
+ * ever needed, it goes here, next to these two, and nowhere else.
  *
  * Rules this module enforces, from docs/11_AI_PIPELINE.md:
  *   - degraded mode (no inference configured) is a supported, tested state, returned as a
@@ -75,9 +90,12 @@ export type CallOptions<T> = {
   signal?: AbortSignal;
 };
 
+export type Wire = "openai" | "anthropic";
+
 type Cfg = {
   baseUrl: string;
   apiKey: string;
+  wire: Wire;
   model: Record<Tier, string>;
   timeoutMs: Record<Tier, number>;
   maxTokens: Record<Tier, number>;
@@ -92,10 +110,20 @@ function num(name: string, fallback: number): number {
   return Number.isFinite(n) ? n : fallback;
 }
 
+function readWire(): Wire {
+  const raw = (process.env.LLM_WIRE ?? "openai").trim().toLowerCase();
+  if (raw === "openai" || raw === "anthropic") return raw;
+  throw new Error(`LLM_WIRE must be "openai" or "anthropic", received: ${raw}`);
+}
+
 function config(): Cfg {
   return {
     baseUrl: (process.env.LLM_BASE_URL ?? "").trim().replace(/\/+$/, ""),
     apiKey: (process.env.LLM_API_KEY ?? "").trim(),
+    // Anything other than the two known wires is a configuration mistake, and defaulting a
+    // misspelling to "openai" would send an Anthropic key to the wrong path with the wrong header
+    // and report it as an unreachable endpoint. Fail where the mistake is.
+    wire: readWire(),
     model: {
       fast: (process.env.LLM_MODEL_FAST ?? "").trim(),
       deep: (process.env.LLM_MODEL_DEEP ?? "").trim(),

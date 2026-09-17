@@ -46,6 +46,8 @@ interface PersonRow {
   org_unit: string | null;
   asset_class: string | null;
   is_active: boolean;
+  /** The aviation qualifications this person holds - TRI, TRE, SFI, LTC. Empty for a line pilot. */
+  instructor_roles: string[] | null;
   watch_list: boolean;
   concern_override: string | null;
   joined_on: string | null;
@@ -72,8 +74,8 @@ export default async function SubjectProfilePage({ params, searchParams }: { par
 
   const person = await queryOne<PersonRow>(
     `SELECT p.id, p.external_id, p.full_name, p.position,
-            ou.name AS org_unit, ac.name AS asset_class,
-            p.is_active, p.watch_list, p.concern_override, p.joined_on::text
+            ou.name AS org_unit, ac.code AS asset_class,
+            p.is_active, p.instructor_roles, p.watch_list, p.concern_override, p.joined_on::text
        FROM people p
        LEFT JOIN org_units ou     ON ou.id = p.org_unit_id
        LEFT JOIN asset_classes ac ON ac.id = p.asset_class_id
@@ -165,7 +167,7 @@ export default async function SubjectProfilePage({ params, searchParams }: { par
         items={[
           { label: 'Overview', href: '/' },
           { label: labels().subject_plural, href: '/subjects' },
-          { label: person.external_id },
+          { label: person.full_name },
         ]}
       />
 
@@ -178,8 +180,28 @@ export default async function SubjectProfilePage({ params, searchParams }: { par
           <Chip tone="info" srPrefix="Concern set manually">{person.concern_override}</Chip>
         ) : null}
         <span className="spacer" />
+        {/*
+          Built as of 2026-09-16. This was removed while /subjects/[id]/analysis was a stub, on the
+          rule that a button leading to "not built in this scaffold" teaches the reader nothing and
+          costs the product more than the missing feature does. There is something behind it now.
+        */}
         {can(access, 'training.analysis.view') ? (
-          <Link className="button button-quiet" href={`/subjects/${person.id}/analysis`} style={{ textDecoration: 'none' }} data-testid="trainee-analysis">Trainee analysis</Link>
+          <Link href={`/subjects/${id}/analysis`} className="button button-quiet xs" style={{ textDecoration: 'none' }}>Analysis</Link>
+        ) : null}
+        {/*
+          MANY PEOPLE ARE BOTH. An instructor is a pilot who also grades, and until now the two
+          halves of one person lived on two pages with no way between them: a manager looking at a
+          TRE's own training had to go back to the bench and search for the same name. The link
+          appears only where there is something behind it - `instructor_roles` is what puts somebody
+          on the bench in the first place (lib/instructors.ts), so the same test decides both - and
+          only for a reader who holds the assessor capability, which deliberately EXCLUDES the
+          holder's own page.
+        */}
+        {(person.instructor_roles ?? []).length > 0 && can(access, 'training.analytics.assessor.view') ? (
+          <Link href={`/instructors/${id}/analysis`} className="button button-quiet xs" style={{ textDecoration: 'none' }}
+                title={`Also an instructor: ${(person.instructor_roles ?? []).join(', ')}`}>
+            Instructor
+          </Link>
         ) : null}
       </div>
       <p className="muted small">
@@ -203,7 +225,7 @@ export default async function SubjectProfilePage({ params, searchParams }: { par
       {competencies.length === 0 ? (
         <EmptyState
           title="No competency framework is active"
-          reason="Seed one with npm run seed:framework. Every chart on this page derives its axes from the framework tables."
+          reason="Every chart on this page takes its axes from the active competency framework, so nothing can be drawn until one is loaded."
         />
       ) : (
         <>

@@ -1,4 +1,5 @@
 import { NextResponse, type NextRequest } from 'next/server';
+import { seeOther, pathWithQuery } from '@/lib/http';
 import { query, queryOne } from '@/lib/db';
 import { issueSessionCookie } from '@/lib/session';
 import { audit, AUDIT_ACTIONS, requestContext } from '@/lib/audit';
@@ -75,14 +76,21 @@ function safeNext(next: string): string {
   return next.startsWith('/') && !next.startsWith('//') ? next : '/';
 }
 
-function fail(request: NextRequest, wantsJson: boolean, reason: string, next: string) {
+/*
+ * RELATIVE, like every other redirect in this app. This one was missed when the rest were converted
+ * on 2026-09-16, and it is the worst one to miss: the SUCCESS path already used seeOther, so signing
+ * in worked and only a WRONG PASSWORD threw the browser at http://0.0.0.0:3000/login - the
+ * container's bind address, which is not a site. Someone mistyping a password on the demo laptop met
+ * "This site can't be reached" instead of "that password was not accepted".
+ *
+ * `request` is no longer needed to build the destination, which is the point: nothing here has to
+ * know the name the browser used to reach it.
+ */
+function fail(_request: NextRequest, wantsJson: boolean, reason: string, next: string) {
   if (wantsJson) {
     return NextResponse.json({ ok: false, error: reason }, { status: 401 });
   }
-  const url = request.nextUrl.clone();
-  url.pathname = '/login';
-  url.search = `?error=${reason}&next=${encodeURIComponent(safeNext(next))}`;
-  return NextResponse.redirect(url, 303);
+  return seeOther(pathWithQuery('/login', { error: reason, next: safeNext(next) }));
 }
 
 export async function POST(request: NextRequest) {
@@ -151,7 +159,7 @@ export async function POST(request: NextRequest) {
   const destination = row.must_change_password ? '/change-password' : next;
   const response = wantsJson
     ? NextResponse.json({ ok: true, next: destination })
-    : NextResponse.redirect(new URL(destination, request.nextUrl.origin), 303);
+    : seeOther(destination);
 
   response.cookies.set({
     name: cookie.name,

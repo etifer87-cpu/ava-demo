@@ -260,7 +260,7 @@ function Node({ node, index, selected, editable, busyKey, dragging, dragStart, d
         <li className={`outline-section${isSel ? ' is-selected' : ''}${busy ? ' is-busy' : ''}`} style={node.phaseColour ? { borderLeftColor: node.phaseColour } : undefined} data-phase={node.phase ?? undefined} {...common}>
           <div className="row" style={{ alignItems: 'baseline' }}>
             {editable ? <span className="grip" aria-hidden="true">⋮⋮</span> : null}
-            <Title node={node} editable={editable} onRename={onRename} className="outline-title" />
+            <Title node={node} editable={editable} onRename={onRename} onSelect={onSelect} className="outline-title" />
             {node.phaseLabel ? <span className="xs muted">{node.phaseLabel}</span> : null}
             {node.trainingOnly ? <span className="xs muted">training only</span> : null}
             {node.badges.map((b, i) => <span key={i} className="xs muted">{b}</span>)}
@@ -284,7 +284,7 @@ function Node({ node, index, selected, editable, busyKey, dragging, dragStart, d
       <li className={`outline-item outline-${node.kind}${isSel ? ' is-selected' : ''}${busy ? ' is-busy' : ''}`} {...common}>
         {editable ? <span className="grip" aria-hidden="true">⋮⋮</span> : null}
         <span className="mono xs muted outline-kind">{node.kind}</span>
-        <Title node={node} editable={editable} onRename={onRename} className="" />
+        <Title node={node} editable={editable} onRename={onRename} onSelect={onSelect} className="" />
         {node.badges.map((b, i) => <span key={i} className="xs muted">{b}</span>)}
         <span className="spacer" />
         <span className="mono xs">{node.minutes ?? ''}</span>
@@ -294,8 +294,14 @@ function Node({ node, index, selected, editable, busyKey, dragging, dragStart, d
   );
 }
 
-/** Click to edit; Enter or blur saves; Escape cancels. The key never changes. */
-function Title({ node, editable, onRename, className }: { node: CanvasNode; editable: boolean; onRename: (key: string, title: string) => Promise<void>; className: string }) {
+/**
+ * The element's name on the canvas.
+ *
+ * One click SELECTS the element - the same as clicking anywhere else on its row - because that is
+ * what a reader does, and the inspector is what they are after. Renaming is a double-click, then
+ * Enter or blur saves and Escape cancels. The key never changes.
+ */
+function Title({ node, editable, onRename, onSelect, className }: { node: CanvasNode; editable: boolean; onRename: (key: string, title: string) => Promise<void>; onSelect: (key: string) => void; className: string }) {
   const [editing, setEditing] = useState(false);
   const [value, setValue] = useState(node.title);
   const ref = useRef<HTMLInputElement | null>(null);
@@ -303,7 +309,15 @@ function Title({ node, editable, onRename, className }: { node: CanvasNode; edit
   useEffect(() => { if (editing) ref.current?.select(); }, [editing]);
   if (!editable) return <span className={className}>{node.title || node.key}</span>;
   if (!editing) {
-    return <button type="button" className={`title-button ${className}`} onClick={(e) => { e.stopPropagation(); setEditing(true); }} title="Click to rename">{node.title || node.key}</button>;
+    return (
+      <button
+        type="button"
+        className={`title-button ${className}`}
+        onClick={(e) => { e.stopPropagation(); onSelect(node.key); }}
+        onDoubleClick={(e) => { e.stopPropagation(); setEditing(true); }}
+        title="Click to select · double-click to rename"
+      >{node.title || node.key}</button>
+    );
   }
   const commit = async () => { setEditing(false); const t = value.trim(); if (t.length >= 2 && t !== node.title) await onRename(node.key, t); else setValue(node.title); };
   const onKey = (e: KeyboardEvent<HTMLInputElement>) => { if (e.key === 'Enter') { e.preventDefault(); void commit(); } if (e.key === 'Escape') { setValue(node.title); setEditing(false); } };

@@ -24,6 +24,17 @@ export interface GradeScaleConfig {
   readonly meets_standard_min: number;
   /** Non-compensatory: removed from index arithmetic and handled as a flag. */
   readonly critical_grade: number;
+  /**
+   * How many below-standard grades a record may carry. `warn_at` is advisory and drives both the
+   * Review warning and the outcome-mismatch alert; `refuse_pass_at` grades of exactly
+   * `refuse_pass_grade` refuse a passing outcome outright. See config/analytics.yaml, which carries
+   * the reasoning. Optional so a config written before 2026-09-16 still loads.
+   */
+  readonly outcome_standard?: {
+    readonly warn_at: number;
+    readonly refuse_pass_grade: number;
+    readonly refuse_pass_at: number;
+  };
 }
 
 export interface AnalyticsConfigSlice {

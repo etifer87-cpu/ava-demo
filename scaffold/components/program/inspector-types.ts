@@ -12,6 +12,9 @@ export type InspectorNode =
   | { readonly kind: 'note'; readonly key: string; readonly title: string; readonly content: NoteContent }
   | { readonly kind: 'other'; readonly key: string; readonly title: string; readonly elementType: string };
 
+/** One observable behaviour of the active framework, as the inspector shows it under its competency. */
+export interface BehaviourRow { readonly competency: string; readonly code: string; readonly text: string }
+
 export interface MalfunctionRow { readonly code: string; readonly title: string; readonly ata: string | null; readonly system: string | null; readonly options: readonly string[] }
 export interface EventRow { readonly code: string; readonly title: string; readonly category: string | null; readonly trigger: string | null }
 
@@ -24,6 +27,12 @@ export interface InspectorData {
   readonly editable: boolean;
   readonly vocab: { readonly sectionKinds: readonly string[]; readonly phases: readonly (readonly [string, string])[]; readonly pfSeats: readonly string[] };
   readonly competencies: readonly { readonly code: string; readonly name: string }[];
+  /**
+   * The observable behaviours of the active framework, flat and ordered, so the pane can list the
+   * ones that belong to a ticked competency. Loaded with the competencies and for the same reason:
+   * a program says which competencies an exercise targets, and the room asks what those mean.
+   */
+  readonly behaviours: readonly BehaviourRow[];
   readonly fleets: readonly { readonly code: string; readonly label: string }[];
   readonly programFleet: string | null;
   /** The malfunction index for the fleet the group is set to; empty when there is none for that type. */

@@ -1,4 +1,5 @@
 import { NextResponse, type NextRequest } from 'next/server';
+import { seeOther } from '@/lib/http';
 import { getSession, SESSION_COOKIE_NAME } from '@/lib/session';
 import { auditFor, AUDIT_ACTIONS } from '@/lib/audit';
 
@@ -30,7 +31,7 @@ export async function POST(request: NextRequest) {
   const wantsJson = (request.headers.get('content-type') ?? '').includes('application/json');
   const response = wantsJson
     ? NextResponse.json({ ok: true })
-    : NextResponse.redirect(new URL('/login', request.nextUrl.origin), 303);
+    : seeOther('/login');
 
   response.cookies.set({
     name: SESSION_COOKIE_NAME,

@@ -44,6 +44,10 @@ product:
   short_name: "Avianca TMS"
   # Printed under the header on internal builds. Empty string hides it.
   environment_label: "DEMO"
+  # The line at the foot of every page. The operator owns the product name above;
+  # this names who built it. Empty string hides the footer entirely, which is what
+  # a white-label deployment sets it to.
+  vendor_line: "Designed and powered by Corvanox OÜ"
 
 logo:
   # Served from scaffold/public/. Leave empty to render the product's short name
@@ -121,11 +125,29 @@ state:
 # colour alone, on screen or in a report.
 # ---------------------------------------------------------------------------
 grade_palette:
-  "1": { colour: "#B91C1C", label: "ineffective" }
-  "2": { colour: "#B45309", label: "minimum acceptable" }
-  "3": { colour: "#4D7C0F", label: "adequate" }
-  "4": { colour: "#15803D", label: "effective" }
-  "5": { colour: "#1D4ED8", label: "exemplary" }
+  # Set by the operator 2026-09-17. Two values per grade:
+  #   colour - the FILL. Chips, bars, marks.
+  #   tint   - the pale wash of the same hue, for a surface BEHIND text: a row
+  #            background, a soft badge. ~1.05:1 against the page by design, so
+  #            it is never a shape on its own.
+  "1": { colour: "#DC2626", tint: "#FEF2F2", label: "ineffective" }
+  "2": { colour: "#F59E0B", tint: "#FFFBEB", label: "minimum acceptable" }
+  "3": { colour: "#96B577", tint: "#F3F7EF", label: "adequate" }
+  "4": { colour: "#4B7046", tint: "#F0FDF4", label: "effective" }
+  "5": { colour: "#354D6E", tint: "#EFF6FF", label: "exemplary" }
+
+# THE NUMERAL ON A GRADE FILL IS NOT STATED HERE, on purpose. lib/config.ts
+# emits a --grade-N-ink beside every --grade-N, choosing white or dark ink by
+# relative luminance, so a colour changed above can never leave a numeral
+# unreadable. On this ramp that resolves to dark on grades 2 and 3 and white on
+# 1, 4 and 5 - measured: a light numeral on grade 2 is 1.92:1 and on grade 3 is
+# 2.05:1, while dark ink on them is 8.26:1 and 7.75:1.
+#
+# A `grade_ink` key here overrides all five with one colour. It was set on
+# 2026-09-17 and removed the same day once those two numbers were on the table.
+# Setting it again is a decision to make some numerals unreadable, so measure
+# before doing it.
+
 # Non-scoring codes render as muted ink with the code as text. They have no
 # colour of their own on purpose: they are an absence of a grade, not a value.
 
@@ -156,8 +178,12 @@ phase_palette:
 font:
   # --font-sans : all interface text
   sans: '"Red Hat Display", system-ui, -apple-system, "Segoe UI", "Helvetica Neue", Arial, sans-serif'
-  # --font-mono : ids, external references, grades in tables, code
-  mono: 'ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace'
+  # --font-mono : RETIRED as a separate face 2026-09-17 at the operator's
+  # instruction. The token is kept because code and CSS read it in a hundred
+  # places, and it now points at the interface stack, so every .mono, .id and
+  # <code> follows without a single call site being edited. Point it back at a
+  # monospace stack and they all come back.
+  mono: '"Red Hat Display", system-ui, -apple-system, "Segoe UI", "Helvetica Neue", Arial, sans-serif'
   # --font-display : headings. Same stack as sans by default; an operator with a
   # licensed display face changes this one line and self-hosts the file under
   # scaffold/public/fonts/.
@@ -200,25 +226,32 @@ shape:
 # there and only its presentation lives here, so moving the threshold moves the zones with it. The
 # last zone carries `to: null`, meaning "everything beyond". Colours are the average-band palette, so
 # a dot and a competency average of the same standing read the same way across the product.
+# Drawn from the same hues as grade_palette so the app reads as one system, but
+# these are NOT grades and never map one-to-one onto them: an instructor in the
+# "well outside" zone has not been given a 1. Only the family is shared.
 leniency_zones:
-  - { to: 0.5,  colour: "#1B7F4B", label: "In line" }            # dark green, inside half the threshold
-  - { to: 1.0,  colour: "#9FD8A4", label: "Slight leaning" }     # light green, up to the threshold
-  - { to: 1.5,  colour: "#F6C97A", label: "Outside the band" }   # light amber, past it
-  - { to: null, colour: "#F4A3A3", label: "Well outside" }       # light red
+  - { to: 0.5,  colour: "#4B7046", label: "In line" }            # inside half the threshold
+  - { to: 1.0,  colour: "#96B577", label: "Slight leaning" }     # up to the threshold
+  - { to: 1.5,  colour: "#F59E0B", label: "Outside the band" }   # past it
+  - { to: null, colour: "#DC2626", label: "Well outside" }
 
 # The diverging scale the instructor bias heatmap paints with: how far an instructor's own mean for
 # a competency sits from the peer mean for that competency. `full` is the difference at which the
 # tint reaches full strength, in grade points. The signed value is always printed in the cell as
 # well - colour never carries the reading on its own.
 residual_scale:
-  lenient: "#B91C1C"        # graded above what the same pilots earned elsewhere
-  strict:  "#1D4ED8"        # graded below it
+  lenient: "#DC2626"        # graded above what the same pilots earned elsewhere
+  strict:  "#354D6E"        # graded below it
   neutral: "#F1F5F9"        # at the peer mean
   full: 0.75
 
+# ALIGNED TO grade_palette 2026-09-17. These were a second, lighter set of five
+# colours for the same five bands, which meant the bar for a mean of 3.4 was a
+# different green from the chip on a grade 3 - two palettes saying one thing, and
+# a reader asking why. A band now wears the colour of the grade it names.
 average_bands:
-  - { from: 1.0, colour: "#F4A3A3", label: "Well below standard" }   # light red, below 1.1
-  - { from: 1.1, colour: "#F6C97A", label: "Below standard" }        # light amber, 1.1 - 2.9
-  - { from: 3.0, colour: "#9FD8A4", label: "Standard" }              # light green, 3.0 - 3.9
-  - { from: 4.0, colour: "#2E9E5B", label: "Above standard" }        # green, 4.0 - 4.9
-  - { from: 5.0, colour: "#1F3A93", label: "Exemplary" }             # dark blue, 5
+  - { from: 1.0, colour: "#DC2626", label: "Well below standard" }   # grade 1
+  - { from: 1.1, colour: "#F59E0B", label: "Below standard" }        # grade 2, 1.1 - 2.9
+  - { from: 3.0, colour: "#96B577", label: "Standard" }              # grade 3, 3.0 - 3.9
+  - { from: 4.0, colour: "#4B7046", label: "Above standard" }        # grade 4, 4.0 - 4.9
+  - { from: 5.0, colour: "#354D6E", label: "Exemplary" }             # grade 5

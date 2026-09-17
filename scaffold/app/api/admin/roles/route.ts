@@ -1,4 +1,5 @@
 import { NextResponse, type NextRequest } from 'next/server';
+import { seeOther, pathWithQuery } from '@/lib/http';
 import { transaction } from '@/lib/db';
 import { requireSession } from '@/lib/session';
 import { resolveAccess, requireCapability } from '@/lib/access';
@@ -39,7 +40,7 @@ export async function POST(request: NextRequest) {
   const ctx = requestContext(request.headers);
 
   const back = (flash: Parameters<typeof flashCookie>[0], role = code) => {
-    const res = NextResponse.redirect(new URL(role ? `/admin/roles?role=${role}` : '/admin/roles', request.nextUrl.origin), 303);
+    const res = seeOther(role ? pathWithQuery('/admin/roles', { role }) : '/admin/roles');
     res.cookies.set(flashCookie(flash));
     return res;
   };

@@ -65,6 +65,11 @@ function slotsOf(tree: ProgramTree): { key: string; slot: SlotRef }[] {
   return out;
 }
 
+/** The grading modes in the operator's words, for a finding a chief pilot has to read. */
+function modeWords(mode: string): string {
+  return mode === 'scale_1_5' ? 'graded 1-5' : mode === 'competent_not_competent' ? 'competent / not competent' : mode;
+}
+
 /** The implementations. The key set of this object IS the contract with rules.yaml. */
 export const RULE_IMPLEMENTATIONS: Readonly<Record<string, Predicate>> = {
   'ebt.three_phases': (tree, rule) => {
@@ -113,6 +118,63 @@ export const RULE_IMPLEMENTATIONS: Readonly<Record<string, Predicate>> = {
       if (t.content.type !== 'task') continue;
       const n = t.content.task.grading.competencies.length;
       if (n > max) out.push(finding(rule, t.key, `${n} targeted, guardrail ${max}`));
+    }
+    return out;
+  },
+
+  /*
+   * One competency, one grade for the session (migration 0027: competency_grades is unique on
+   * session, person, competency). So the grading MODE is fixed for the session by whichever element
+   * is graded first, and an element that targets the same competency on a different scale can never
+   * be graded at all - the write is refused with "this competency is graded competent / not
+   * competent", in a simulator, with the crew waiting.
+   *
+   * Blocker, because there is no way to deliver the program as authored. The finding names the
+   * competency and both modes with the element that set the first one, so the fix is one dropdown.
+   */
+  'competency.mixed_modes': (tree, rule) => {
+    const first = new Map<string, { mode: string; at: string }>();
+    const reported = new Set<string>();
+    const out: Finding[] = [];
+    for (const n of walk(tree.roots)) {
+      const g = n.content.type === 'task' ? n.content.task.grading
+        : n.content.type === 'section' ? n.content.section.grading
+        : null;
+      if (!g || g.competency_grade_mode === 'none') continue;
+      for (const code of g.competencies) {
+        const seen = first.get(code);
+        if (!seen) { first.set(code, { mode: g.competency_grade_mode, at: n.key }); continue; }
+        if (seen.mode === g.competency_grade_mode || reported.has(code)) continue;
+        reported.add(code);
+        out.push(finding(rule, n.key, `${code}: ${modeWords(seen.mode)} at ${seen.at}, ${modeWords(g.competency_grade_mode)} here`));
+      }
+    }
+    return out;
+  },
+
+  // A grading mode with an empty competency list is not a half-finished thought, it is a broken
+  // step: the instructor reaches it and there is nothing on the screen to grade. Blocker.
+  'task.no_competencies': (tree, rule) => {
+    const out: Finding[] = [];
+    for (const t of tasksOf(tree)) {
+      if (t.content.type !== 'task') continue;
+      const g = t.content.task.grading;
+      if (g.competency_grade_mode !== 'none' && g.competencies.length === 0) out.push(finding(rule, t.key));
+    }
+    return out;
+  },
+
+  // A heading with nothing under it reaches the instructor's rail and the printed record as a
+  // heading with nothing under it. A warning, not a blocker: a draft is built top-down and an
+  // empty section is a normal intermediate state.
+  'section.empty': (tree, rule) =>
+    sectionsOf(tree).filter((s) => s.children.length === 0).map((s) => finding(rule, s.key)),
+
+  'options.empty': (tree, rule) => {
+    const out: Finding[] = [];
+    for (const n of walk(tree.roots)) {
+      if (n.content.type !== 'event_option') continue;
+      if (n.content.options.options.length === 0) out.push(finding(rule, n.key, n.content.options.kind === 'malfunction' ? 'malfunction' : 'event'));
     }
     return out;
   },

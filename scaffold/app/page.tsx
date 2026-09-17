@@ -81,7 +81,7 @@ const TILES: ReadonlyArray<{ href: string; title: string; body: string; capabili
   { href: '/sessions', title: 'Sessions', body: 'Training events open for grading, and the ones awaiting signature.', capability: 'training.sessions.view' },
   { href: '/records', title: 'Records', body: 'Signed records from every source: in-app, imported and ingested.', capability: 'training.records.view' },
   { href: '/templates', title: 'Templates', body: 'Form definitions and their published versions.', capability: 'training.templates.view' },
-  { href: '/analytics', title: 'Analytics', body: 'Programme indicators, competency distributions and trends.', capability: 'training.analytics.programme.view' },
+  { href: '/analytics', title: 'Training picture', body: 'The population, competency averages, the trend, validity, and what needs a decision.', capability: 'training.analytics.programme.view' },
   { href: '/qms/qualifications', title: 'Qualifications', body: 'Validity, expiry warnings and evidence.', capability: 'qms.qualifications.view' },
   { href: '/dms/documents', title: 'Documents', body: 'Filed documents, versions and retention.', capability: 'dms.documents.view' },
   { href: '/admin/people', title: 'Administration', body: 'Accounts, roles, configuration and the audit log.', capability: 'platform.settings.manage' },

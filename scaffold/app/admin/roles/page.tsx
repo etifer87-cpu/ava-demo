@@ -180,12 +180,18 @@ export default async function RolesPage({ searchParams }: { searchParams: Promis
       ) : null}
 
       <Card title="Matrix" note="Every role across, every capability down. A cell is the widest scope the role holds; blank means no grant. Read from the database, never from a document." testId="matrix">
+        {/* CLOSED ON LOAD, at the operator's request. The matrix is every capability in the platform
+            against every role - hundreds of cells - and opening on it buries the role editor above
+            and gives a reader a wall before a question. A <details> rather than client state, so it
+            needs no JavaScript and the browser handles the keyboard and the announcement. */}
+        <details className="matrix-details">
+          <summary className="matrix-summary">Show the full matrix — {caps.length} capabilities across {roles.length} roles</summary>
         <div className="table-wrap">
           <table className="data matrix matrix-wide">
             <thead>
               <tr>
                 <th scope="col">Capability</th>
-                {roles.map((r) => <th key={r.code} scope="col" className="matrix-role"><Link href={`/admin/roles?role=${r.code}`} title={r.name}>{r.code}</Link></th>)}
+                {roles.map((r) => <th key={r.code} scope="col" className="matrix-role"><a href={`/admin/roles?role=${r.code}`} title={r.name}>{r.code}</a></th>)}
               </tr>
             </thead>
             <tbody>
@@ -206,6 +212,7 @@ export default async function RolesPage({ searchParams }: { searchParams: Promis
             </tbody>
           </table>
         </div>
+        </details>
       </Card>
     </div>
   );

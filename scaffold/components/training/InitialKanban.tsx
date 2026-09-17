@@ -27,6 +27,15 @@ export interface BoardPilot {
 }
 
 const stateTone = (s: string) => s === 'done' ? 'chip chip-good' : s === 'current' ? 'chip chip-info' : s === 'planned' ? 'chip chip-warn' : 'chip';
+/**
+ * How many course lanes open by themselves. ZERO, at the operator's request 2026-09-16, having seen
+ * it both ways: a board that opens fully expanded is taller than a screen, and the column headings -
+ * which carry the per-stage counts - scroll away before anyone has read them. Closed lanes make the
+ * board a summary that opens into detail. Raise this and that many courses open on load; a counter
+ * above always expands the lanes it matches, whatever this says.
+ */
+const OPEN_LANES = 0;
+
 const ragTitle = { good: 'On track', warn: 'Behind schedule - a planned session is past its date', bad: 'At risk - a failed session, an objection or additional training recommended' } as const;
 
 export function InitialKanban({ pilots, stages, releasedLabel, today, finishingDays }: { readonly pilots: readonly BoardPilot[]; readonly stages: readonly StageDef[]; readonly releasedLabel: string; readonly today: string; readonly finishingDays: number }) {
@@ -101,7 +110,7 @@ export function InitialKanban({ pilots, stages, releasedLabel, today, finishingD
         <div className="kanban" style={{ gridTemplateColumns: `repeat(${columns.length}, minmax(190px, 1fr))` }}>
           {columns.map((c) => <div key={c.key} className="kanban-head">{c.label} <span className="kanban-count">{shown.filter((p) => p.card.stage === c.key).length}</span></div>)}
           {courses.map((course) => { const lane = shown.filter((p) => (p.training_course ?? '—') === course); return (
-            <details key={`${course}-${filter ?? 'all'}`} className="kanban-lane" style={{ gridColumn: `1 / span ${columns.length}` }} open={filter !== null && lane.length > 0}>
+            <details key={`${course}-${filter ?? 'all'}`} className="kanban-lane" style={{ gridColumn: `1 / span ${columns.length}` }} open={lane.length > 0 && (filter !== null || courses.length <= OPEN_LANES)}>
               <summary className="kanban-lane-title"><span className="mono">{course}</span> <span className="muted small">· {lane.length} pilot{lane.length === 1 ? '' : 's'}{filter ? ` of ${pilots.filter((p) => (p.training_course ?? '—') === course).length}` : ''}</span></summary>
               <div className="kanban" style={{ gridTemplateColumns: `repeat(${columns.length}, minmax(190px, 1fr))` }}>
                 {columns.map((c) => (
@@ -113,7 +122,7 @@ export function InitialKanban({ pilots, stages, releasedLabel, today, finishingD
                           <strong className="kanban-name">{p.full_name}</strong>
                         </div>
                         <div className="xs muted">{p.position ?? '—'} · {p.fleet ?? '—'} · {p.base ?? '—'} · <span className="mono">{p.seniority_number ?? p.external_id}</span></div>
-                        <span className="kanban-bar" aria-label={`${p.card.progress}% of the course`}><span style={{ width: `${p.card.progress}%` }} /></span>
+                        <span className={`kanban-bar bar-${p.card.rag}`} aria-label={`${p.card.progress}% of the course`}><span style={{ width: `${p.card.progress}%` }} /></span>
                         <div className="xs row" style={{ gap: 'var(--space-2)', justifyContent: 'space-between', flexWrap: 'nowrap' }}>
                           <span>{counter(p)}</span><span className="muted">{p.card.progress}%</span>
                         </div>
@@ -144,7 +153,7 @@ export function InitialKanban({ pilots, stages, releasedLabel, today, finishingD
               <span className={`rag rag-${open.card.rag}`} aria-hidden="true" /><span className="small">{ragTitle[open.card.rag]}</span>
               <span className="spacer" />
               <span className="small"><strong>{open.card.progress}%</strong> of the course</span>
-              <span className="kanban-bar" style={{ width: 200 }}><span style={{ width: `${open.card.progress}%` }} /></span>
+              <span className={`kanban-bar bar-${open.card.rag}`} style={{ width: 200 }}><span style={{ width: `${open.card.progress}%` }} /></span>
             </div>
 
             <ol className="timeline">

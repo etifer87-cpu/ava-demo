@@ -475,6 +475,10 @@ export async function getInstructorAnalysis(id: string): Promise<InstructorAnaly
   const gradeMax = cfg.assessor_fairness.justification.grade_max;
   const minWords = cfg.assessor_fairness.justification.min_words;
   const haloMin = cfg.assessor_fairness.habits.halo.min_competencies_graded;
+  // Advisory threshold, owned by the operator. One below-standard grade with a PASS is ordinary in a
+  // check; nominating every one of them buried this queue (145 open on 301 records) and a queue nobody
+  // can work is a queue nobody reads. Default 1 keeps the old behaviour for a config without the key.
+  const mismatchMinBelow = Math.max(1, cfg.grade_scale.outcome_standard?.warn_at ?? 1);
   const fails = failOutcomes(P);
 
   type R = Record<string, string | number | boolean | null>;
@@ -540,10 +544,10 @@ export async function getInstructorAnalysis(id: string): Promise<InstructorAnaly
         JOIN records r ON r.id = pr.record_id AND r.deleted_at IS NULL
         JOIN people s ON s.id = pr.subject_id
        WHERE pr.graded > 0 AND COALESCE(r.outcome_override, r.outcome) IS NOT NULL
-         AND ( (pr.below > 0 AND NOT (COALESCE(r.outcome_override, r.outcome) = ANY($2::text[]))
-                            AND NOT COALESCE((r.snapshot->>'additional_training')::boolean, false))
+         AND ( (pr.below >= $3 AND NOT (COALESCE(r.outcome_override, r.outcome) = ANY($2::text[]))
+                             AND NOT COALESCE((r.snapshot->>'additional_training')::boolean, false))
             OR (pr.below = 0 AND COALESCE(r.outcome_override, r.outcome) = ANY($2::text[])) )
-       ORDER BY r.training_date DESC LIMIT 250`, [id, fails]),
+       ORDER BY r.training_date DESC LIMIT 250`, [id, fails, mismatchMinBelow]),
     query<R>(`
       SELECT a.record_id, a.competency_id, a.alert_type, a.status, a.reviewer_note, a.decided_at::text AS decided_at,
              COALESCE(dp.full_name, u.username) AS decided_by_name

@@ -1,4 +1,5 @@
 import { NextResponse, type NextRequest } from 'next/server';
+import { seeOther } from '@/lib/http';
 import { query, queryOne, transaction } from '@/lib/db';
 import { requireSession } from '@/lib/session';
 import { resolveAccess, requireCapability } from '@/lib/access';
@@ -15,6 +16,7 @@ import { policy } from '@/lib/config';
  *   deactivate      is_active = false (never deleted)    platform.users.manage   not on yourself
  *   reactivate      is_active = true                     platform.users.manage
  *   grant           add a role grant with binding        platform.roles.assign
+ *   rebind          move one grant to another fleet/base  platform.roles.assign   not your own operator_admin
  *   revoke          remove one grant                     platform.roles.assign   not your own operator_admin
  *
  * Every action writes one audit row naming the capability it used. A form POST redirects back to
@@ -26,11 +28,11 @@ export const dynamic = 'force-dynamic';
 
 type Flash = Parameters<typeof flashCookie>[0];
 
-function back(request: NextRequest, id: string, flash: Flash, status = 303) {
+function back(request: NextRequest, id: string, flash: Flash, status: 302 | 303 = 303) {
   if ((request.headers.get('accept') ?? '').includes('application/json')) {
     return NextResponse.json({ ok: flash.kind !== 'bad', message: flash.message }, { status: flash.kind === 'bad' ? 400 : 200 });
   }
-  const res = NextResponse.redirect(new URL(`/admin/users/${id}`, request.nextUrl.origin), status);
+  const res = seeOther(`/admin/users/${id}`, status);
   res.cookies.set(flashCookie(flash));
   return res;
 }
@@ -49,6 +51,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
   const actor = actorFromSession(session);
   const ctx = requestContext(request.headers);
   const self = id === session.userId;
+  let bound = '';
 
   const target = await queryOne<{ id: string; username: string; person_id: string | null; is_active: boolean }>(
     `SELECT id, username, person_id, is_active FROM users WHERE id = $1::uuid AND deleted_at IS NULL`, [id],
@@ -125,6 +128,50 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
             details: { added: role, asset_class_id: fleet, org_unit_id: org, expires_on: expires } }, actor, ctx, client);
         });
         return back(request, id, { kind: 'ok', message: `Grant added: ${role}.` });
+      }
+
+      // Change the fleet / base a grant is bound to without removing and re-adding it. The grant is
+      // addressed by its own id (user_roles.id), so the row keeps its granted_at and granted_by:
+      // widening an instructor from A320 to every fleet is one dropdown, not a revoke and a grant.
+      // user_roles_uniq (0142) collapses NULL to a sentinel, so moving a grant onto a binding the
+      // account already holds is a unique violation, reported as such rather than as a failure.
+      case 'rebind': {
+        requireCapability(access, 'platform.roles.assign');
+        const grantId = str('grant_id', 40);
+        const fleet = str('asset_class_id', 40) || null;
+        const org = str('org_unit_id', 40) || null;
+        if (!/^[0-9a-f-]{36}$/i.test(grantId)) throw new Error('Choose a grant to rebind.');
+        await transaction(async (client) => {
+          const current = await client.query<{ role_code: string }>(
+            `SELECT role_code FROM user_roles WHERE id = $1::uuid AND user_id = $2::uuid`, [grantId, id],
+          );
+          const role = current.rows[0]?.role_code;
+          if (!role) throw new Error('No such grant.');
+          if (self && role === 'operator_admin' && (fleet || org)) {
+            throw new Error('You cannot bind your own administrator role to one fleet or base.');
+          }
+          let moved;
+          try {
+            moved = await client.query<{ role_code: string; fleet_code: string | null; unit_code: string | null }>(
+              `UPDATE user_roles ur
+                  SET asset_class_id = $3::uuid, org_unit_id = $4::uuid
+                WHERE ur.id = $1::uuid AND ur.user_id = $2::uuid
+              RETURNING ur.role_code,
+                        (SELECT code FROM asset_classes WHERE id = ur.asset_class_id) AS fleet_code,
+                        (SELECT code FROM org_units    WHERE id = ur.org_unit_id)     AS unit_code`,
+              [grantId, id, fleet, org],
+            );
+          } catch (e) {
+            if ((e as { code?: string }).code === '23505') throw new Error('This account already holds that role on that fleet and base.');
+            throw e;
+          }
+          const row = moved.rows[0];
+          if (!row) throw new Error('No such grant.');
+          await audit({ action: AUDIT_ACTIONS.userRolesChange, entityTable: 'users', entityId: id, capabilityCode: 'platform.roles.assign',
+            details: { rebound: role, asset_class_code: row.fleet_code, org_unit_code: row.unit_code } }, actor, ctx, client);
+          bound = `${role} - ${row.fleet_code ?? 'every fleet'}, ${row.unit_code ?? 'every base'}`;
+        });
+        return back(request, id, { kind: 'ok', message: `Binding saved: ${bound}.` });
       }
 
       case 'revoke': {

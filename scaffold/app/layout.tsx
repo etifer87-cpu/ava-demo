@@ -61,10 +61,14 @@ interface NavGroupSpec { readonly label: string; readonly href?: string; readonl
  * the route and every id stay `/subjects` because they are identifiers, and only what a person
  * reads changes. Evaluated at module load, which is when policy.yaml is read anyway.
  *
- * Routes that exist but are not in this list (Records, Analytics, Documents) are reached from the
- * screens that own them, not from the header. A nav bar is a set of starting points, not an index.
+ * Routes that exist but are not in this list (Records, Documents) are reached from the screens that
+ * own them, not from the header. A nav bar is a set of starting points, not an index - and the
+ * training picture IS a starting point, which is why it leads the list rather than being reached
+ * from a tile: it is the screen a head of training opens first and returns to.
  */
 const NAV: readonly NavGroupSpec[] = [
+  // The manager's landing. An instructor does not hold this capability and never sees the entry.
+  { label: 'Training picture', href: '/analytics', visible: held('training.analytics.programme.view') },
   {
     label: labels().subject_plural,
     children: [
@@ -131,6 +135,14 @@ export default async function RootLayout({ children }: { children: React.ReactNo
           reportHref={session ? '/support/report' : null}
         />
         <main className="page">{children}</main>
+        {/* In the ROOT layout, so every page carries it without any page knowing it exists - and so
+            a page added later cannot forget it. The string is brand.yaml's: an empty vendor_line
+            hides the footer, which is what a white-label deployment sets. */}
+        {b.product.vendor_line ? (
+          <footer className="app-footer">
+            <p>{b.product.vendor_line}</p>
+          </footer>
+        ) : null}
       </body>
     </html>
   );

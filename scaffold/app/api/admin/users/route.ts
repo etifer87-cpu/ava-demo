@@ -1,4 +1,5 @@
 import { NextResponse, type NextRequest } from 'next/server';
+import { seeOther } from '@/lib/http';
 import { transaction } from '@/lib/db';
 import { requireSession } from '@/lib/session';
 import { resolveAccess, requireCapability } from '@/lib/access';
@@ -23,7 +24,7 @@ export const dynamic = 'force-dynamic';
 const USERNAME = /^[a-z0-9][a-z0-9._-]{2,63}$/i;
 
 function redirectWith(request: NextRequest, to: string, flash: Parameters<typeof flashCookie>[0]) {
-  const res = NextResponse.redirect(new URL(to, request.nextUrl.origin), 303);
+  const res = seeOther(to);
   res.cookies.set(flashCookie(flash));
   return res;
 }

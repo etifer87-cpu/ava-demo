@@ -65,6 +65,17 @@ const clampDate = (d) => (d > asOf ? asOf : d);
 const yearsBetween = (a, b) => (b - a) / (365.25 * 86400000);
 
 const pilots = [];
+/**
+ * The employee number as the operator writes it.
+ *
+ * It was the seniority number itself, so the most senior pilot on the roster carried the employee
+ * id "1" and the second "2" - which reads as test data everywhere it appears, and appears in the
+ * one place it must not: a pilot with no account signs their training record WITH their employee
+ * id, and that id is on the record and on the printed PDF. Sequential staff numbers are realistic;
+ * a staff number that starts at 1 is not.
+ */
+const staffNumber = (n) => `AV${20000 + n}`;
+
 let seniority = 0;
 for (const rank of R.ranks) {
   for (let i = 0; i < rank.count; i += 1) {
@@ -90,7 +101,7 @@ for (const rank of R.ranks) {
     const total = before + Math.round(yearsBetween(joined, asOf) * hoursPerYear());
     const onType = Math.min(total, Math.round(yearsBetween(fleetSince, asOf) * hoursPerYear()));
     pilots.push({
-      seniority, external_id: String(seniority), sex, full_name: null,
+      seniority, external_id: staffNumber(seniority), sex, full_name: null,
       fleet: rank.fleet, position: rank.position, base: pickBase(rank.fleet),
       joined_on: isoDate(joined), rank_since: isoDate(rankSince), fleet_since: isoDate(fleetSince),
       total_hours: total, hours_on_type: Math.max(onType, 50),
@@ -149,7 +160,7 @@ for (const course of R.initial_training?.courses ?? []) {
     const sex = rng.chance(R.female_share) ? 'F' : 'M';
     const start = parseDate(course.start);
     courses.push({
-      seniority, external_id: String(seniority), sex, full_name: nameFor(sex),
+      seniority, external_id: staffNumber(seniority), sex, full_name: nameFor(sex),
       fleet: R.initial_training.fleet, position: 'FO', base: pickBase(R.initial_training.fleet),
       joined_on: isoDate(start), rank_since: isoDate(start), fleet_since: isoDate(start),
       total_hours: rng.int(R.initial_training.hours_before_joining[0], R.initial_training.hours_before_joining[1]), hours_on_type: 0,

@@ -15,7 +15,9 @@ import Chip from '@/components/ui/Chip';
  * Profile and roster row, the grants it holds with their fleet/base binding, the actions an
  * administrator takes on an account, and the account's own trail from the audit log. Every write
  * is a POST form to /api/admin/users/[id] with a `_action`, so that this page stays a server
- * component and the handler is the one place the rules live. Gate: platform.users.view to read;
+ * component and the handler is the one place the rules live. A grant's binding is changed in place
+ * (`rebind`): the fleet dropdown on its own row moves the grant between "every fleet" and one
+ * fleet without revoking and re-granting it, which is the common correction after a rating change. Gate: platform.users.view to read;
  * each action names its own capability on the button and the handler re-checks it.
  */
 
@@ -53,6 +55,10 @@ export default async function AccountPage({ params }: { params: Promise<{ id: st
   const assign = can(access, 'platform.roles.assign');
   const self = account.id === session.userId;
   const action = `/api/admin/users/${account.id}`;
+  // A grant carries the CODE of the fleet and unit it is bound to; a <select> is keyed by id.
+  // Both option lists are already loaded, so map back rather than widening the query.
+  const fleetIdOf = (code: string | null) => (code ? fleets.find((o) => o.label === code)?.value ?? '' : '');
+  const unitIdOf = (code: string | null) => (code ? units.find((o) => o.label.split(' - ')[0] === code)?.value ?? '' : '');
 
   return (
     <div className="stack" data-testid="user-detail">
@@ -130,31 +136,56 @@ export default async function AccountPage({ params }: { params: Promise<{ id: st
         </Card>
       </div>
 
-      <Card title="Roles and bindings" note="Each row is one grant. A grant bound to a fleet reaches only the people on that fleet; a grant bound to a base reaches that base and the units under it; an unbound grant reaches everyone (migration 0142). A person with two fleets holds two rows." testId="user-grants">
+      <Card title="Roles and bindings" note="Each row is one grant. A grant bound to a fleet reaches only the people on that fleet; a grant bound to a base reaches that base and the units under it; an unbound grant reaches everyone (migration 0142). Change a binding in place with the dropdowns - every fleet, or one fleet - and only add a second row when the person really holds the role on two fleets." testId="user-grants">
         {account.grants.length === 0 ? <p className="muted small">No roles. This account can sign in and see nothing.</p> : (
           <table className="data">
-            <thead><tr><th scope="col">Role</th><th scope="col">Code</th><th scope="col">Fleet</th><th scope="col">Base / unit</th><th scope="col">Expires</th>{assign ? <th scope="col"></th> : null}</tr></thead>
+            <thead><tr><th scope="col">Role</th><th scope="col">Code</th><th scope="col">Bound to</th><th scope="col">Expires</th>{assign ? <th scope="col"></th> : null}</tr></thead>
             <tbody>
-              {account.grants.map((g) => (
-                <tr key={`${g.role_code}-${g.asset_class_code ?? ''}-${g.org_unit_code ?? ''}`}>
-                  <td>{g.role_name}</td>
-                  <td className="mono xs">{g.role_code}</td>
-                  <td>{g.asset_class_code ? <Chip tone="info">{g.asset_class_code}</Chip> : <span className="muted">every fleet</span>}</td>
-                  <td>{g.org_unit_code ? <Chip tone="info">{g.org_unit_code}</Chip> : <span className="muted">every base</span>}</td>
-                  <td>{g.expires_at ? g.expires_at.slice(0, 10) : <span className="muted">-</span>}</td>
-                  {assign ? (
+              {account.grants.map((g) => {
+                const ownAdmin = self && g.role_code === 'operator_admin';
+                return (
+                  <tr key={g.id}>
+                    <td>{g.role_name}</td>
+                    <td className="mono xs">{g.role_code}</td>
                     <td>
-                      <form method="post" action={action}>
-                        <input type="hidden" name="_action" value="revoke" />
-                        <input type="hidden" name="role_code" value={g.role_code} />
-                        <input type="hidden" name="asset_class_code" value={g.asset_class_code ?? ''} />
-                        <input type="hidden" name="org_unit_code" value={g.org_unit_code ?? ''} />
-                        <button className="button button-quiet xs" type="submit" disabled={self && g.role_code === 'operator_admin'} title={self && g.role_code === 'operator_admin' ? 'You cannot remove your own administrator role' : 'Remove this grant'}>Remove</button>
-                      </form>
+                      {assign && !ownAdmin ? (
+                        <form method="post" action={action} className="row" style={{ gap: 'var(--space-2)', alignItems: 'center', flexWrap: 'wrap' }}>
+                          <input type="hidden" name="_action" value="rebind" />
+                          <input type="hidden" name="grant_id" value={g.id} />
+                          <label className="sr-only" htmlFor={`fleet-${g.id}`}>Fleet for {g.role_name}</label>
+                          <select id={`fleet-${g.id}`} name="asset_class_id" defaultValue={fleetIdOf(g.asset_class_code)}>
+                            <option value="">every fleet</option>
+                            {fleets.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
+                          </select>
+                          <label className="sr-only" htmlFor={`unit-${g.id}`}>Base or unit for {g.role_name}</label>
+                          <select id={`unit-${g.id}`} name="org_unit_id" defaultValue={unitIdOf(g.org_unit_code)}>
+                            <option value="">every base</option>
+                            {units.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
+                          </select>
+                          <button className="button button-quiet xs" type="submit" title="Save this binding">Save</button>
+                        </form>
+                      ) : (
+                        <span className="row" style={{ gap: 'var(--space-2)' }}>
+                          {g.asset_class_code ? <Chip tone="info">{g.asset_class_code}</Chip> : <span className="muted">every fleet</span>}
+                          {g.org_unit_code ? <Chip tone="info">{g.org_unit_code}</Chip> : <span className="muted">every base</span>}
+                        </span>
+                      )}
                     </td>
-                  ) : null}
-                </tr>
-              ))}
+                    <td>{g.expires_at ? g.expires_at.slice(0, 10) : <span className="muted">-</span>}</td>
+                    {assign ? (
+                      <td>
+                        <form method="post" action={action}>
+                          <input type="hidden" name="_action" value="revoke" />
+                          <input type="hidden" name="role_code" value={g.role_code} />
+                          <input type="hidden" name="asset_class_code" value={g.asset_class_code ?? ''} />
+                          <input type="hidden" name="org_unit_code" value={g.org_unit_code ?? ''} />
+                          <button className="button button-quiet xs" type="submit" disabled={ownAdmin} title={ownAdmin ? 'You cannot remove your own administrator role' : 'Remove this grant'}>Remove</button>
+                        </form>
+                      </td>
+                    ) : null}
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         )}

@@ -1,4 +1,5 @@
 import { NextResponse, type NextRequest } from 'next/server';
+import { seeOther, pathWithQuery } from '@/lib/http';
 import { requireSession } from '@/lib/session';
 import { resolveAccess, requireCapability } from '@/lib/access';
 import { actorFromSession, requestContext } from '@/lib/audit';
@@ -28,8 +29,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
   const action = String(form.get('_action') ?? '').slice(0, 20);
   const versionId = String(form.get('version') ?? '');
   const back = (kind: 'ok' | 'warn' | 'bad', message: string, toVersion?: string) => {
-    const url = new URL(`/templates/${id}${toVersion ? `?version=${toVersion}` : ''}`, request.nextUrl.origin);
-    const res = NextResponse.redirect(url, 303);
+    const res = seeOther(pathWithQuery(`/templates/${id}`, { version: toVersion }));
     res.cookies.set(flashCookie({ kind, message }, '/templates'));
     return res;
   };

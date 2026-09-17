@@ -56,9 +56,13 @@ export function GradeDistributionBar({
   emptyText = 'No data',
 }: GradeDistributionBarProps) {
   const uid = chartId(id);
-  const total = counts.reduce((a, c) => a + c.count, 0);
+  // Only finite numbers are counted. A caller that hands over a row whose count is undefined or
+  // NaN gets the empty state, not a bar of NaN-wide rectangles: a chart must never render a
+  // number it cannot compute, and an SVG with width="NaN" draws nothing while looking like a bug
+  // in the data rather than in the call.
+  const total = counts.reduce((a, c) => a + (Number.isFinite(c.count) ? c.count : 0), 0);
 
-  if (total === 0) {
+  if (!(total > 0)) {
     return (
       <svg viewBox={`0 0 ${width} ${height}`} width="100%" role="img" aria-label={label}
            style={{ display: 'block', background: tokens.surface.bg }} fontFamily={tokens.fontStack}>
@@ -83,7 +87,7 @@ export function GradeDistributionBar({
     );
   }
 
-  const sorted = [...counts].sort((a, b) => a.grade - b.grade);
+  const sorted = [...counts].filter((c) => Number.isFinite(c.count) && Number.isFinite(c.grade)).sort((a, b) => a.grade - b.grade);
   const belowShare = sorted
     .filter((c) => c.grade <= belowStandardMax)
     .reduce((a, c) => a + c.count, 0) / total;

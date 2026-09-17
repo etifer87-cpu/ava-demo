@@ -1,4 +1,5 @@
 import { NextResponse, type NextRequest } from 'next/server';
+import { seeOther, pathWithQuery } from '@/lib/http';
 import { query } from '@/lib/db';
 import { requireSession } from '@/lib/session';
 import { resolveAccess, requireCapability } from '@/lib/access';
@@ -65,11 +66,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
 
   const reply = (flash: Parameters<typeof flashCookie>[0], sel: string | null, tab: string | null = null) => {
     if (isJson) return NextResponse.json({ ok: flash.kind !== 'bad', key: sel, message: flash.message }, { status: flash.kind === 'bad' ? 400 : 200 });
-    const url = new URL(`/templates/${id}`, request.nextUrl.origin);
-    if (requested) url.searchParams.set('version', requested);
-    if (sel) url.searchParams.set('sel', sel);
-    if (tab) url.searchParams.set('tab', tab);
-    const res = NextResponse.redirect(url, 303);
+    const res = seeOther(pathWithQuery(`/templates/${id}`, { version: requested, sel, tab }));
     res.cookies.set(flashCookie(flash, '/templates'));
     return res;
   };

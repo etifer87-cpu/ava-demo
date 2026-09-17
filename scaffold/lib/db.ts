@@ -24,6 +24,19 @@ declare global {
   var __tmsPool: Pool | undefined;
 }
 
+/**
+ * THE POOL IS CREATED ON FIRST USE, NOT ON IMPORT.
+ *
+ * It used to be `export const pool = global.__tmsPool ?? createPool()`, evaluated the moment anything
+ * imported this module. `next build` imports every route module to collect page data, so the build
+ * threw "DATABASE_URL is not set" and the application could only be BUILT somewhere it was also
+ * configured to RUN. That makes an image impossible: a build machine has no business holding a
+ * database credential, and a CI runner never will.
+ *
+ * Lazy is also simply correct. A process that never queries - a build, a type check, a test that
+ * imports a pure helper from a module that happens to sit beside this one - should not open a
+ * connection pool, and should not need a connection string to exist.
+ */
 function createPool(): Pool {
   const connectionString = process.env.DATABASE_URL;
   if (!connectionString) {
@@ -44,10 +57,20 @@ function createPool(): Pool {
   return pool;
 }
 
-// One pool per process. In development the module graph is re-evaluated on every change, so the
-// pool is parked on globalThis; without this a long session exhausts the server's connections.
-export const pool: Pool = global.__tmsPool ?? createPool();
-if (process.env.NODE_ENV !== 'production') global.__tmsPool = pool;
+let poolRef: Pool | undefined;
+
+/**
+ * The connection pool, created on the first call and reused thereafter.
+ *
+ * One pool per process. In development the module graph is re-evaluated on every change, so the pool
+ * is parked on globalThis; without this a long session exhausts the server's connections.
+ */
+export function getPool(): Pool {
+  if (poolRef) return poolRef;
+  poolRef = global.__tmsPool ?? createPool();
+  if (process.env.NODE_ENV !== 'production') global.__tmsPool = poolRef;
+  return poolRef;
+}
 
 export type Sql = string;
 export type Params = ReadonlyArray<unknown>;
@@ -59,7 +82,7 @@ export async function query<T extends QueryResultRow>(
 ): Promise<T[]> {
   const started = Date.now();
   try {
-    const res = await pool.query<T>(sql, params as unknown[]);
+    const res = await getPool().query<T>(sql, params as unknown[]);
     return res.rows;
   } finally {
     const ms = Date.now() - started;
@@ -96,7 +119,7 @@ export async function queryValue<V>(sql: Sql, params: Params = []): Promise<V | 
  * is the failure mode that costs the most to diagnose later: fail loud, roll back.
  */
 export async function transaction<T>(fn: (client: PoolClient) => Promise<T>): Promise<T> {
-  const client = await pool.connect();
+  const client = await getPool().connect();
   try {
     await client.query('BEGIN');
     const result = await fn(client);
@@ -117,7 +140,7 @@ export async function transaction<T>(fn: (client: PoolClient) => Promise<T>): Pr
 /** Health probe for the deployment check. Returns false rather than throwing. */
 export async function ping(): Promise<boolean> {
   try {
-    await pool.query('SELECT 1');
+    await getPool().query('SELECT 1');
     return true;
   } catch {
     return false;

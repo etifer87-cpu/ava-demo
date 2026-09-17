@@ -23,6 +23,13 @@ const nextConfig = {
   // route already publishes. APP_RELEASE is read server-side only.
   poweredByHeader: false,
 
+  // authInterrupts turns `forbidden()` from next/navigation into a real interrupt that renders
+  // app/forbidden.tsx, the way notFound() renders not-found.tsx. Without it a page that refuses an
+  // account has only two ways out: throw, which the user meets as a 500 and a server-log line, or
+  // render its own panel and forget to in the next screen somebody writes. A refusal is a normal
+  // outcome in a system built on capabilities, and it deserves a page rather than a stack trace.
+  experimental: { authInterrupts: true },
+
   // `pg` is a native-ish driver: it must never be bundled for the browser, and it must not be
   // traced into the edge. Every module that touches it imports 'server-only'.
   serverExternalPackages: ['pg'],

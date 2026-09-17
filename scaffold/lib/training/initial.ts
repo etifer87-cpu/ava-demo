@@ -16,7 +16,8 @@
  *     that stage rather than at 0 or 100.
  *   - RAG: 'bad' when any milestone session failed or carries an objection or a recommendation
  *     for additional training; 'warn' when a planned session's date has passed without being
- *     flown (behind schedule); 'good' otherwise.
+ *     flown (behind schedule); 'good' otherwise - and always 'good' once the pilot is released,
+ *     because the flag asks "does this course need attention?" and a finished one does not.
  */
 
 export interface MilestoneSession {
@@ -104,7 +105,11 @@ export function buildInitialCard(sessions: readonly MilestoneSession[], stages: 
     stageLabel: released ? releasedLabel : stages.find((s) => s.key === current)?.label ?? current!,
     released,
     progress: released ? 100 : progress,
-    rag: bad ? 'bad' : overdue ? 'warn' : 'good',
+    // A pilot RELEASED TO THE LINE IS NEVER 'at risk'. The flag exists to say "somebody should look at
+    // this course", and a finished course is not one: a failed FFS in week two followed by a completed
+    // course and a line release is a training system that worked. Leaving it red would also keep the
+    // pilot in the "at risk" counter for ever, so the counter would never fall.
+    rag: released ? 'good' : bad ? 'bad' : overdue ? 'warn' : 'good',
     ffs: { done: ffsAll.filter(flown).length, total: ffsAll.length },
     lfus: { flown: lfusAll.filter(flown).length, total: lfusAll.length, pf: lfusAll.filter((s) => flown(s) && s.seat === 'PF').length },
     next: nextS ? { date: nextS.session_date, stage: nextS.stage } : null,

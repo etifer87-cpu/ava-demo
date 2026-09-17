@@ -1,6 +1,7 @@
 'use client';
 
 import { useRef, useState } from 'react';
+import GradeChip from '@/components/ui/GradeChip';
 
 /**
  * RecordsTable - the pilot's records, one row per record, click to open the record in a pop-up.
@@ -26,6 +27,16 @@ export interface RecordSnapshot {
   signatures?: { assessor_at: string | null; subject_at: string | null };
   objection?: { reason: string; by: string; at: string };
   outcome?: string | null;
+  /**
+   * What the INSTRUCTOR found, kept when an objection changed the record's own outcome to the value
+   * policy.yaml's `marks_record` names. An objection disputes an assessment; it does not erase it.
+   */
+  outcome_assessed?: string | null;
+  /** What the task evidence proposed for each competency, and whether the instructor agreed (0149). */
+  competency_proposed?: { code: string; proposed: string; agreed: boolean }[];
+  /** The SHA-256 the signatures attest to, copied in at finalisation. */
+  content_hash?: string;
+  remarks?: string;
   additional_training?: boolean;
 }
 
@@ -120,7 +131,7 @@ export function RecordArticle({ record: open, onClose: close }: { readonly recor
             <tr key={`${t.element_key}-${t.attempt}-${i}`}>
               <td>{t.task_name}{t.pf_pm && t.role ? <span className="xs" style={{ marginLeft: 'var(--space-2)', fontWeight: 600 }}>as {t.role}</span> : null}</td>
               {repeated ? <td className="num">{t.attempt}</td> : null}
-              <td className="num"><strong>{t.grade ?? '—'}</strong></td>
+              <td className="num"><GradeChip value={t.grade} /></td>
               <td className="small">{t.remark ?? <span className="muted">—</span>}</td>
             </tr>
           ))}</tbody>
@@ -134,9 +145,13 @@ export function RecordArticle({ record: open, onClose: close }: { readonly recor
             const sc = scores.get(code); const rs = results.get(code);
             return (
               <tr key={code}>
-                <td><span className="mono">{code}</span> <span className="small muted">{sc?.name ?? rs?.name ?? ''}</span></td>
-                <td className="num"><strong>{sc ? sc.score : rs?.result === 'C' ? 'Competent' : rs?.result === 'NC' ? 'Not competent' : rs?.result ?? '—'}</strong></td>
-                <td className="xs">{(obs.get(code) ?? []).length ? (obs.get(code) ?? []).map((ob) => <div key={ob.code}><span className="mono">{ob.code}</span> {ob.text}</div>) : <span className="muted">—</span>}</td>
+                <td><span className="ccode">{code}</span> <span className="small muted">{sc?.name ?? rs?.name ?? ''}</span></td>
+                {/* A competency graded on the scale gets the chip; a binary one is a word, not a
+                    number on that scale, and must not wear a grade colour. */}
+                <td className="num">{sc
+                  ? <GradeChip value={sc.score} />
+                  : <strong>{rs?.result === 'C' ? 'Competent' : rs?.result === 'NC' ? 'Not competent' : rs?.result ?? '—'}</strong>}</td>
+                <td className="xs">{(obs.get(code) ?? []).length ? (obs.get(code) ?? []).map((ob) => <div key={ob.code}><span className="ccode">{ob.code}</span> {ob.text}</div>) : <span className="muted">—</span>}</td>
                 <td className="small">{remarks.get(code) ?? <span className="muted">—</span>}</td>
               </tr>
             );
@@ -148,6 +163,9 @@ export function RecordArticle({ record: open, onClose: close }: { readonly recor
         <div className="row" style={{ alignItems: 'center' }}>
           <span className="xs muted" style={{ letterSpacing: '0.04em' }}>OUTCOME</span>
           <span className="outcome-value">{open.outcome ?? '—'}</span>
+          {s.outcome_assessed && s.outcome_assessed !== open.outcome
+            ? <span className="xs muted" style={{ marginLeft: 'var(--space-2)' }}>the instructor found <strong>{s.outcome_assessed}</strong>; the objection marked the record {open.outcome}</span>
+            : null}
           {s.additional_training ? <span className="chip chip-warn"><span className="chip-dot" aria-hidden="true" />Additional training recommended</span> : null}
         </div>
       </section>
@@ -168,7 +186,15 @@ export function RecordArticle({ record: open, onClose: close }: { readonly recor
           )}
         </div>
       </div>
-      <footer className="xs muted mono" style={{ marginTop: 'var(--space-3)' }}>record {open.id.slice(0, 8)} · {s.template?.code ?? ''} · both signatures attest to this content.</footer>
+      <div className="row" style={{ marginTop: 'var(--space-3)' }}>
+        {/* A link, not a fetch: the browser's own viewer is better at a PDF than anything here, and a
+            download that goes through JavaScript loses the filename the server chose. */}
+        <a className="button button-quiet" href={`/api/records/${open.id}/pdf`} target="_blank" rel="noopener noreferrer" style={{ textDecoration: 'none' }}>Open the PDF</a>
+        <span className="xs muted">The file signed at finalisation. It opens in a new tab.</span>
+      </div>
+      <footer className="xs muted mono" style={{ marginTop: 'var(--space-3)', wordBreak: 'break-all' }}>
+        record {open.id.slice(0, 8)} · {s.template?.code ?? ''}{s.content_hash ? ` · content ${s.content_hash}` : ''} · both signatures attest to this content.
+      </footer>
     </article>
   );
 }

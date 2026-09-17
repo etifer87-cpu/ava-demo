@@ -18,10 +18,10 @@
 # rate_display and are applied at render only.
 # ---------------------------------------------------------------------------
 
-version: "1.2"
-updated: "2026-09-08"
+version: "1.4"
+updated: "2026-09-13"
 # Free-text note recorded with the version in config_versions on every load.
-note: "Illustrative values; an operator tunes these against their own baseline before publishing an indicator. v1.1: program_indicator.scopes.template_kinds now name the process kinds of docs/04 section 4 directly, because migration 0032 replaced the six coarse families with the template_kinds catalogue. No threshold changed."
+note: "v1.3: grade_scale.code_meanings names which non-scoring code a surface uses for each situation, so no component picks one by string. No threshold changed. Illustrative values; an operator tunes these against their own baseline before publishing an indicator. v1.1: program_indicator.scopes.template_kinds now name the process kinds of docs/04 section 4 directly, because migration 0032 replaced the six coarse families with the template_kinds catalogue. No threshold changed."
 
 # ---------------------------------------------------------------------------
 # 1. Grade scale — the primitives every metric is built on.
@@ -52,6 +52,49 @@ grade_scale:
   # A grade of this value is a critical failure: non-compensatory, removed from
   # the screening index arithmetic, handled as a flag with a recovery run.
   critical_grade: 1
+
+  # ---- HOW MANY BELOW-STANDARD GRADES A RECORD MAY CARRY ------------------
+  # Two counts the operator owns, edited in Admin -> Configuration, read from
+  # here and nowhere else. `critical_grade` above needs no count: one of those
+  # is a failure on its own.
+  #
+  #   warn_at           ADVISORY. A record carrying this many grades at or
+  #                     below below_standard_max, with a passing outcome and no
+  #                     additional training recommended, warns the instructor at
+  #                     Review and raises the "outcome disagrees with the
+  #                     grades" alert on the assessor's page. It refuses
+  #                     nothing. Set to 1 and every below-standard grade is
+  #                     nominated, which is how this started: 145 alerts on one
+  #                     instructor's 301 records is not a queue anybody works.
+  #
+  #   refuse_pass_at    BINDING, and the only rule on this page that overrules
+  #                     an instructor. This many grades of exactly
+  #                     refuse_pass_grade and a passing outcome cannot be
+  #                     recorded at all - enforced on the write and again at the
+  #                     signature, in lib/program/outcome-standard.ts. A grade of
+  #                     `critical_grade` refuses one on its own, no count needed.
+  #                     It supersedes policy.yaml
+  #                     `grading.tolerated_grade_2_competencies`, which nothing
+  #                     ever read, and it is the reason
+  #                     `grading.remedial_is_advisory` is now false. The grades themselves are never
+  #                     touched: the instructor still decides what each
+  #                     competency earned, and this decides what that adds up
+  #                     to. Raise it above the number of competencies a program
+  #                     grades to switch the rule off for everyone.
+  outcome_standard:
+    warn_at: 2
+    refuse_pass_grade: 2
+    refuse_pass_at: 4
+  # ------------------------------------------------------------------------
+
+  # WHICH non-scoring code means WHAT. The list above is the vocabulary; this
+  # says which member a surface writes in each situation, so that no component,
+  # route or script picks a code by matching a string. An operator who renames
+  # a code changes it in both places and nothing else moves.
+  code_meanings:
+    not_required: "NR"
+    not_observed: "NO"
+    not_applicable: "NA"
 
 # ---------------------------------------------------------------------------
 # 2. Display units. Presentation only — never applied before a threshold

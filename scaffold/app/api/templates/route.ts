@@ -1,4 +1,5 @@
 import { NextResponse, type NextRequest } from 'next/server';
+import { seeOther, pathWithQuery } from '@/lib/http';
 import { query, transaction } from '@/lib/db';
 import { requireSession } from '@/lib/session';
 import { resolveAccess, requireCapability } from '@/lib/access';
@@ -44,7 +45,7 @@ export async function POST(request: NextRequest) {
   const ctx = requestContext(request.headers);
 
   const back = (flash: Parameters<typeof flashCookie>[0], to = '/templates/new') => {
-    const res = NextResponse.redirect(new URL(to, request.nextUrl.origin), 303);
+    const res = seeOther(to);
     res.cookies.set(flashCookie(flash, '/templates'));
     return res;
   };
@@ -117,9 +118,10 @@ async function batch(action: 'archive' | 'unarchive' | 'delete' | 'publish', for
   const status = String(form.get('status') ?? '').slice(0, 20);
   const reason = String(form.get('reason') ?? '').trim().slice(0, 500);
   const back = (flash: Parameters<typeof flashCookie>[0]) => {
-    const url = new URL(status === 'inactive' ? '/templates/archive' : '/templates', request.nextUrl.origin);
-    if (status && status !== 'inactive') url.searchParams.set('status', status);
-    const res = NextResponse.redirect(url, 303);
+    const res = seeOther(pathWithQuery(
+      status === 'inactive' ? '/templates/archive' : '/templates',
+      { status: status && status !== 'inactive' ? status : null },
+    ));
     res.cookies.set(flashCookie(flash, '/templates'));
     return res;
   };

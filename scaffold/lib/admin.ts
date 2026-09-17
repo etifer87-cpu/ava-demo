@@ -72,6 +72,7 @@ export function temporaryPassword(): string {
 /* ------------------------------------------------------------------ */
 
 export interface GrantRow {
+  id: string;
   role_code: string;
   role_name: string;
   org_unit_code: string | null;
@@ -113,6 +114,7 @@ const ACCOUNTS_SQL = `
          ou.name AS org_unit, ac.name AS asset_class, p.org_unit_id, p.asset_class_id,
          COALESCE((
            SELECT json_agg(json_build_object(
+                    'id', ur.id,
                     'role_code', ur.role_code,
                     'role_name', r.name,
                     'org_unit_code', gou.code,
@@ -205,8 +207,14 @@ export interface Option { value: string; label: string }
 export async function orgUnitOptions(): Promise<Option[]> {
   return query<Option>(`SELECT id AS value, concat(code, ' - ', name) AS label FROM org_units WHERE deleted_at IS NULL AND is_active ORDER BY position, code`);
 }
+/**
+ * Fleets, labelled by CODE alone - "A320", "B787". The operator's own word for a fleet is its code;
+ * the long marketing name ("Airbus A320 family ...") made every fleet dropdown unreadable and told
+ * an administrator nothing they did not already know. The name stays in asset_classes for the
+ * places that want prose.
+ */
 export async function assetClassOptions(): Promise<Option[]> {
-  return query<Option>(`SELECT id AS value, concat(code, ' - ', name) AS label FROM asset_classes WHERE deleted_at IS NULL AND is_active AND category = 'aircraft' ORDER BY position, code`);
+  return query<Option>(`SELECT id AS value, code AS label FROM asset_classes WHERE deleted_at IS NULL AND is_active AND category = 'aircraft' ORDER BY position, code`);
 }
 export async function roleOptions(): Promise<(Option & { module: string })[]> {
   return query<Option & { module: string }>(`SELECT code AS value, name AS label, module FROM roles WHERE code <> 'planner' ORDER BY position, code`);

@@ -49,6 +49,21 @@ export function FilterBar({ action, children, carry, resetHref }: FilterBarProps
   );
 }
 
+/**
+ * WHY THESE CONTROLS CARRY A `key` OF THEIR OWN VALUE.
+ *
+ * They are uncontrolled - `defaultValue`, so the browser owns the value and typing is not a round
+ * trip. React only reads `defaultValue` when it CREATES the node. On a client-side navigation to the
+ * same route with different search params - which is what every counter, chip and status tab on these
+ * screens is - React re-renders the same element and reuses the same DOM node, so the select keeps
+ * whatever it was showing before and silently disagrees with the URL. Pressing Apply then submits the
+ * stale value and throws the filter away.
+ *
+ * Keying on the value forces a new node whenever the URL value changes, which is the only moment the
+ * control should be reset. Do not "simplify" this by removing the key, and do not fix it by making
+ * these controlled - that would need a client component and would break typing.
+ */
+
 /** A labelled text input. The label is a real <label>, not a placeholder. */
 export function TextFilter({
   name,
@@ -64,7 +79,7 @@ export function TextFilter({
   return (
     <div className="field">
       <label htmlFor={`f-${name}`}>{label}</label>
-      <input id={`f-${name}`} name={name} defaultValue={value ?? ''} placeholder={placeholder} />
+      <input key={value ?? ''} id={`f-${name}`} name={name} defaultValue={value ?? ''} placeholder={placeholder} />
     </div>
   );
 }
@@ -86,7 +101,7 @@ export function SelectFilter({
   return (
     <div className="field">
       <label htmlFor={`f-${name}`}>{label}</label>
-      <select id={`f-${name}`} name={name} defaultValue={value ?? ''}>
+      <select key={value ?? ''} id={`f-${name}`} name={name} defaultValue={value ?? ''}>
         <option value="">{anyLabel}</option>
         {options.map((o) => (
           <option key={o.value} value={o.value}>

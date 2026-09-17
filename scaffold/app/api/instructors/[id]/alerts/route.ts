@@ -1,4 +1,5 @@
 import { NextResponse, type NextRequest } from 'next/server';
+import { seeOther, pathWithQuery } from '@/lib/http';
 import { queryOne, transaction } from '@/lib/db';
 import { requireSession } from '@/lib/session';
 import { resolveAccess, can, canOnPerson } from '@/lib/access';
@@ -38,9 +39,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
   const wantsJson = (request.headers.get('accept') ?? '').includes('application/json');
   const back = (message: string, ok = true) => {
     if (wantsJson) return NextResponse.json({ ok, message }, { status: ok ? 200 : 400 });
-    const url = new URL(`/instructors/${id}/analysis`, request.nextUrl.origin);
-    url.searchParams.set(ok ? 'done' : 'problem', message);
-    return NextResponse.redirect(url, 303);
+    return seeOther(pathWithQuery(`/instructors/${id}/analysis`, { [ok ? 'done' : 'problem']: message }));
   };
 
   if (!(await canOnPerson(access, 'training.analytics.assessor.view', id)) || !can(access, 'training.records.amend')) {

@@ -11,8 +11,18 @@ next-env.d.ts
 .env.*
 !.env.example
 
-# Data root, generated reports, uploads, dumps. Nothing under here is source.
-data/
+# Data root. Almost everything under here is GENERATED and stays out of the repo:
+# data/programs (gen:programs), data/roster (gen:roster), data/history (gen:history).
+#
+# data/library IS SOURCE and is committed. It is the hand-authored catalogues - the A320 and B787
+# malfunction indexes, the guide library, the standard library - that seed:library loads and that
+# gen:programs reads to build the malfunction grids. A clone without it cannot seed at all, and the
+# failure arrives as "no program definitions" on a server, which names neither the cause nor the file.
+#
+# A parent directory that is excluded cannot have its children re-included, so this is data/* rather
+# than data/.
+data/*
+!data/library/
 /tmp/
 *.pdf
 *.sql.gz

@@ -168,7 +168,7 @@ export default async function InstructorPage({ params, searchParams }: { params:
               <thead><tr><th scope="col">Behaviour</th><th scope="col" className="num">Ticks</th><th scope="col" className="num">Own share</th><th scope="col" className="num">Everyone</th></tr></thead>
               <tbody>{prof.obHabits.map((o) => { const ratio = o.all_share > 0 ? o.own_share / o.all_share : null; return (
                 <tr key={o.code}>
-                  <td><span className="mono xs">{o.code}</span> <span className="small">{o.text}</span></td>
+                  <td><span className="ccode xs">{o.code}</span> <span className="small">{o.text}</span></td>
                   <td className="num mono">{o.own_n}</td>
                   <td className="num mono"><strong>{pct(o.own_share)}</strong>{ratio !== null && ratio >= 2 ? <Chip tone="warn" title="Ticked at least twice as often as the group">×{ratio.toFixed(1)}</Chip> : null}</td>
                   <td className="num mono muted">{pct(o.all_share)}</td>

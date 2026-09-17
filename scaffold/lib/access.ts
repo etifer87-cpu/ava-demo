@@ -1,4 +1,5 @@
 import 'server-only';
+import { forbidden as nextForbidden } from 'next/navigation';
 import { query } from './db';
 import type { CapabilityMap, Scope } from './permissions';
 import type { Session } from './session';
@@ -116,6 +117,25 @@ export function forbidden(message: string): Error & { status: number } {
 export function requireCapability(access: ResolvedAccess, capability: string): void {
   if (!can(access, capability)) {
     throw forbidden(`Missing capability ${capability}`);
+  }
+}
+
+/**
+ * The same check, for a PAGE rather than a handler.
+ *
+ * `requireCapability` throws, which is right for an API route - the route turns it into a 403 with
+ * a body. In a server component a thrown error is a 500 and a stack trace, so an account simply
+ * opening a screen it does not hold is told the server broke. It did not: it refused, which is a
+ * normal outcome in a system where every screen is a capability.
+ *
+ * So a page calls this, and the refusal renders app/forbidden.tsx. The capability code is not put
+ * on the screen - the person cannot act on it and it describes our model, not their problem - but
+ * it is still in the server log, where whoever grants the role is looking.
+ */
+export function requirePageCapability(access: ResolvedAccess, capability: string): void {
+  if (!can(access, capability)) {
+    console.info('[access] refused: missing capability', capability);
+    nextForbidden();
   }
 }
 

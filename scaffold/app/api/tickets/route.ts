@@ -1,4 +1,5 @@
 import { NextResponse, type NextRequest } from 'next/server';
+import { seeOther, pathWithQuery } from '@/lib/http';
 import { transaction } from '@/lib/db';
 import { requireSession } from '@/lib/session';
 import { resolveAccess, requireCapability } from '@/lib/access';
@@ -32,7 +33,7 @@ export async function POST(request: NextRequest) {
   const wantsJson = (request.headers.get('accept') ?? '').includes('application/json');
   const fail = (message: string) =>
     wantsJson ? NextResponse.json({ ok: false, error: message }, { status: 400 })
-              : NextResponse.redirect(new URL(`/support/report?error=${encodeURIComponent(message)}`, request.nextUrl.origin), 303);
+              : seeOther(pathWithQuery('/support/report', { error: message }));
 
   if (subject.length < 3 || description.length < 3) return fail('Subject and description are required.');
   if (!isCategory(category) || !isPriority(priority)) return fail('Choose a valid category and urgency.');
@@ -60,7 +61,7 @@ export async function POST(request: NextRequest) {
     });
     return wantsJson
       ? NextResponse.json({ ok: true, ref: ticketRef(number) })
-      : NextResponse.redirect(new URL(`/support/report?sent=${number}`, request.nextUrl.origin), 303);
+      : seeOther(pathWithQuery('/support/report', { sent: number }));
   } catch (err) {
     return fail(err instanceof Error ? err.message : 'Could not file the report.');
   }

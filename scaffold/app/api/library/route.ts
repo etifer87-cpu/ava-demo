@@ -1,4 +1,5 @@
 import { NextResponse, type NextRequest } from 'next/server';
+import { seeOther, pathWithQuery } from '@/lib/http';
 import { requireSession } from '@/lib/session';
 import { resolveAccess, requireCapability } from '@/lib/access';
 import { actorFromSession, requestContext } from '@/lib/audit';
@@ -25,9 +26,7 @@ export async function POST(request: NextRequest) {
   const to = ret.startsWith('/templates') ? ret : '/templates';
 
   const back = (flash: Parameters<typeof flashCookie>[0], code: string | null) => {
-    const url = new URL(to, request.nextUrl.origin);
-    if (code) url.searchParams.set('lib', code);
-    const res = NextResponse.redirect(url, 303);
+    const res = seeOther(pathWithQuery(to, { lib: code }));
     res.cookies.set(flashCookie(flash, '/templates'));
     return res;
   };

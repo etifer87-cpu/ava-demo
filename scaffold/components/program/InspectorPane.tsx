@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react';
 import { useRouter } from 'next/navigation';
 import { AUTOMATION_STATES, AIMS_VISIBILITY, SETUP_ENTRY_KINDS, SNAPSHOT_ACTIONS, PF_PM_COUNTERS, formatMinutes, type Grading, type Aims, type SetupEntryKind, type OptionGroupContent, type SectionContent, type TaskContent, type SetupContent } from '@/lib/program/shape';
-import { EVENT_CATEGORIES, type InspectorData, type InspectorNode } from './inspector-types';
+import { EVENT_CATEGORIES, type BehaviourRow, type InspectorData, type InspectorNode } from './inspector-types';
 
 /**
  * InspectorPane - the right pane, one pane per element kind. Client component.
@@ -76,10 +76,10 @@ export function InspectorPane(props: InspectorPaneProps) {
       </div>
       {error ? <div className="notice notice-bad" role="alert"><p style={{ margin: 0 }}>{error}</p></div> : null}
       {!node ? <p className="small muted" style={{ margin: 0 }}>Click an element in the program, or drag one in from the left.</p> : null}
-      {node && !editable ? <p className="xs muted" style={{ margin: 0 }}>This version is not a draft; nothing here can be changed.</p> : null}
+      {node && !editable ? <p className="xs muted" style={{ margin: 0 }}>This version is published. It is shown exactly as it was frozen; take a new draft to change it.</p> : null}
 
       {node && editable ? <Pane key={node.key} node={node} data={props} save={save} /> : null}
-      {node && !editable ? <ReadOnly node={node} /> : null}
+      {node && !editable ? <ReadOnly node={node} data={props} /> : null}
 
       {node && editable ? <Structure node={node} data={props} post={post} /> : null}
     </aside>
@@ -109,7 +109,7 @@ function Field({ label, children, hint }: { label: string; children: ReactNode; 
   return <div className="field"><label>{label}</label>{children}{hint ? <span className="xs muted">{hint}</span> : null}</div>;
 }
 
-function GradeBlock({ grading, competencies, onChange }: { grading: Grading; competencies: readonly { code: string; name: string }[]; onChange: (g: Grading) => void }) {
+function GradeBlock({ grading, competencies, behaviours, onChange }: { grading: Grading; competencies: readonly { code: string; name: string }[]; behaviours: readonly BehaviourRow[]; onChange: (g: Grading) => void }) {
   const how = howOf(grading);
   const gradable = how !== 'none';
   return (
@@ -131,13 +131,46 @@ function GradeBlock({ grading, competencies, onChange }: { grading: Grading; com
           {competencies.map((c) => (
             <label key={c.code} className="check">
               <input type="checkbox" checked={grading.competencies.includes(c.code)} onChange={(e) => onChange({ ...grading, competencies: e.target.checked ? [...grading.competencies, c.code] : grading.competencies.filter((x) => x !== c.code) })} />
-              <span><span className="mono">{c.code}</span> <span className="xs muted">{c.name}</span></span>
+              <span><span className="ccode">{c.code}</span> <span className="xs muted">{c.name}</span></span>
             </label>
           ))}
           {grading.competencies.length === 0 ? <span className="xs" style={{ color: 'var(--state-warn)' }}>Tick at least one.</span> : null}
         </fieldset>
       ) : null}
+      {gradable ? <BehaviourList codes={grading.competencies} competencies={competencies} behaviours={behaviours} /> : null}
     </div>
+  );
+}
+
+/**
+ * BehaviourList - the observable behaviours of the ticked competencies, from the active framework.
+ *
+ * Read-only wherever it appears. A program says which competencies an exercise targets; the
+ * behaviours are what the instructor will actually be offered against each one when grading, and
+ * they are the catalogue's words, not ours. Collapsed, because there are up to nine competencies
+ * and the list is long by design.
+ */
+function BehaviourList({ codes, competencies, behaviours }: { codes: readonly string[]; competencies: readonly { code: string; name: string }[]; behaviours: readonly BehaviourRow[] }) {
+  const chosen = competencies.filter((c) => codes.includes(c.code));
+  const count = behaviours.filter((b) => codes.includes(b.competency)).length;
+  if (chosen.length === 0 || behaviours.length === 0) return null;
+  return (
+    <details className="collapse" data-testid="ob-list">
+      <summary className="xs">Observable behaviours ({count})</summary>
+      <div className="stack" style={{ gap: 'var(--space-2)', marginTop: 'var(--space-2)' }}>
+        {chosen.map((c) => {
+          const obs = behaviours.filter((b) => b.competency === c.code);
+          return (
+            <div key={c.code}>
+              <p className="xs" style={{ margin: 0 }}><span className="ccode">{c.code}</span> <span className="muted">{c.name}</span></p>
+              {obs.length === 0
+                ? <p className="xs muted" style={{ margin: 0 }}>Nothing in the catalogue for this competency.</p>
+                : <ul className="xs muted" style={{ margin: 'var(--space-1) 0 0', paddingLeft: '1.1em' }}>{obs.map((o) => <li key={o.code}><span className="ccode">{o.code}</span> {o.text}</li>)}</ul>}
+            </div>
+          );
+        })}
+      </div>
+    </details>
   );
 }
 
@@ -185,7 +218,7 @@ function SectionPane({ node, data, save }: { node: Extract<InspectorNode, { kind
         <Field label="Time (H:MM)" hint="Empty: the sum of what is inside."><TimeInput minutes={v.minutes} onCommit={(m) => setAndSave({ ...v, minutes: m })} /></Field>
         <label className="check" style={{ alignSelf: 'end' }}><input type="checkbox" checked={v.training_only} onChange={(e) => setAndSave({ ...v, training_only: e.target.checked })} /><span>Training only</span></label>
       </div>
-      <GradeBlock grading={v.grading} competencies={data.competencies} onChange={(g) => setAndSave({ ...v, grading: g })} />
+      <GradeBlock grading={v.grading} competencies={data.competencies} behaviours={data.behaviours} onChange={(g) => setAndSave({ ...v, grading: g })} />
       <details className="collapse"><summary>Aims for the whole section</summary>
         <div className="stack" style={{ gap: 'var(--space-2)', marginTop: 'var(--space-2)' }}><AimsBlock aims={v.aims} onChange={(a) => setV({ ...v, aims: a })} onBlur={() => flush()} /></div>
       </details>
@@ -221,7 +254,7 @@ function ExercisePane({ node, data, save }: { node: Extract<InspectorNode, { kin
           </Field>
         ))}
       </div>
-      <GradeBlock grading={v.grading} competencies={data.competencies} onChange={(g) => setAndSave({ ...v, grading: g })} />
+      <GradeBlock grading={v.grading} competencies={data.competencies} behaviours={data.behaviours} onChange={(g) => setAndSave({ ...v, grading: g })} />
       <AimsBlock aims={v.aims} onChange={(a) => setV({ ...v, aims: a })} onBlur={() => flush()} />
       <Field label="Instructor notes" hint="Never leaves the instructor view."><textarea rows={4} value={v.conduct.instructor_notes ?? ''} onChange={(e) => setV({ ...v, conduct: { ...v.conduct, instructor_notes: e.target.value } })} onBlur={() => flush()} /></Field>
     </div>
@@ -425,8 +458,149 @@ function NotePane({ node, save }: { node: Extract<InspectorNode, { kind: 'note' 
 /* Read-only and structure                                              */
 /* ------------------------------------------------------------------ */
 
-function ReadOnly({ node }: { node: InspectorNode }) {
-  return <p className="small" style={{ margin: 0 }}><strong>{node.title || node.key}</strong></p>;
+/* ------------------------------------------------------------------ */
+/* Read-only - what a published version shows                           */
+/* ------------------------------------------------------------------ */
+
+/**
+ * A published version is READ far more often than a draft is edited: a training manager opens a
+ * program to answer "what does this exercise assess, and against what standard". So the read-only
+ * pane carries the same substance as the editable one, field for field, with nothing to type into.
+ * It is not a placeholder for the editor; it is the other half of the same screen.
+ */
+function RO({ label, children }: { label: string; children: ReactNode }) {
+  return <div className="field"><label>{label}</label><div className="small" style={{ margin: 0 }}>{children}</div></div>;
+}
+
+const DASH = <span className="muted">-</span>;
+function shown(v: string | null | undefined): ReactNode { return v && v.trim() ? v : DASH; }
+
+function GradeSummary({ grading, competencies, behaviours }: { grading: Grading; competencies: readonly { code: string; name: string }[]; behaviours: readonly BehaviourRow[] }) {
+  const how = howOf(grading);
+  const label = how === 'comp_scale' ? 'Competencies, graded 1-5'
+    : how === 'comp_binary' ? 'Competencies, competent / not competent'
+    : how === 'pass_fail' ? 'Pass / fail'
+    : how === 'result_scale' ? 'Result 1-5, no competencies'
+    : 'Not graded here';
+  return (
+    <div className="stack" style={{ gap: 'var(--space-2)' }} data-testid="grade-summary">
+      <RO label="Graded">{label}</RO>
+      {grading.competencies.length > 0 ? (
+        <>
+          <ul className="small" style={{ margin: 0, paddingLeft: '1.1em' }}>
+            {grading.competencies.map((code) => (
+              <li key={code}><span className="ccode">{code}</span> <span className="xs muted">{competencies.find((x) => x.code === code)?.name ?? ''}</span></li>
+            ))}
+          </ul>
+          <BehaviourList codes={grading.competencies} competencies={competencies} behaviours={behaviours} />
+        </>
+      ) : null}
+    </div>
+  );
+}
+
+function AimsSummary({ aims }: { aims: Aims }) {
+  if (!aims.aims && !aims.competency_focus && !aims.grading_criteria) return null;
+  return (
+    <>
+      {aims.aims ? <RO label="Aims">{aims.aims}</RO> : null}
+      {aims.competency_focus ? <RO label="Competency focus">{aims.competency_focus}</RO> : null}
+      {aims.grading_criteria ? <RO label="Grading criteria">{aims.grading_criteria}</RO> : null}
+      <p className="xs muted" style={{ margin: 0 }}>{VIS_LABELS[aims.visibility]}</p>
+    </>
+  );
+}
+
+function ReadOnly({ node, data }: { node: InspectorNode; data: InspectorData }) {
+  const name = <p className="small" style={{ margin: 0 }}><strong>{node.title || node.key}</strong></p>;
+  switch (node.kind) {
+    case 'section': {
+      const c = node.content;
+      return (
+        <div className="stack pane" style={{ gap: 'var(--space-3)' }} data-testid="pane-section-ro">
+          {name}
+          <div className="two">
+            <RO label="Level">{shown(c.section_kind)}</RO>
+            <RO label="Phase">{shown(data.vocab.phases.find(([code]) => code === c.phase)?.[1] ?? c.phase)}</RO>
+          </div>
+          <div className="two">
+            <RO label="Time">{c.minutes === null ? <span className="muted">the sum of what is inside</span> : <span className="mono">{formatMinutes(c.minutes)}</span>}</RO>
+            <RO label="Counts">{c.training_only ? 'Training only - grades here do not count' : 'Counts on the record'}</RO>
+          </div>
+          <GradeSummary grading={c.grading} competencies={data.competencies} behaviours={data.behaviours} />
+          <AimsSummary aims={c.aims} />
+        </div>
+      );
+    }
+    case 'exercise': {
+      const c = node.content;
+      return (
+        <div className="stack pane" style={{ gap: 'var(--space-3)' }} data-testid="pane-exercise-ro">
+          {name}
+          <div className="three">
+            <RO label="Time">{c.minutes === null ? DASH : <span className="mono">{formatMinutes(c.minutes)}</span>}</RO>
+            <RO label="Pilot flying">{shown(c.pf)}</RO>
+            <RO label="Snapshot">{c.snapshot === null ? DASH : c.snapshot === 'take' ? 'Save Flight Plan' : 'Recall Flight Plan'}</RO>
+          </div>
+          <RO label="PF or PM recorded on the record">{c.pf_pm === null ? 'Not recorded' : c.pf_pm === 'take_off' ? 'Recorded, counts as a take-off' : c.pf_pm === 'landing' ? 'Recorded, counts as a landing' : 'Recorded, no count'}</RO>
+          <div className="three">
+            <RO label="AP">{AUTOMATION_LABELS[c.automation.ap]}</RO>
+            <RO label="A/THR">{AUTOMATION_LABELS[c.automation.athr]}</RO>
+            <RO label="FD">{AUTOMATION_LABELS[c.automation.fd]}</RO>
+          </div>
+          <GradeSummary grading={c.grading} competencies={data.competencies} behaviours={data.behaviours} />
+          <AimsSummary aims={c.aims} />
+          {c.conduct.instructor_notes ? <RO label="Instructor notes">{c.conduct.instructor_notes}</RO> : null}
+        </div>
+      );
+    }
+    case 'setup': {
+      const c = node.content;
+      const mass = [c.mass.zfw, c.mass.zfwcg, c.mass.fuel].filter((x) => x && x.trim()).join(' · ');
+      return (
+        <div className="stack pane" style={{ gap: 'var(--space-3)' }} data-testid="pane-setup-ro">
+          {name}
+          {SETUP_ENTRY_KINDS.filter((k) => c.entries[k].length > 0).map((k) => (
+            <RO key={k} label={ENTRY_LABELS[k]}>
+              <ul style={{ margin: 0, paddingLeft: '1.1em' }}>{c.entries[k].map((t, i) => <li key={i} className={k === 'airport' ? 'mono' : undefined}>{t}</li>)}</ul>
+            </RO>
+          ))}
+          {mass ? <RO label="Mass & config">{mass}</RO> : null}
+          {c.snapshot ? <RO label="Snapshot">{c.snapshot === 'take' ? 'Take a snapshot here' : 'Recall the snapshot here'}</RO> : null}
+          {c.notes ? <RO label="Notes">{c.notes}</RO> : null}
+        </div>
+      );
+    }
+    case 'options': {
+      const c = node.content;
+      return (
+        <div className="stack pane" style={{ gap: 'var(--space-3)' }} data-testid="pane-options-ro">
+          {name}
+          <div className="two">
+            <RO label="Kind">{c.kind === 'malfunction' ? 'Malfunction' : 'Event'}</RO>
+            <RO label="When there is more than one">{c.mode === 'choose_one' ? 'The instructor chooses one at delivery' : 'All of them, in sequence'}</RO>
+          </div>
+          {c.fleet ? <RO label="Fleet">{c.fleet}</RO> : null}
+          <RO label={`${c.options.length} ${c.options.length === 1 ? 'entry' : 'entries'}`}>
+            {c.options.length === 0 ? <span className="muted">Empty.</span> : (
+              <ul style={{ margin: 0, paddingLeft: '1.1em' }}>
+                {c.options.map((o) => (
+                  <li key={o.key}>{o.name}
+                    {o.option ? <span className="xs muted"> · {o.option}</span> : null}
+                    {o.trigger ? <span className="xs muted"> · {o.trigger}</span> : null}
+                  </li>
+                ))}
+              </ul>
+            )}
+          </RO>
+        </div>
+      );
+    }
+    case 'note':
+      return <div className="stack pane" style={{ gap: 'var(--space-3)' }} data-testid="pane-note-ro">{name}<RO label="Text">{shown(node.content.text)}</RO></div>;
+    default:
+      return <div className="stack pane" style={{ gap: 'var(--space-3)' }}>{name}<p className="xs muted" style={{ margin: 0 }}>Elements of type <span className="mono">{node.elementType}</span> have no pane yet.</p></div>;
+  }
 }
 
 function Structure({ node, data, post }: { node: InspectorNode; data: InspectorData; post: (b: Record<string, unknown>) => Promise<boolean> }) {

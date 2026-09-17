@@ -23,8 +23,15 @@ services:
   # app - Next.js 16, server-rendered. The only service that talks to the database.
   # ---------------------------------------------------------------------------
   app:
-    # No default. Compose fails if the overlay did not set it - which is the point.
-    image: ${APP_IMAGE:?APP_IMAGE must come from compose.stage.yml or compose.prod.yml}
+      # NO `image:` HERE, DELIBERATELY. It is supplied by the overlay and only by the overlay:
+    # compose.stage.yml reads APP_IMAGE_STAGE, compose.prod.yml reads APP_IMAGE_PROD, and the two
+    # names are different so that a stage .env cannot supply a prod image even by accident.
+    #
+    # This used to read `image: ${APP_IMAGE:?APP_IMAGE must come from ...}`, which could never work:
+    # compose INTERPOLATES each file before MERGING the overlay onto it, so the required-variable
+    # error fired at parse time whatever the overlay said - and nothing sets APP_IMAGE in any case.
+    # The guard it was trying to be still holds without it: a service with no image and no build is
+    # invalid, so `compose.yml` on its own is refused, which is the whole point.
     container_name: ava-app
     restart: unless-stopped
     depends_on:
@@ -33,6 +40,13 @@ services:
       pdf:
         condition: service_healthy
     environment:
+      # THE OPERATOR'S TIMEZONE, not the server's. A container has no timezone unless it is given
+      # one, so every timestamptz rendered by the app came out in UTC while the browser rendered its
+      # own local time a few centimetres away: a grading banner reading 23:15 above a signature
+      # reading 18:28, for things that happened in that order five minutes apart. A training record
+      # carries the time a signature was given, and in front of a room that time has to be the time
+      # on the wall. Set it per environment; UTC only if the operator really works in UTC.
+      TZ: ${TZ:-UTC}
       APP_ENV: ${APP_ENV:?set APP_ENV}
       APP_RELEASE: ${APP_RELEASE:-unknown}
       APP_BASE_URL: ${APP_BASE_URL:-}
@@ -53,6 +67,11 @@ services:
       # Inference seam. Empty LLM_BASE_URL is degraded mode: a supported, tested state.
       LLM_BASE_URL: ${LLM_BASE_URL:-}
       LLM_API_KEY: ${LLM_API_KEY:-}
+      # Which WIRE FORMAT the endpoint speaks - "openai" (default) or "anthropic" - and nothing
+      # else about the vendor. See lib/inference.ts: the two differ only in path, auth header and
+      # where the system prompt goes, and that difference lives in one function.
+      LLM_WIRE: ${LLM_WIRE:-openai}
+      LLM_ANTHROPIC_VERSION: ${LLM_ANTHROPIC_VERSION:-}
       LLM_MODEL_FAST: ${LLM_MODEL_FAST:-}
       LLM_MODEL_DEEP: ${LLM_MODEL_DEEP:-}
       LLM_TIMEOUT_FAST_MS: ${LLM_TIMEOUT_FAST_MS:-60000}
@@ -98,6 +117,9 @@ services:
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD}
       POSTGRES_DB: ${POSTGRES_DB:?set POSTGRES_DB}
       POSTGRES_INITDB_ARGS: "--data-checksums"
+      # The database STORES timestamptz in UTC whatever this says; this only decides how psql and the
+      # server log render it, and having the two containers disagree is a way to lose an hour.
+      TZ: ${TZ:-UTC}
     volumes:
       - db_data:/var/lib/postgresql/data
       # Extensions and the schema-owning role only. Application schema is migrations.

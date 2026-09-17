@@ -22,8 +22,8 @@
 # `source` is what the finding cites on screen, in the operator's language.
 # ---------------------------------------------------------------------------
 
-version: "1.3"
-updated: "2026-09-12"
+version: "1.5"
+updated: "2026-09-14"
 
 rules:
   - id: ebt.three_phases
@@ -71,6 +71,26 @@ rules:
       max: 3
     source: "Operator design guardrail"
     message: "A task targets more competencies than the design guardrail."
+
+  - id: competency.mixed_modes
+    severity: block
+    source: "Operator policy · one competency, one grade for the session"
+    message: "Two elements target the same competency with different grading modes. A competency carries ONE grade for the session, so only one mode can apply and the other element can never be graded."
+
+  - id: task.no_competencies
+    severity: block
+    source: "Operator policy · a graded exercise names what it grades"
+    message: "An exercise is set to grade competencies but targets none."
+
+  - id: section.empty
+    severity: warn
+    source: "Operator design guardrail"
+    message: "A section carries nothing; the instructor would see a heading with no work under it."
+
+  - id: options.empty
+    severity: warn
+    source: "Operator design guardrail"
+    message: "A malfunction or event group carries no entries; nothing would be inserted."
 
   - id: task.grading_criteria
     severity: warn

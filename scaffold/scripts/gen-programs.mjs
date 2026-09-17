@@ -44,6 +44,20 @@ const ROLES = {
 
 /* ------------------------------------------------------------------ small builders */
 
+/**
+ * A grading block.
+ *
+ * ONE COMPETENCY, ONE GRADE FOR THE SESSION (migration 0027: competency_grades is unique on
+ * session, person, competency). So the MODE is fixed for the session by whichever element is graded
+ * first, and a second element targeting the same competency on a different scale can never be
+ * graded - the write is refused in a simulator with the crew waiting. `competency.mixed_modes` in
+ * rules.yaml is a publish blocker for exactly this.
+ *
+ * That is why NO briefing and NO debriefing here grades a competency. They are preparation and
+ * facilitation, not assessment: the competency grades come from what was flown, which is where the
+ * evidence is. They keep their aims, their criteria and their time, and the instructor still writes
+ * a comment on them - they simply do not carry a grade control.
+ */
 const grading = (task = 'none', comp = 'none', comps = []) => ({ task_outcome_mode: task, competency_grade_mode: comp, competencies: comps });
 const aims = (a, focus = null, criteria = null, visibility = 'instructor_only') => ({ aims: a, competency_focus: focus, grading_criteria: criteria, visibility });
 const section = (key, title, phase, time, extra = {}, children = []) => ({ key, type: 'section', title, content: { section_kind: 'block', phase, time, ...extra }, children });
@@ -248,7 +262,7 @@ function ebtSession(fleet, year, module, session) {
   const elements = [
     section('brief', 'Briefing', 'brief', '1:00', {}, [
       note('brief.notes', 'Briefing guide', `TEM framing for the day. The evaluation phase is flown as on the line: the instructor intervenes only as ATC, ground or cabin. Manoeuvres and the scenario are training, graded as tasks; say so to the crew. Charts and performance for ${[...new Set([...legA, ...legB, 'SKRG'])].join(', ')} prepared before the session.`),
-      task('brief.session', 'Session briefing', { time: '1:00', aims: { aims: 'Set expectations: what is assessed, what is trained, how the day is graded.', visibility: 'also_in_subject_brief', grading_criteria: 'Knows the session\'s threats and the applicable procedures; briefs clearly and completely.' }, grading: grading('none', 'competent_not_competent', ['KNO', 'COM']) }),
+      task('brief.session', 'Session briefing', { time: '1:00', aims: { aims: 'Set expectations: what is assessed, what is trained, how the day is graded.', visibility: 'also_in_subject_brief', grading_criteria: 'Knows the session\'s threats and the applicable procedures; briefs clearly and completely.' }, grading: grading('none', 'none', []) }),
     ]),
     section('eval', 'Evaluation phase', 'eval', '1:40', { aims: { aims: 'Line-oriented evaluation over two sectors with realistic threats. Assess, do not teach; note observable behaviours for the debrief.', visibility: 'instructor_only' } }, [...leg(1, legA, themeA, evA, 'CM1'), ...leg(2, legB, themeB, evB, 'CM2')]),
     section('mt', 'Manoeuvres training', 'mt', '0:50', { training_only: false, aims: { aims: 'Handling practice, graded as a task 1-5. Repeat until flown to standard.', visibility: 'instructor_only' } }, [
@@ -266,7 +280,7 @@ function ebtSession(fleet, year, module, session) {
       task('reinf.time', 'Additional training', { time: '0:20', aims: { aims: 'Repeat what was observed during the session - the manoeuvre or the behaviour the crew or the instructor identified. Time as observed. Not graded.', visibility: 'instructor_only' }, grading: grading() }),
     ]),
     section('debrief', 'Debriefing', 'debrief', '0:30', {}, [
-      task('debrief.session', 'Facilitated debriefing', { time: '0:30', aims: { aims: 'Facilitated debrief led by the crew\'s own analysis of the evaluation phase; observable behaviours below standard, and the root cause, agreed before the grades are given.', visibility: 'also_in_subject_brief', grading_criteria: 'Analyses the crew\'s own performance openly; takes and gives feedback.' }, grading: grading('none', 'competent_not_competent', ['COM', 'LTW']) }),
+      task('debrief.session', 'Facilitated debriefing', { time: '0:30', aims: { aims: 'Facilitated debrief led by the crew\'s own analysis of the evaluation phase; observable behaviours below standard, and the root cause, agreed before the grades are given.', visibility: 'also_in_subject_brief', grading_criteria: 'Analyses the crew\'s own performance openly; takes and gives feedback.' }, grading: grading('none', 'none', []) }),
     ]),
   ];
   return {
@@ -306,7 +320,7 @@ function proficiencyCheck(fleet, year) {
     elements: [
       section('brief', 'Briefing', 'brief', '1:00', {}, [
         note('brief.notes', 'Briefing guide', 'State whether the session is an OPC or an LPC and what a partial pass means for licence privileges. Items are checked, not trained; a repeat is allowed once per item where the regulation permits.'),
-        task('brief.session', 'Check briefing', { time: '1:00', aims: { aims: 'Confirm the items, the standard and the consequences of a fail.', visibility: 'also_in_subject_brief', grading_criteria: 'Knows the limitations, memory items and the procedures for the items briefed.' }, grading: grading('none', 'competent_not_competent', ['KNO']) }),
+        task('brief.session', 'Check briefing', { time: '1:00', aims: { aims: 'Confirm the items, the standard and the consequences of a fail.', visibility: 'also_in_subject_brief', grading_criteria: 'Knows the limitations, memory items and the procedures for the items briefed.' }, grading: grading('none', 'none', []) }),
       ]),
       section('a', 'Section A - Departure and manoeuvres', null, '2:00', {}, [
         setup('a.setup', 'Set-up - departure', { airport: ['SKBO'], weather: [wx('SKBO', y)], position: [`SKBO ${f.position.gate}`], comms: COMMS.SKBO, reset: ['Total reset'], performance: [`${f.perf.to}, wet runway`] }, f.mass(f.fuel.check), 'take'),
@@ -327,7 +341,7 @@ function proficiencyCheck(fleet, year) {
         ...item('b.gaall', 'Go-around, all engines, and landing', '0:15', 'CM2', 'Go-around from minima and a landing to finish.', 'Correct sequence; level-off at the missed approach altitude; landing within the touchdown zone.', ['FPA'], [malfGrid('b.gaall.malf', 'On the second approach', fleet, f.themes[themeB], 'choose_one')]),
       ]),
       section('debrief', 'Debriefing', 'debrief', '0:30', {}, [
-        task('debrief.session', 'Debriefing and result', { time: '0:30', aims: { aims: 'Result given item by item; a partial pass or a fail explained with the consequence for licence privileges.', visibility: 'also_in_subject_brief', grading_criteria: 'Accepts and analyses the result; asks what needs asking.' }, grading: grading('none', 'competent_not_competent', ['COM']) }),
+        task('debrief.session', 'Debriefing and result', { time: '0:30', aims: { aims: 'Result given item by item; a partial pass or a fail explained with the consequence for licence privileges.', visibility: 'also_in_subject_brief', grading_criteria: 'Accepts and analyses the result; asks what needs asking.' }, grading: grading('none', 'none', []) }),
       ]),
     ],
     competencies_default: ALL_COMPS,
@@ -386,7 +400,7 @@ function lineCheck() {
     elements: [
       section('brief', 'Briefing', 'brief', '0:30', {}, [
         note('brief.notes', 'Examiner guide', 'The examiner observes and does not intervene unless safety requires it. Say so before the flight. Legs are added on the session as flown; the record carries all of them.'),
-        task('brief.session', 'Pre-flight briefing with the crew', { time: '0:30', aims: { aims: 'Explain the check, the role of the examiner and what is assessed.', visibility: 'also_in_subject_brief', grading_criteria: 'Understands the check and the standard.' }, grading: grading('none', 'competent_not_competent', ['COM']) }),
+        task('brief.session', 'Pre-flight briefing with the crew', { time: '0:30', aims: { aims: 'Explain the check, the role of the examiner and what is assessed.', visibility: 'also_in_subject_brief', grading_criteria: 'Understands the check and the standard.' }, grading: grading('none', 'none', []) }),
       ]),
       phase('preflight', 'Pre-flight preparation', '0:45', 'Flight planning, weather, NOTAMs, fuel decision, aircraft acceptance and the crew briefing.', 'Threats identified and briefed; fuel decision reasoned; documents checked.', ['KNO', 'SAW', 'COM']),
       phase('departure', 'Departure', '0:30', 'Start, taxi, take-off and climb; SOP compliance and ATC communication.', 'Callouts and checklists complete; SID flown as cleared; monitoring effective.', ['PRO', 'FPA', 'COM']),
@@ -394,7 +408,7 @@ function lineCheck() {
       phase('arrival', 'Arrival, approach and landing', '0:45', 'Descent management, approach as briefed, stabilised approach criteria, landing and rollout.', 'Stabilised by 1 000 ft; approach as briefed or a go-around; landing within the touchdown zone.', ['FPA', 'FPM', 'PSD']),
       phase('postflight', 'Post-flight and turnaround', '0:15', 'Shutdown, documents, reporting and the crew debrief.', 'Aircraft handed over correctly; reports filed; open items shared.', ['PRO', 'COM']),
       section('debrief', 'Debriefing', 'debrief', '0:30', {}, [
-        task('debrief.session', 'Debriefing and result', { time: '0:30', aims: { aims: 'Result given per phase, strengths and development points agreed.', visibility: 'also_in_subject_brief', grading_criteria: 'Reflects on the flight openly; accepts feedback.' }, grading: grading('none', 'competent_not_competent', ['COM', 'LTW']) }),
+        task('debrief.session', 'Debriefing and result', { time: '0:30', aims: { aims: 'Result given per phase, strengths and development points agreed.', visibility: 'also_in_subject_brief', grading_criteria: 'Reflects on the flight openly; accepts feedback.' }, grading: grading('none', 'none', []) }),
       ]),
     ],
     competencies_default: ALL_COMPS,
@@ -455,7 +469,7 @@ function screening() {
     elements: [
       section('brief', 'Briefing', 'brief', '0:30', {}, [
         note('brief.notes', 'Assessor guide', 'Explain the aircraft, the scenario and what is assessed. The candidate may not be type-rated: brief the flight deck layout and the automation before the session; assess handling, procedures as briefed, and behaviours - not type knowledge.'),
-        task('brief.session', 'Candidate briefing', { time: '0:30', aims: { aims: 'Set the scene; check the candidate understands the scenario and the automation available.', visibility: 'instructor_only', grading_criteria: 'Asks relevant questions; understands the brief.' }, grading: grading('none', 'competent_not_competent', ['COM']) }),
+        task('brief.session', 'Candidate briefing', { time: '0:30', aims: { aims: 'Set the scene; check the candidate understands the scenario and the automation available.', visibility: 'instructor_only', grading_criteria: 'Asks relevant questions; understands the brief.' }, grading: grading('none', 'none', []) }),
       ]),
       section('scenario', 'Scenario', null, '1:30', { aims: { aims: 'Choose ONE scenario. Both are a short domestic sector with a manual departure, a system failure of the assessor\'s choice and an approach to a landing.', visibility: 'instructor_only' } }, [
         setup('scenario.skbo', 'Scenario A - SKBO to SKCL', { airport: ['SKBO', 'SKCL'], weather: [wx('SKBO', 2), wx('SKCL', 0)], position: [`SKBO RWY 13L, ${f.position.lineup}`], comms: [COMMS.SKBO[1], COMMS.SKCL[2]], reset: ['Total reset'], atc: ['Standard departure; vectors to the ILS at SKCL'], performance: [f.perf.toga] }, f.mass(f.fuel.mt), 'take', 'High-elevation departure, manual flight to FL200, then automation as briefed.'),
@@ -526,17 +540,37 @@ function typeRatingFfs(fleet, year, n, total) {
     },
     elements: [
       section('brief', 'Briefing', 'brief', '1:00', {}, [
-        task('brief.session', 'Session briefing', { time: '1:00', aims: { aims: 'The exercises of the session, the procedures involved and the standard expected.', visibility: 'also_in_subject_brief', grading_criteria: 'Prepared; knows the procedures to be flown.' }, grading: grading('none', 'competent_not_competent', ['KNO']) }),
+        task('brief.session', 'Session briefing', { time: '1:00', aims: { aims: 'The exercises of the session, the procedures involved and the standard expected.', visibility: 'also_in_subject_brief', grading_criteria: 'Prepared; knows the procedures to be flown.' }, grading: grading('none', 'none', []) }),
       ]),
-      section('s', title, null, '3:40', { training_only: false, aims: { aims: 'Train to standard; repeat as needed. Graded as tasks 1-5.', visibility: 'instructor_only' } }, [
+      section('s', title, null, '3:40', { training_only: false, aims: { aims: 'Train to standard; repeat as needed. Manoeuvres graded as tasks 1-5; knowledge and communication graded as competencies across the session.', visibility: 'instructor_only' } }, [
         setup('s.setup', 'Set-up', { airport: ['SKBO', 'SKRG'], weather: [wx('SKBO', n), wx('SKRG', n)], position: [`SKBO RWY 13L, ${f.position.lineup}`], comms: [COMMS.SKBO[1], COMMS.SKRG[2]], reset: ['Total reset; recall the flight plan between exercises'], performance: [f.perf.toga] }, f.mass(f.fuel.mt), 'take'),
         ...ex,
+        /*
+         * The two competencies a simulator session can honestly assess, on ONE element and not on
+         * every manoeuvre. Each manoeuvre is graded as a task 1-5, which is how a type rating is
+         * flown and marked; knowledge and communication are not properties of a single manoeuvre,
+         * they are judged across the whole session. It carries no time of its own, so the session
+         * still adds up to the declared period.
+         *
+         * It lives here rather than on the briefing or the debriefing because those grade nothing:
+         * a competency carries one grade for the session, so grading it where the evidence is not
+         * is how the same competency ends up assessed twice on two different scales.
+         */
+        task('s.assessment', 'Knowledge and communication', {
+          aims: {
+            aims: 'Judged across the whole session rather than on any one exercise: the systems and procedures knowledge the session relied on, and the communication between the crew and with ATC.',
+            competency_focus: 'Knowledge applied under workload; communication that is timely, complete and understood.',
+            grading_criteria: 'Knows the procedures well enough to fly the exercises without prompting; communicates clearly, confirms what matters, and says when something is not understood.',
+            visibility: 'also_in_subject_brief',
+          },
+          grading: grading('none', 'scale_1_5', ['KNO', 'COM']),
+        }),
       ]),
       section('reinf', 'Additional training', 'reinf', '0:20', { training_only: true }, [
         task('reinf.time', 'Additional training', { time: '0:20', aims: { aims: 'Repeat what needs repeating. Time as observed. Not graded.', visibility: 'instructor_only' }, grading: grading() }),
       ]),
       section('debrief', 'Debriefing', 'debrief', '0:30', {}, [
-        task('debrief.session', 'Debriefing', { time: '0:30', aims: { aims: 'What went to standard, what is repeated next session.', visibility: 'also_in_subject_brief', grading_criteria: 'Analyses the session openly.' }, grading: grading('none', 'competent_not_competent', ['COM']) }),
+        task('debrief.session', 'Debriefing', { time: '0:30', aims: { aims: 'What went to standard, what is repeated next session.', visibility: 'also_in_subject_brief', grading_criteria: 'Analyses the session openly.' }, grading: grading('none', 'none', []) }),
       ]),
     ],
     competencies_default: ALL_COMPS,

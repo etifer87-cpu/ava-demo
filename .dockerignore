@@ -1,0 +1,45 @@
+# .dockerignore - at the REPOSITORY ROOT, because the build context is the repository root.
+#
+# This file is the single biggest influence on build speed. Without it the whole of node_modules and
+# .next is uploaded to the daemon as build context on every build, which on this project is hundreds
+# of megabytes to send before a single layer is considered.
+
+# Dependencies and build output are rebuilt in the image, never copied into it.
+**/node_modules
+**/.next
+**/out
+**/dist
+**/*.tsbuildinfo
+
+# Version control and local tool state.
+.git
+.gitattributes
+**/.DS_Store
+**/.idea
+**/.vscode
+**/coverage
+**/.vitest
+
+# Secrets never enter an image. The example file is the only one that travels.
+scaffold/.env
+scaffold/.env.*
+!scaffold/.env.example
+
+# Generated data. Produced inside the container by gen:programs and gen:roster, deterministically,
+# so copying a host's copy in would only be a way for the two to disagree.
+data/programs
+data/roster
+data/history
+
+# Documentation, the kit's own docs, and the brain. None of it is served.
+docs
+kit-docs
+*.md
+!scaffold/README.md
+
+# ...with one exception, which is not documentation at all. seed-framework.mjs re-parses
+# kit-docs/03_COMPETENCY_FRAMEWORK.md and byte-matches all 73 observable behaviours against it
+# before it will write a single row: the document is the AUTHORITY and the JSON seed is the copy.
+# Excluding it made `seed:framework` the first step of the instance build to fail in a container,
+# on a path that reads like a docs file nobody could need.
+!kit-docs/03_COMPETENCY_FRAMEWORK.md

@@ -266,7 +266,7 @@ export default async function InstructorAnalysisPage({ params, searchParams }: {
             <p className="xs muted" style={{ margin: 'var(--space-1) 0 var(--space-2)' }}>
               {g.type === 'unjustified_low' ? `Rule: a grade at or below ${cfg.assessor_fairness.justification.grade_max} with a remark shorter than ${cfg.assessor_fairness.justification.min_words} words. Definitional - a low grade with no substantive remark is unjustified whatever the text says.`
                 : g.type === 'halo_record' ? `Rule: every graded competency on one record carries the identical grade, on a record with at least ${cfg.assessor_fairness.habits.halo.min_competencies_graded} competencies graded.`
-                : g.type === 'outcome_mismatch' ? 'Rule: below-standard grades with a passing outcome and no additional training recommended, or a failing outcome with nothing graded below standard.'
+                : g.type === 'outcome_mismatch' ? `Rule: ${cfg.grade_scale.outcome_standard?.warn_at ?? 1} or more grades at or below ${cfg.grade_scale.below_standard_max} with a passing outcome and no additional training recommended, or a failing outcome with nothing graded below standard. The count is the operator's, in Admin \u2192 Configuration.`
                 : 'Rule: the remark reads worse than the grade awarded. Requires the model layer, which this build does not run.'}
             </p>
             <table className="data">

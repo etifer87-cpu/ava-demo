@@ -20,9 +20,9 @@
 # No operator content. Every vocabulary below is a neutral starter list.
 # ---------------------------------------------------------------------------
 
-version: "1.15"
-updated: "2026-09-12"
-note: "v1.15: is_check on the template kinds that are checks, read by the instructor check-versus-training comparison. v1.14: FFS check label, per-pilot LFUS cadence range. v1.13: initial-training board (check stages, released label, board settings in section 13). v1.12: training status items (section 13). v1.11: initial training courses (roster) and the type-rating pipeline (history). v1.10: competency display names for compact titles. v1.9: history section (section 11) - the training history the generator writes. v1.8: roster section (section 10) - the pilot population the roster generator builds. v1.7: A330 fleet and device withdrawn (A320 and B787 only). v1.6: reinf phase reads Additional training. v1.5: signature statements and the objection rule (section 5). v1.4: program builder vocabulary (section 9). v1.3: display labels (subject reads as Pilot). v1.2: Avianca operator context. Vocabularies replaced with the operator's own (bases, fleets, seats, instructor roles, EBT session kinds, outcome terms). v1.1: the db_kind mapping and the element-catalogue db_type mapping are gone - migrations 0032 and 0033 widened the schema to carry the real vocabulary, so both levels collapsed into one."
+version: "1.18"
+updated: "2026-09-13"
+note: "v1.17: the grade tokens the non-numeric grading modes store - task_pass_fail_values for a pass_fail task, competency_binary_values for a competent / not competent competency. The grading surface reads them from here instead of writing PASS or C into a column. v1.16: check_options on a template kind, chosen when the session is created. v1.15: is_check on the template kinds that are checks, read by the instructor check-versus-training comparison. v1.14: FFS check label, per-pilot LFUS cadence range. v1.13: initial-training board (check stages, released label, board settings in section 13). v1.12: training status items (section 13). v1.11: initial training courses (roster) and the type-rating pipeline (history). v1.10: competency display names for compact titles. v1.9: history section (section 11) - the training history the generator writes. v1.8: roster section (section 10) - the pilot population the roster generator builds. v1.7: A330 fleet and device withdrawn (A320 and B787 only). v1.6: reinf phase reads Additional training. v1.5: signature statements and the objection rule (section 5). v1.4: program builder vocabulary (section 9). v1.3: display labels (subject reads as Pilot). v1.2: Avianca operator context. Vocabularies replaced with the operator's own (bases, fleets, seats, instructor roles, EBT session kinds, outcome terms). v1.1: the db_kind mapping and the element-catalogue db_type mapping are gone - migrations 0032 and 0033 widened the schema to carry the real vocabulary, so both levels collapsed into one."
 
 # ---------------------------------------------------------------------------
 # 1. Template kinds - docs/04_ETR.md section 4.
@@ -62,6 +62,10 @@ template_kinds:
   - kind: proficiency_check
     label: "OPC / LPC"                    # kept beside EBT: licence and operator proficiency checks
     is_check: true                        # graded as a pass/fail event rather than as training
+    # One program, and the instructor says at session creation which check this is. Offered as a
+    # required choice wherever a kind carries this list; recorded in sessions.setup.check and on
+    # the record, so the two checks are one program and two records.
+    check_options: ["LPC", "OPC"]
     facility_kind: ffs
     fan_out_on_signature: false
     supports_attempts: true
@@ -211,12 +215,23 @@ positions: ["CP", "FO", "CRFO"]          # Captain, First Officer, Cruise Relief
 # ---------------------------------------------------------------------------
 grading:
   target_grade: 3
-  # How many competencies may sit at grade 2 in one record before the record
-  # itself is treated as below the program's expectation.
-  tolerated_grade_2_competencies: 2
+  # RETIRED 2026-09-16, superseded by analytics.yaml
+  # `grade_scale.outcome_standard`. It said "how many competencies may sit at
+  # grade 2 in one record before the record itself is treated as below the
+  # program's expectation" and nothing in the platform ever read it. The count
+  # now lives beside `below_standard_max`, so the line and the number of grades
+  # allowed to cross it are declared together and cannot drift apart. Left here
+  # as a pointer, because a reader who remembers this key deserves to be told
+  # where it went rather than to find nothing.
   # Non-scoring codes are defined in analytics.yaml (grade_scale.non_scoring)
   # and are listed there, not here, so one vocabulary cannot drift from another.
   boolean_grade_values: ["Yes", "No"]
+  # The tokens stored in element_grades.grade / competency_grades.grade when the
+  # element or competency is NOT graded on the 1-5 scale. Both are ordered
+  # [meets standard, below standard]; a surface reads the pair, never a literal.
+  # A numeric mode stores the digit itself and needs no vocabulary here.
+  task_pass_fail_values: ["PASS", "FAIL"]
+  competency_binary_values: ["C", "NC"]
   outcomes: ["PASS", "FAIL", "PARTIAL PASS", "INCOMPLETE", "PROFICIENT", "NOT PROFICIENT"]
   # EBT vocabulary. PROFICIENT is recorded as itself and read as PASS wherever an aggregate needs
   # a pass/fail reading; NOT PROFICIENT likewise as FAIL. PARTIAL PASS is never folded into either.
@@ -233,7 +248,21 @@ grading:
     successive_grade_2_same_competency: 2
     assessor_judgement: true         # free-standing; needs no numeric trigger
   # A remedial trigger is a PROMPT to a human, never an automatic status change.
-  remedial_is_advisory: true
+  #
+  # CHANGED 2026-09-16, deliberately, at the operator's instruction. It is now
+  # false, and this is the only rule in the platform that overrules an
+  # instructor: analytics.yaml `grade_scale.outcome_standard.refuse_pass_at`
+  # grades of `refuse_pass_grade` refuse a passing outcome outright, and a
+  # `critical_grade` refuses one on its own.
+  #
+  # What has NOT changed: the grades. An instructor still decides what each
+  # competency earned, and `outcome_is_always_explicit` still holds - nothing
+  # infers an outcome or writes one. The operator has drawn a line at which a
+  # set of grades may no longer be recorded as a pass, and the surface says so
+  # while the grades are being entered rather than at the signature.
+  #
+  # Set it back to true and the refusal becomes the warning it used to be.
+  remedial_is_advisory: false
 
 # ---------------------------------------------------------------------------
 # 5. Signature and locking policy - docs/04_ETR.md section 2.
@@ -531,7 +560,19 @@ history:
   patterns:
     decline_from: "2025-03-01"
     decline_per_month: 0.06
-    strict_bias: 0.4
+    # These two plant the bench of demo script section 6: one A320 examiner graded
+    # low by strict_bias, one A320 TRI graded high by lenient_bias, both against
+    # what the same pilots earned from everybody else.
+    #
+    # THE BAND THEY ARE MEASURED AGAINST IS +/-0.5 adjusted grade points. A bias
+    # planted INSIDE the band is a pattern that never fires: until 2026-09-16 both
+    # sat under it, "Outside the band" read 0 on every rehearsal, and the queue that
+    # exists to list a standardisation conversation had nothing to list. strict_bias
+    # now clears the band and lenient_bias deliberately does not, so the screen shows
+    # both halves of the story: one instructor listed, and one who leans and is
+    # correctly left alone. Shrinkage is n/(n+20), so with a full history the adjusted
+    # figure lands close to the bias set here; with a short one it will read lower.
+    strict_bias: 0.65
     lenient_bias: 0.35
     wlm_revision_from: "2025-03-01"
     wlm_gain: 0.25

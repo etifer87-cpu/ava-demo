@@ -25,6 +25,11 @@ export interface CompetencyToken {
 export interface GradeToken {
   readonly grade: number;
   readonly colour: string;
+  /** The pale wash of the same hue, for a surface behind a mark. Null where the operator set none. */
+  readonly tint?: string | null;
+  /** The readable ink ON `colour`, resolved from brand.yaml. The PDF gets no stylesheet, so a chart
+   *  cannot read --grade-N-ink and is handed the value instead. */
+  readonly ink?: string;
   readonly label: string;
 }
 
@@ -64,6 +69,18 @@ export function competencyCode(tokens: ChartTokens, competencyId: string): strin
 export function gradeColour(tokens: ChartTokens, grade: number | null): string {
   if (grade === null) return tokens.surface.inkMuted;
   return tokens.grades.find((g) => g.grade === grade)?.colour ?? tokens.surface.inkMuted;
+}
+
+/** The pale wash for a grade, for a track or a band behind a mark. Falls back to the grid colour. */
+export function gradeTint(tokens: ChartTokens, grade: number | null): string {
+  if (grade === null) return tokens.surface.grid;
+  return tokens.grades.find((g) => g.grade === grade)?.tint ?? tokens.surface.grid;
+}
+
+/** The readable ink ON a grade's fill, as resolved by brand.yaml rather than guessed per chart. */
+export function gradeInk(tokens: ChartTokens, grade: number | null): string {
+  const t = grade === null ? undefined : tokens.grades.find((g) => g.grade === grade);
+  return t?.ink ?? onColour(t?.colour ?? tokens.surface.bg, tokens);
 }
 
 /**

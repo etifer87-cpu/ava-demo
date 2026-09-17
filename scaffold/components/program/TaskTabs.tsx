@@ -131,7 +131,7 @@ export function TaskTabs({ task, elementKey, templateId, versionId, setupOptions
           <fieldset className="check-grid" style={{ border: 0, padding: 0, margin: 0 }}>
             <legend className="xs muted">Competencies targeted</legend>
             {competencies.map((c) => (
-              <label key={c.code} className="check"><input type="checkbox" name="competencies" value={c.code} defaultChecked={task.grading.competencies.includes(c.code)} /><span><span className="mono">{c.code}</span> <span className="xs muted">{c.name}</span></span></label>
+              <label key={c.code} className="check"><input type="checkbox" name="competencies" value={c.code} defaultChecked={task.grading.competencies.includes(c.code)} /><span><span className="ccode">{c.code}</span> <span className="xs muted">{c.name}</span></span></label>
             ))}
           </fieldset>
           <div><button className="button button-quiet xs" type="submit">Save assessment</button></div>

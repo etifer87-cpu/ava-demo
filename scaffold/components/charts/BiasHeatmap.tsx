@@ -57,7 +57,7 @@ export function BiasHeatmap({
         <thead>
           <tr>
             <th scope="col">Instructor</th>
-            {competencies.map((c) => <th key={c.id} scope="col" className="num" title={c.name}><span className="mono">{c.code}</span></th>)}
+            {competencies.map((c) => <th key={c.id} scope="col" className="num" title={c.name}><span className="ccode">{c.code}</span></th>)}
           </tr>
         </thead>
         <tbody>

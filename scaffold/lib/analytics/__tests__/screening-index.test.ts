@@ -62,6 +62,11 @@ const cfg: AnalyticsConfig = {
   },
   flagged_record: { grade_1_at_least: 1, grade_2_at_least: 3 },
   assessor_fairness: {
+    // These two blocks are required by AnalyticsConfig and were added to the type after this
+    // fixture was written. The values are analytics.yaml's own, so the fixture keeps saying what
+    // the configuration says rather than inventing numbers the product does not use.
+    expected: { half_life: 3.5, window_rank: 12, min_grades: 3, max_share_above_level_1_for_banding: 0.10 },
+    justification: { grade_max: 2, min_words: 8, never_penalise_grade_min: 4, masking_requires_model: true },
     adjusted_delta: { k_shrink: 20, ci_z: 1.96, outlier_abs: 0.5, min_records_banded: 10 },
     spread: { sigma_floor: 0.6, sigma_min: 0.35 },
     habits: {

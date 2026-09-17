@@ -75,11 +75,13 @@ export interface BrandConfig {
   version: string;
   /** "light" pins the light palette; "auto" (default) follows prefers-color-scheme. */
   scheme?: 'light' | 'auto';
-  product: { name: string; short_name: string; environment_label: string };
+  product: { name: string; short_name: string; environment_label: string; vendor_line?: string };
   logo: { path: string; alt: string; height_px: number };
   colour: { light: ColourSet; dark: ColourSet };
   state: { light: StateSet; dark: StateSet };
-  grade_palette: Record<string, { colour: string; label: string }>;
+  grade_palette: Record<string, { colour: string; tint?: string; label: string }>;
+  /** One ink for every grade numeral. Absent: each is chosen by luminance instead. */
+  grade_ink?: string;
   /** Keyed by policy.yaml program.phases codes; emitted as --phase-<code>. Optional. */
   phase_palette?: Record<string, { colour: string; label?: string }>;
   average_bands?: { from: number; colour: string; label?: string }[];
@@ -98,6 +100,24 @@ export function brand(): BrandConfig {
  * globals.css can rely on the properties existing without knowing their values, and an operator's
  * edit to brand.yaml is the whole rebrand.
  */
+/**
+ * The readable ink for text drawn ON a fill. WCAG relative luminance, the same rule
+ * components/charts/chart-tokens.ts applies to a label on a mark - stated once here for CSS and
+ * once there for SVG because the PDF renderer receives no stylesheet and cannot read a custom
+ * property. A malformed colour falls back to the dark ink rather than throwing in a render path.
+ */
+function readableInk(hex: string, b: BrandConfig): string {
+  // An operator who states one ink for the whole ramp gets it, unmeasured and unargued with; the
+  // measurement lives beside the key in brand.yaml so the choice is made with the numbers in view.
+  if (typeof b.grade_ink === 'string' && b.grade_ink.trim() !== '') return b.grade_ink.trim();
+  const m = /^#?([0-9a-f]{6})$/i.exec(hex.trim());
+  if (!m) return b.colour.light.ink;
+  const n = parseInt(m[1]!, 16);
+  const channel = (c: number) => { const v = c / 255; return v <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4; };
+  const lum = 0.2126 * channel((n >> 16) & 255) + 0.7152 * channel((n >> 8) & 255) + 0.0722 * channel(n & 255);
+  return lum > 0.45 ? b.colour.light.ink : '#FFFFFF';
+}
+
 export function brandCss(b: BrandConfig = brand()): string {
   const vars = (c: ColourSet, s: StateSet) =>
     [
@@ -145,7 +165,25 @@ export function brandCss(b: BrandConfig = brand()): string {
     .map(([code, v]) => `--phase-${code}:${v.colour}`)
     .join(';');
 
-  const light = `:root{${vars(b.colour.light, b.state.light)};${shape}${phases ? `;${phases}` : ''}}`;
+  // --grade-1 .. --grade-5 from grade_palette, so a CLIENT component can colour a grade without
+  // being handed the palette as a prop. The numeral is always rendered beside the colour; nothing
+  // encodes a grade by colour alone (brand.yaml says so above the palette).
+  //
+  // Each colour also gets a --grade-N-INK: the readable ink FOR that fill, chosen here rather than
+  // stated in the YAML, so an operator who changes a grade colour cannot leave a numeral unreadable
+  // on it. It is the rule components/charts/chart-tokens.ts already uses for text on a mark - WCAG
+  // relative luminance - and it matters: white on the 2026-09-17 grade 2 is 1.40:1, an invisible
+  // digit, while dark ink on it is 12.71:1.
+  const gradeVars = Object.entries(b.grade_palette ?? {})
+    .filter(([g, v]) => /^[0-9]{1,2}$/.test(g) && typeof v?.colour === 'string')
+    .flatMap(([g, v]) => [
+      `--grade-${g}:${v.colour}`,
+      `--grade-${g}-ink:${readableInk(v.colour, b)}`,
+      ...(v.tint ? [`--grade-${g}-tint:${v.tint}`] : []),
+    ])
+    .join(';');
+
+  const light = `:root{${vars(b.colour.light, b.state.light)};${shape}${phases ? `;${phases}` : ''}${gradeVars ? `;${gradeVars}` : ''}}`;
   // scheme "light" pins the palette: no dark override is emitted and the UA is told so.
   const dark =
     b.scheme === 'light'
@@ -167,6 +205,14 @@ export function competencyDisplayName(code: string, fullName: string, p: PolicyC
 }
 
 /** The colour an average grade (a mean, 1-5) is shown in: the band whose lower bound it reaches. */
+/** One template kind as policy.yaml declares it. */
+export type TemplateKind = PolicyConfig['template_kinds'][number];
+
+/** The kind by code, or null. The vocabulary is configuration; nothing here hardcodes a member. */
+export function templateKind(kind: string | null | undefined, p: PolicyConfig = policy()): TemplateKind | null {
+  return p.template_kinds.find((k) => k.kind === kind) ?? null;
+}
+
 /**
  * The template kinds the operator marks `is_check` in policy.yaml - the checks, as opposed to
  * training. Read by the instructor check-versus-training comparison, so nothing splits a population
@@ -186,6 +232,20 @@ export function failOutcomes(p: PolicyConfig = policy()): string[] {
   const eq = p.grading?.outcome_equivalents ?? {};
   const mapped = Object.entries(eq).filter(([, v]) => String(v).toUpperCase() === 'FAIL').map(([k]) => k);
   return [...new Set(['FAIL', ...mapped])];
+}
+
+/**
+ * The pair of tokens a non-numeric grading mode stores, [meets standard, below standard], from
+ * `policy.yaml grading`. `task_pass_fail_values` for a `pass_fail` task element,
+ * `competency_binary_values` for a `competent_not_competent` competency. A surface asks for the
+ * pair; nothing writes PASS or C as a literal.
+ */
+export function gradeTokens(which: 'task_pass_fail' | 'competency_binary', p: PolicyConfig = policy()): readonly [string, string] {
+  const key = which === 'task_pass_fail' ? 'task_pass_fail_values' : 'competency_binary_values';
+  const list = p.grading?.[key] ?? [];
+  const [ok, not] = list;
+  if (!ok || !not) throw new Error(`policy.yaml grading.${key} must name two values, [meets standard, below standard]`);
+  return [ok, not];
 }
 
 export interface LeniencyZone { to: number | null; colour: string; label: string }
@@ -221,9 +281,9 @@ export function averageBand(mean: number | null, b: BrandConfig = brand()): { co
 }
 
 /** Grade colours for the chart token builder. Keyed by the numeric grade, sorted ascending. */
-export function gradePalette(b: BrandConfig = brand()): { grade: number; colour: string; label: string }[] {
+export function gradePalette(b: BrandConfig = brand()): { grade: number; colour: string; tint: string | null; ink: string; label: string }[] {
   return Object.entries(b.grade_palette)
-    .map(([grade, v]) => ({ grade: Number(grade), colour: v.colour, label: v.label }))
+    .map(([grade, v]) => ({ grade: Number(grade), colour: v.colour, tint: v.tint ?? null, ink: readableInk(v.colour, b), label: v.label }))
     .filter((g) => Number.isFinite(g.grade))
     .sort((a, z) => a.grade - z.grade);
 }
@@ -250,10 +310,27 @@ export function gradeScale(): {
   below_standard_max: number;
   meets_standard_min: number;
   critical_grade: number;
+  /** See config/analytics.yaml. Optional so a config written before 2026-09-16 still loads. */
+  outcome_standard?: { warn_at: number; refuse_pass_grade: number; refuse_pass_at: number };
+  code_meanings?: Record<string, string>;
 } {
   const cfg = analyticsConfig<{ grade_scale: ReturnType<typeof gradeScale> }>();
   if (!cfg.grade_scale) throw new Error('config/analytics.yaml has no grade_scale block');
   return cfg.grade_scale;
+}
+
+/**
+ * The non-scoring code that means one particular thing, from
+ * `analytics.yaml grade_scale.code_meanings` - `notScoringCode('not_observed')` is how a surface
+ * stores "not observed" without writing NO into a column. Throws when the meaning is not named or
+ * names a code outside `non_scoring`: a silent fallback would put an unparseable value in a grade
+ * column, which lib/grades.ts counts as a data-quality fault rather than a code.
+ */
+export function nonScoringCode(meaning: string, scale = gradeScale()): string {
+  const code = (scale.code_meanings ?? {})[meaning];
+  if (!code) throw new Error(`analytics.yaml grade_scale.code_meanings has no ${meaning}`);
+  if (!scale.non_scoring.includes(code)) throw new Error(`grade_scale.code_meanings.${meaning} = ${code}, which is not in non_scoring`);
+  return code;
 }
 
 /* ------------------------------------------------------------------ */
@@ -284,14 +361,20 @@ export interface PolicyConfig {
     statements?: { assessor?: string; subject?: string; subject_by_kind?: Record<string, string> };
     objection?: { allowed?: boolean; label?: string; prompt?: string; marks_record?: string; notifies_role?: string };
   };
-  grading?: { outcomes?: string[]; outcome_equivalents?: Record<string, string> };
+  grading?: {
+    outcomes?: string[];
+    outcome_equivalents?: Record<string, string>;
+    target_grade?: number;
+    task_pass_fail_values?: string[];
+    competency_binary_values?: string[];
+  };
   competency_display_names?: Record<string, string>;
   training_status?: { warning_days: number; items: { key: string; label: string; kind: string; validity_months: number }[]; stages: Record<string, string>; check_stages?: string[]; released_label?: string; board?: { finishing_days: number } };
   positions: string[];
   instructor_roles: string[];
   assessor_role_codes: string[];
   seats: { subject_roles: string[]; default_subject_role: string; pf_roles: string[]; max_subjects_per_session: number };
-  template_kinds: { kind: string; label: string; is_check?: boolean }[];
+  template_kinds: { kind: string; label: string; is_check?: boolean; check_options?: string[]; facility_kind?: string; fan_out_on_signature?: boolean; supports_attempts?: boolean }[];
 }
 
 /** The training policy, loose like analyticsConfig: only the vocabularies screens read are typed. */
@@ -339,14 +422,14 @@ export function rules(): RulesConfig {
 }
 
 /** The signature wording for one template kind, and the objection rule. Neutral fallbacks when policy.yaml is silent. */
-export function signatureStatements(templateKind: string | null): { assessor: string; subject: string; subjectExtra: string | null; objection: { allowed: boolean; label: string; prompt: string; marksRecord: string; notifiesRole: string } } {
+export function signatureStatements(kindCode: string | null): { assessor: string; subject: string; subjectExtra: string | null; objection: { allowed: boolean; label: string; prompt: string; marksRecord: string; notifiesRole: string } } {
   const s = policy().signatures ?? {};
   const st = s.statements ?? {};
   const o = s.objection ?? {};
   return {
     assessor: st.assessor ?? 'By signing I confirm that these results were given to the trainee and explained.',
     subject: st.subject ?? 'By signing I confirm that these results were given to me and that I accept them.',
-    subjectExtra: templateKind ? st.subject_by_kind?.[templateKind] ?? null : null,
+    subjectExtra: kindCode ? st.subject_by_kind?.[kindCode] ?? null : null,
     objection: { allowed: o.allowed ?? true, label: o.label ?? 'Object to the results', prompt: o.prompt ?? 'Say why you do not agree with the results.', marksRecord: o.marks_record ?? 'incomplete', notifiesRole: o.notifies_role ?? 'training_manager' },
   };
 }

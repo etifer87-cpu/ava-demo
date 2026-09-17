@@ -135,9 +135,25 @@ export default async function ProgramPage({ params, searchParams }: { params: Pr
   const isMalf = inspectorNode?.kind === 'options' && inspectorNode.content.kind === 'malfunction';
   const isEvent = inspectorNode?.kind === 'options' && inspectorNode.content.kind === 'event';
   const paneFleet = isMalf ? (inspectorNode.content.fleet ?? template.asset_class) : template.asset_class;
-  const [competencies, malfunctions, events, groups] = await Promise.all([
-    inspectorNode && (inspectorNode.kind === 'section' || inspectorNode.kind === 'exercise')
+  // The competencies and their observable behaviours are loaded whether or not the version is a
+  // draft: a published program is READ here as much as a draft is edited, and "which behaviours does
+  // this exercise look for" is the question a training manager opens the builder to answer.
+  const wantsFramework = Boolean(inspectorNode && (inspectorNode.kind === 'section' || inspectorNode.kind === 'exercise'));
+  const [competencies, behaviours, malfunctions, events, groups] = await Promise.all([
+    wantsFramework
       ? query<{ code: string; name: string }>(`SELECT c.code, c.name FROM competencies c JOIN competency_frameworks f ON f.id = c.framework_id WHERE f.is_active AND c.is_active ORDER BY c.position, c."index"`)
+      : Promise.resolve([]),
+    wantsFramework
+      ? query<{ competency: string; code: string; text: string }>(
+          `SELECT c.code AS competency, ob.code, ob.text
+             FROM observable_behaviours ob
+             JOIN competencies c ON c.id = ob.competency_id
+             JOIN competency_frameworks f ON f.id = c.framework_id
+            WHERE f.is_active AND c.is_active AND ob.is_active
+            ORDER BY c.position, c."index", ob.position,
+                     split_part(split_part(ob.code, ' ', 2), '.', 1)::int,
+                     split_part(split_part(ob.code, ' ', 2), '.', 2)::int`,
+        )
       : Promise.resolve([]),
     isMalf ? malfunctionIndex(paneFleet) : Promise.resolve([]),
     isEvent ? eventLibrary(template.asset_class) : Promise.resolve([]),
@@ -150,7 +166,7 @@ export default async function ProgramPage({ params, searchParams }: { params: Pr
     descendants: node ? countDesc(node) : 0,
     editable,
     vocab: { sectionKinds: [...vocab.sectionKinds], phases: [...vocab.phases.entries()], pfSeats: [...vocab.pfSeats] },
-    competencies, fleets: fleets.map((f) => ({ code: f.value, label: f.label })), programFleet: template.asset_class,
+    competencies, behaviours, fleets: fleets.map((f) => ({ code: f.value, label: f.label })), programFleet: template.asset_class,
     malfunctions, events, groups,
   };
 
@@ -158,6 +174,11 @@ export default async function ProgramPage({ params, searchParams }: { params: Pr
   const planned = bud.inside;
   const period = program?.tree.setup.period_minutes ?? null;
   const blockers = program ? hasBlockers(program.findings) : false;
+  // The findings card sits under a canvas that can run several screens deep, so the header carries
+  // the count and jumps to it. A clear check is stated, not left silent: "nothing is wrong" and
+  // "nothing was checked" must not look the same.
+  const blockerCount = program ? program.findings.filter((f) => f.severity === 'block').length : 0;
+  const warningCount = program ? program.findings.length - blockerCount : 0;
   const taskCount = program ? [...program.tree.byKey.values()].filter((n) => n.content.type === 'task').length : 0;
   const hrefFor = (key: string) => `${base}?${new URLSearchParams({ ...carry, sel: key }).toString()}`;
 
@@ -175,6 +196,15 @@ export default async function ProgramPage({ params, searchParams }: { params: Pr
           : <Chip tone="warn">Draft · v{program.version.version}</Chip>
         ) : <Chip tone="bad">No version</Chip>}
         {template.hide_record_from_subject ? <Chip tone="neutral">Not visible to the trainee</Chip> : null}
+        {program ? (
+          <a href="#findings" style={{ textDecoration: 'none' }} title="Go to the findings">
+            {blockerCount > 0
+              ? <Chip tone="bad">{blockerCount} blocker{blockerCount === 1 ? '' : 's'}{warningCount ? ` · ${warningCount} warning${warningCount === 1 ? '' : 's'}` : ''}</Chip>
+              : warningCount > 0
+                ? <Chip tone="warn">{warningCount} warning{warningCount === 1 ? '' : 's'}</Chip>
+                : <Chip tone="good">Checks clear</Chip>}
+          </a>
+        ) : null}
         {program && canConfigure ? (
           <form method="post" action={`/api/templates/${template.id}/versions`} className="row" style={{ gap: 'var(--space-2)' }} data-testid="version-actions">
             <input type="hidden" name="version" value={program.version.id} />
@@ -190,7 +220,7 @@ export default async function ProgramPage({ params, searchParams }: { params: Pr
         {planned !== null || period !== null ? <> · device <span className="mono">{planned === null ? '-' : formatMinutes(planned)}{period !== null ? ` of ${formatMinutes(period)}` : ''}</span>{planned !== null && period !== null ? <span> · {planned <= period ? `${formatMinutes(period - planned)} free` : `${formatMinutes(planned - period)} over`}</span> : null}</> : null}
         {bud.outside !== null ? <> · outside the device <span className="mono">{formatMinutes(bud.outside)}</span></> : null}
         {` · ${taskCount} exercise${taskCount === 1 ? '' : 's'}`}
-        {versions.length > 1 ? <> · versions: {versions.map((v, i) => <span key={v.id}>{i ? ', ' : ''}<Link href={`${base}?version=${v.id}`}>v{v.version} {v.status}</Link></span>)}</> : null}
+        {versions.length > 1 ? <> · versions: {versions.map((v, i) => <span key={v.id}>{i ? ', ' : ''}<a href={`${base}?version=${v.id}`}>v{v.version} {v.status}</a></span>)}</> : null}
       </p>
 
       {flash ? <div className={`notice${flash.kind === 'bad' ? ' notice-bad' : flash.kind === 'warn' ? ' notice-warn' : ''}`} role="status"><p style={{ margin: 0 }}>{flash.message}</p></div> : null}
@@ -212,6 +242,7 @@ export default async function ProgramPage({ params, searchParams }: { params: Pr
             </Card>
           ) : null}
 
+          <div id="findings" style={{ scrollMarginTop: 'var(--space-4)' }} />
           <Card title="Findings" note="Blockers stop a publish; warnings are shown and allowed. Each names what it cites; the key jumps to the element." testId="program-findings">
             {program.findings.length === 0 ? <p className="muted small" style={{ margin: 0 }}>Nothing to resolve.</p> : (
               <ul className="findings">

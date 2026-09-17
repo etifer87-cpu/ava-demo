@@ -1,4 +1,5 @@
 import { NextResponse, type NextRequest } from 'next/server';
+import { seeOther } from '@/lib/http';
 import { transaction } from '@/lib/db';
 import { requireSession } from '@/lib/session';
 import { resolveAccess, requireCapability } from '@/lib/access';
@@ -33,7 +34,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
   const actorLabel = session.fullName ?? session.username;
 
   const back = (flash: Parameters<typeof flashCookie>[0]) => {
-    const res = NextResponse.redirect(new URL(`/admin/tickets/${id}`, request.nextUrl.origin), 303);
+    const res = seeOther(`/admin/tickets/${id}`);
     res.cookies.set(flashCookie(flash));
     return res;
   };

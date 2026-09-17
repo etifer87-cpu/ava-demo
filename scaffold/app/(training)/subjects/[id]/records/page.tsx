@@ -20,7 +20,7 @@ export default async function Page({ params }: { params: Promise<{ id: string }>
         { label: 'Subject', href: `/subjects/${id}` },
         { label: 'Records' },
       ]}
-      summary="Record history for one subject, all sources, grouped by kind. The profile page already lists them; this route adds the grouping and the per-record report link."
+      summary="One pilot’s records grouped by kind of training or check. Their profile already lists every record with its report; this screen would add the grouping."
     />
   );
 }

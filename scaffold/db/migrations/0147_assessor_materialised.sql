@@ -332,14 +332,26 @@ COMMENT ON FUNCTION refresh_assessor_analytics() IS
   'after a write and by npm run analytics:refresh. Not concurrent: the demo has one writer.';
 
 -- ---------------------------------------------------------------------------
+-- The emptiness check is a PIPELINE check, not a data check, so it only applies where there was
+-- data to process. On a database being built from nothing - which is the only way an environment is
+-- ever created here, because the database is never copied - the records arrive later, with
+-- seed:history, and every view below is correctly empty at this moment. Asserting otherwise made
+-- this migration impossible to apply to a clean instance: `reset:clean` failed here, and every step
+-- after it never ran, so the failure surfaced as "no active competency framework" and "unknown fleet
+-- A320" with nothing pointing at the cause. If the corpus HAS rows and the residuals do not, the
+-- pipeline is broken and that is still refused.
 DO $$
-DECLARE n_res BIGINT; n_adj BIGINT; n_mon BIGINT;
+DECLARE n_src BIGINT; n_res BIGINT; n_adj BIGINT; n_mon BIGINT;
 BEGIN
+  SELECT count(*) INTO n_src FROM public.mv_assessor_grades;
   SELECT count(*) INTO n_res FROM public.mv_assessor_residual;
   SELECT count(*) INTO n_adj FROM public.mv_assessor_adjusted;
   SELECT count(*) INTO n_mon FROM public.mv_assessor_monthly;
-  IF n_res = 0 THEN
-    RAISE EXCEPTION '0147: mv_assessor_residual is empty. Either no record carries a competency grade, or the expected-grade stage produced nothing - the bench would show no leaning at all, so this is refused rather than shipped empty.';
+  IF n_src = 0 THEN
+    RAISE NOTICE '0147: no graded records yet - the assessor views are built and empty, which is correct on a fresh database. They fill on the next refresh_assessor_analytics(), which seed:history calls when it finishes.';
+  ELSIF n_res = 0 THEN
+    RAISE EXCEPTION '0147: % graded rows are in the corpus but mv_assessor_residual is empty - the expected-grade stage produced nothing, so the bench would show no leaning at all. Refused rather than shipped empty.', n_src;
+  ELSE
+    RAISE NOTICE '0147: materialised - % residual rows, % assessors, % assessor-months. refresh_assessor_analytics() added.', n_res, n_adj, n_mon;
   END IF;
-  RAISE NOTICE '0147: materialised - % residual rows, % assessors, % assessor-months. refresh_assessor_analytics() added.', n_res, n_adj, n_mon;
 END $$;

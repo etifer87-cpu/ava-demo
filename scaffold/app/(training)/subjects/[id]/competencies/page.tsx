@@ -20,7 +20,7 @@ export default async function Page({ params }: { params: Promise<{ id: string }>
         { label: 'Subject', href: `/subjects/${id}` },
         { label: 'Competencies' },
       ]}
-      summary="Per-competency profile, screening index and trend for one subject, against their own recent window."
+      summary="A per-competency view of one pilot against their own recent history. The pilot’s profile already carries the competency averages, the radar and the trend grid; this screen would add the detail behind each one."
     />
   );
 }

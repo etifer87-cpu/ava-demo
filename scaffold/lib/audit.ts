@@ -141,6 +141,11 @@ export const AUDIT_ACTIONS = {
   templatePublish: 'template.publish',
   templateRetire: 'template.retire',
   sessionCreate: 'session.create',
+  // Grading is NOT audited click by click: element_grades / competency_grades already carry
+  // graded_by and graded_at on the row, and a log with one line per grade buries the acts a
+  // reviewer is looking for. This action records only what the rows cannot say for themselves -
+  // a repeat attempt opened, an outcome entered, and a competency graded AGAINST the proposal.
+  sessionGrade: 'session.grade',
   sessionSign: 'session.sign',
   sessionUnsign: 'session.unsign',
   sessionFinalize: 'session.finalize',
@@ -156,6 +161,10 @@ export const AUDIT_ACTIONS = {
   exportZip: 'export.zip',
   exportBulk: 'export.bulk',
   configActivate: 'config.activate',
+  // An analysis run is audited by its VERDICT, not just its request: 'rejected' means the
+  // provenance gate refused a narrative, which is the safety property working and the line
+  // somebody will want to find again months later.
+  analysisRun: 'analysis.run',
 } as const;
 
 export type AuditAction = (typeof AUDIT_ACTIONS)[keyof typeof AUDIT_ACTIONS];
