@@ -108,6 +108,12 @@ async function main() {
     for (const [group, checks] of GROUPS) {
       if (onlyGroup && group !== onlyGroup) continue;
       for (const check of checks) {
+        // Progress goes to stderr, before the check runs, unbuffered. The report is written only
+        // after every group has finished, so without this line a check that blocks - on a lock
+        // held by an abandoned backend, most often - produces a run that prints the header and
+        // then nothing at all, and the one fact worth having is which assertion it stopped on.
+        process.stderr.write(`  .. ${group} / ${check.name}`);
+        const started = Date.now();
         let outcome;
         try {
           outcome = await check.run(ctx);
@@ -116,7 +122,9 @@ async function main() {
           // failure is usually the one that explains the first.
           outcome = { ok: false, detail: `threw: ${err.message.split('\n')[0]}` };
         }
-        results.push({ group, name: check.name, ok: outcome.ok === true, detail: outcome.detail ?? '' });
+        const ms = Date.now() - started;
+        process.stderr.write(`${' '.repeat(Math.max(1, 52 - group.length - check.name.length))}${outcome.ok === true ? 'ok' : 'FAIL'} ${ms}ms\n`);
+        results.push({ group, name: check.name, ok: outcome.ok === true, detail: outcome.detail ?? '', ms });
       }
     }
   } finally {
