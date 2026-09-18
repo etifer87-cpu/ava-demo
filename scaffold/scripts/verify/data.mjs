@@ -18,7 +18,13 @@ function allowedGrades({ analytics, policy }) {
   return new Set([
     ...scale,
     ...(analytics.json('grade_scale.non_scoring') ?? []),
+    // Every non-numeric vocabulary policy.yaml defines for these columns, not just the first of
+    // them. An element or competency that is not graded on the 1-5 scale stores one of these
+    // tokens instead, and a check that knows only one of the three reports the other two as
+    // corrupt data. They are read from policy, never listed here.
     ...(policy.grading.boolean_grade_values ?? []),
+    ...(policy.grading.task_pass_fail_values ?? []),
+    ...(policy.grading.competency_binary_values ?? []),
   ]);
 }
 

@@ -43,6 +43,12 @@ try {
       } else {
         await client.query(`UPDATE session_templates SET name = $2, is_active = true WHERE id = $1::uuid`, [tpl.id, t.name]);
       }
+      // Resolved before the version row is written, not after: session_template_versions.framework_id
+      // is what ties a published version to the vocabulary it was built against, and a version
+      // inserted without it is invisible to every analytics view rather than wrong in a visible way.
+      const framework = (await client.query(`SELECT id FROM competency_frameworks WHERE is_active`)).rows[0];
+      if (!framework) throw new Error('no active competency framework; run seed:framework first');
+
       let version = tpl.current_version_id ? (await client.query(`SELECT id, status, version FROM session_template_versions WHERE id = $1::uuid AND deleted_at IS NULL`, [tpl.current_version_id])).rows[0] : null;
       if (version && version.status !== 'draft') {
         console.log(`${t.code}: version ${version.version} is ${version.status}; not touched. Clone it to a draft to reseed.`);
@@ -50,10 +56,10 @@ try {
         continue;
       }
       if (!version) {
-        version = (await client.query(`INSERT INTO session_template_versions (template_id, version, status, setup, notes, allowed_assessor_roles, hide_record_from_subject) VALUES ($1::uuid, 1, 'draft', $2::jsonb, $3, $4::text[], $5) RETURNING id, status, version`, [tpl.id, JSON.stringify(t.setup ?? {}), t.notes ?? null, t.allowed_assessor_roles ?? [], t.hide_record_from_subject === true])).rows[0];
+        version = (await client.query(`INSERT INTO session_template_versions (template_id, version, status, framework_id, setup, notes, allowed_assessor_roles, hide_record_from_subject) VALUES ($1::uuid, 1, 'draft', $2::uuid, $3::jsonb, $4, $5::text[], $6) RETURNING id, status, version`, [tpl.id, framework.id, JSON.stringify(t.setup ?? {}), t.notes ?? null, t.allowed_assessor_roles ?? [], t.hide_record_from_subject === true])).rows[0];
         await client.query(`UPDATE session_templates SET current_version_id = $2::uuid WHERE id = $1::uuid`, [tpl.id, version.id]);
       } else {
-        await client.query(`UPDATE session_template_versions SET setup = $2::jsonb, notes = $3, allowed_assessor_roles = $4::text[], hide_record_from_subject = $5 WHERE id = $1::uuid`, [version.id, JSON.stringify(t.setup ?? {}), t.notes ?? null, t.allowed_assessor_roles ?? [], t.hide_record_from_subject === true]);
+        await client.query(`UPDATE session_template_versions SET framework_id = $2::uuid, setup = $3::jsonb, notes = $4, allowed_assessor_roles = $5::text[], hide_record_from_subject = $6 WHERE id = $1::uuid`, [version.id, framework.id, JSON.stringify(t.setup ?? {}), t.notes ?? null, t.allowed_assessor_roles ?? [], t.hide_record_from_subject === true]);
         await client.query(`DELETE FROM template_elements WHERE template_version_id = $1::uuid`, [version.id]);
       }
 
@@ -71,7 +77,6 @@ try {
       for (const [i, el] of def.elements.entries()) await insert(el, null, i);
 
       // The version assesses the union of the competencies its exercises target.
-      const framework = (await client.query(`SELECT id FROM competency_frameworks WHERE is_active`)).rows[0];
       const codes = new Set();
       const walk = (els) => { for (const e of els) { for (const c of e.content?.grading?.competencies ?? []) codes.add(c); walk(e.children ?? []); } };
       walk(def.elements);
