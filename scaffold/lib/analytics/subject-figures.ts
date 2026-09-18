@@ -2,6 +2,7 @@ import 'server-only';
 import { query, queryOne } from '@/lib/db';
 import { analyticsConfig, gradeScale } from '@/lib/config';
 import { halfSplitTrend } from './trend';
+import { gradeNum } from './grade-sql';
 import type { AnalyticsConfig } from './types';
 
 /**
@@ -170,11 +171,11 @@ export async function subjectFigures(personId: string, months = 12): Promise<Sub
   const [totals, comps, points, recent] = await Promise.all([
     queryOne<TotalsRow>(
       `SELECT count(DISTINCT r.id)::text                                   AS records,
-              count(grade_num(rc.grade))::text                             AS grades,
-              avg(grade_num(rc.grade))::numeric(4,2)::text                 AS mean,
-              count(*) FILTER (WHERE grade_num(rc.grade) <= $3)::text      AS below,
-              count(*) FILTER (WHERE grade_num(rc.grade) = $4)::text       AS critical,
-              count(*) FILTER (WHERE grade_num(rc.grade) = $3)::text       AS boundary
+              count(${gradeNum('rc.grade')})::text                             AS grades,
+              avg(${gradeNum('rc.grade')})::numeric(4,2)::text                 AS mean,
+              count(*) FILTER (WHERE ${gradeNum('rc.grade')} <= $3)::text      AS below,
+              count(*) FILTER (WHERE ${gradeNum('rc.grade')} = $4)::text       AS critical,
+              count(*) FILTER (WHERE ${gradeNum('rc.grade')} = $3)::text       AS boundary
          FROM records r
          JOIN record_competencies rc ON rc.record_id = r.id
         WHERE r.person_id = $1::uuid AND r.deleted_at IS NULL
@@ -183,9 +184,9 @@ export async function subjectFigures(personId: string, months = 12): Promise<Sub
     ),
     query<CompRow>(
       `SELECT c.code, c.name,
-              avg(grade_num(rc.grade))::numeric(4,2)::text            AS mean,
-              count(grade_num(rc.grade))::text                        AS graded,
-              count(*) FILTER (WHERE grade_num(rc.grade) <= $3)::text AS below
+              avg(${gradeNum('rc.grade')})::numeric(4,2)::text            AS mean,
+              count(${gradeNum('rc.grade')})::text                        AS graded,
+              count(*) FILTER (WHERE ${gradeNum('rc.grade')} <= $3)::text AS below
          FROM record_competencies rc
          JOIN competencies c ON c.id = rc.competency_id
          JOIN competency_frameworks f ON f.id = c.framework_id AND f.is_active
@@ -196,12 +197,12 @@ export async function subjectFigures(personId: string, months = 12): Promise<Sub
       [personId, months, below],
     ),
     query<PointRow>(
-      `SELECT c.code, r.training_date::text AS on, grade_num(rc.grade)::text AS value
+      `SELECT c.code, r.training_date::text AS on, ${gradeNum('rc.grade')}::text AS value
          FROM record_competencies rc
          JOIN competencies c ON c.id = rc.competency_id
          JOIN records r ON r.id = rc.record_id AND r.deleted_at IS NULL
         WHERE r.person_id = $1::uuid AND r.training_date >= ${since}
-          AND grade_num(rc.grade) IS NOT NULL
+          AND ${gradeNum('rc.grade')} IS NOT NULL
         ORDER BY r.training_date`,
       [personId, months],
     ),
@@ -211,8 +212,8 @@ export async function subjectFigures(personId: string, months = 12): Promise<Sub
               r.record_kind                                             AS kind,
               COALESCE(r.outcome_override, r.outcome)                   AS outcome,
               a.full_name                                               AS assessor,
-              avg(grade_num(rc.grade))::numeric(4,2)::text              AS mean,
-              count(*) FILTER (WHERE grade_num(rc.grade) <= $3)::text   AS below
+              avg(${gradeNum('rc.grade')})::numeric(4,2)::text              AS mean,
+              count(*) FILTER (WHERE ${gradeNum('rc.grade')} <= $3)::text   AS below
          FROM records r
          LEFT JOIN record_competencies rc ON rc.record_id = r.id
          LEFT JOIN people a ON a.id = r.assessor_person_id

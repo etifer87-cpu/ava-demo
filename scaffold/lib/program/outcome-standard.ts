@@ -1,6 +1,7 @@
 import 'server-only';
 import { query } from '@/lib/db';
 import { gradeScale, policy, type PolicyConfig } from '@/lib/config';
+import { gradeNum } from '@/lib/analytics/grade-sql';
 
 /**
  * lib/program/outcome-standard.ts - the one rule in this platform that overrules an instructor.
@@ -64,8 +65,8 @@ export async function outcomeCounts(sessionId: string, personId: string): Promis
   const scale = gradeScale();
   const refuseGrade = scale.outcome_standard?.refuse_pass_grade ?? scale.below_standard_max;
   const rows = await query<{ at_refuse: string; critical: string }>(
-    `SELECT count(*) FILTER (WHERE grade_num(cg.grade) = $3)::text AS at_refuse,
-            count(*) FILTER (WHERE grade_num(cg.grade) = $4)::text AS critical
+    `SELECT count(*) FILTER (WHERE ${gradeNum('cg.grade')} = $3)::text AS at_refuse,
+            count(*) FILTER (WHERE ${gradeNum('cg.grade')} = $4)::text AS critical
        FROM competency_grades cg
       WHERE cg.session_id = $1::uuid AND cg.person_id = $2::uuid`,
     [sessionId, personId, refuseGrade, scale.critical_grade],

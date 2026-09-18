@@ -1,6 +1,7 @@
 import 'server-only';
 import { query, queryOne } from '@/lib/db';
 import { policy } from '@/lib/config';
+import { gradeNum } from './grade-sql';
 
 /**
  * lib/analytics/overview.ts - the figures behind /analytics, the manager's landing page.
@@ -67,15 +68,15 @@ export async function overviewTotals(visible: Scope, belowStandardMax: number): 
           AND s.status IN ('in_progress', 'submitted', 'signed')) AS sessions_open,
        (SELECT count(*)::int FROM records r WHERE r.deleted_at IS NULL AND r.source = 'app'
           AND r.created_at >= now() - INTERVAL '7 days'${recs}) AS finalised_week,
-       (SELECT avg(grade_num(rc.grade))::numeric(4,2)::text FROM record_competencies rc
+       (SELECT avg(${gradeNum('rc.grade')})::numeric(4,2)::text FROM record_competencies rc
           JOIN records r ON r.id = rc.record_id AND r.deleted_at IS NULL
          WHERE r.training_date >= CURRENT_DATE - INTERVAL '12 months'${recs}) AS mean_grade,
        (SELECT count(*)::int FROM record_competencies rc
           JOIN records r ON r.id = rc.record_id AND r.deleted_at IS NULL
-         WHERE grade_num(rc.grade) IS NOT NULL AND r.training_date >= CURRENT_DATE - INTERVAL '12 months'${recs}) AS scored,
+         WHERE ${gradeNum('rc.grade')} IS NOT NULL AND r.training_date >= CURRENT_DATE - INTERVAL '12 months'${recs}) AS scored,
        (SELECT count(*)::int FROM record_competencies rc
           JOIN records r ON r.id = rc.record_id AND r.deleted_at IS NULL
-         WHERE grade_num(rc.grade) <= $1 AND r.training_date >= CURRENT_DATE - INTERVAL '12 months'${recs}) AS below`,
+         WHERE ${gradeNum('rc.grade')} <= $1 AND r.training_date >= CURRENT_DATE - INTERVAL '12 months'${recs}) AS below`,
     params,
   );
   const scored = row?.scored ?? 0;
@@ -134,9 +135,9 @@ export async function competencyAverages(visible: Scope, months: number, belowSt
   // averaged twelve months, and the two cards disagreed on the same screen.
   const rows = await query<{ id: string; code: string; name: string; colour: string; mean: string | null; n: number; below: number }>(
     `SELECT c.id, c.code, c.name, c.colour,
-            avg(grade_num(g.grade))::numeric(4,2)::text AS mean,
-            count(*) FILTER (WHERE grade_num(g.grade) IS NOT NULL)::int AS n,
-            count(*) FILTER (WHERE grade_num(g.grade) <= $2)::int AS below
+            avg(${gradeNum('g.grade')})::numeric(4,2)::text AS mean,
+            count(*) FILTER (WHERE ${gradeNum('g.grade')} IS NOT NULL)::int AS n,
+            count(*) FILTER (WHERE ${gradeNum('g.grade')} <= $2)::int AS below
        FROM competencies c
        LEFT JOIN (
          SELECT rc.competency_id, rc.grade
@@ -158,10 +159,10 @@ export async function gradeDistribution(visible: Scope, months: number): Promise
   const params: unknown[] = [months];
   const recs = scoped('r.person_id', visible, params);
   return query<GradeCountRow>(
-    `SELECT grade_num(rc.grade)::int AS grade, count(*)::int AS n
+    `SELECT ${gradeNum('rc.grade')}::int AS grade, count(*)::int AS n
        FROM record_competencies rc
        JOIN records r ON r.id = rc.record_id AND r.deleted_at IS NULL
-      WHERE grade_num(rc.grade) IS NOT NULL
+      WHERE ${gradeNum('rc.grade')} IS NOT NULL
         AND r.training_date >= CURRENT_DATE - make_interval(months => $1::int)${recs}
       GROUP BY 1 ORDER BY 1`,
     params,
@@ -190,15 +191,15 @@ export async function competenciesAtGrade(visible: Scope, months: number, grade:
   params.push(limit);
   return query<CompetencyAtGradeRow>(
     `SELECT c.code, c.name, c.colour,
-            count(*) FILTER (WHERE grade_num(rc.grade) = $2)::int AS n,
+            count(*) FILTER (WHERE ${gradeNum('rc.grade')} = $2)::int AS n,
             count(*)::int AS total_for_competency
        FROM record_competencies rc
        JOIN records r ON r.id = rc.record_id AND r.deleted_at IS NULL
        JOIN competencies c ON c.id = rc.competency_id
-      WHERE grade_num(rc.grade) IS NOT NULL
+      WHERE ${gradeNum('rc.grade')} IS NOT NULL
         AND r.training_date >= CURRENT_DATE - make_interval(months => $1::int)${recs}
       GROUP BY c.code, c.name, c.colour
-     HAVING count(*) FILTER (WHERE grade_num(rc.grade) = $2) > 0
+     HAVING count(*) FILTER (WHERE ${gradeNum('rc.grade')} = $2) > 0
       ORDER BY 4 DESC, c.code
       LIMIT $${params.length}`,
     params,
@@ -213,8 +214,8 @@ export async function monthlyMean(visible: Scope, months: number): Promise<Month
   const recs = scoped('r.person_id', visible, params);
   const rows = await query<{ on: string; value: string | null; n: number }>(
     `SELECT date_trunc('month', r.training_date)::date::text AS on,
-            avg(grade_num(rc.grade))::numeric(4,2)::text AS value,
-            count(*) FILTER (WHERE grade_num(rc.grade) IS NOT NULL)::int AS n
+            avg(${gradeNum('rc.grade')})::numeric(4,2)::text AS value,
+            count(*) FILTER (WHERE ${gradeNum('rc.grade')} IS NOT NULL)::int AS n
        FROM records r JOIN record_competencies rc ON rc.record_id = r.id
       WHERE r.deleted_at IS NULL
         AND r.training_date >= date_trunc('month', CURRENT_DATE - make_interval(months => $1::int))${recs}

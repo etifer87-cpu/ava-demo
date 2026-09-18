@@ -2,6 +2,7 @@ import 'server-only';
 import { query, queryOne } from '@/lib/db';
 import { analyticsConfig, gradeScale } from '@/lib/config';
 import { screeningIndexForFramework } from './screening-index';
+import { gradeNum } from './grade-sql';
 import type { AnalyticsConfig, GradeEvent, ScreeningBand, TrendArrow } from './types';
 
 /**
@@ -131,74 +132,74 @@ export async function subjectPanel(personId: string, months = 12): Promise<Subje
        has posted a clean run since. The window lives inside the index, in events. */
     query<EventRow>(
       `SELECT rc.record_id, rc.competency_id, r.training_date::text AS "on",
-              grade_num(rc.grade)::int AS grade_value,
+              ${gradeNum('rc.grade')}::int AS grade_value,
               r.assessor_person_id AS assessor_id,
               a.delta_unadjusted::text AS assessor_delta,
               a.n_records::int AS assessor_n_records
          FROM record_competencies rc
          JOIN records r ON r.id = rc.record_id AND r.deleted_at IS NULL
          LEFT JOIN mv_assessor_adjusted a ON a.assessor_id = r.assessor_person_id
-        WHERE r.person_id = $1::uuid AND grade_num(rc.grade) IS NOT NULL
+        WHERE r.person_id = $1::uuid AND ${gradeNum('rc.grade')} IS NOT NULL
         ORDER BY r.training_date, rc.record_id`,
       [personId]),
 
     query<MeanRow>(
-      `SELECT c.code, c.name, c.colour, count(*)::text AS n, avg(grade_num(rc.grade))::text AS mean
+      `SELECT c.code, c.name, c.colour, count(*)::text AS n, avg(${gradeNum('rc.grade')})::text AS mean
          FROM record_competencies rc
          JOIN records r ON r.id = rc.record_id AND r.deleted_at IS NULL
          JOIN competencies c ON c.id = rc.competency_id
-        WHERE r.person_id = $1::uuid AND grade_num(rc.grade) IS NOT NULL
+        WHERE r.person_id = $1::uuid AND ${gradeNum('rc.grade')} IS NOT NULL
           AND r.training_date >= CURRENT_DATE - make_interval(months => $2::int)
         GROUP BY c.code, c.name, c.colour`,
       [personId, months]),
 
     query<PeerMeanRow>(
-      `SELECT c.code, count(*)::text AS n, avg(grade_num(rc.grade))::text AS mean
+      `SELECT c.code, count(*)::text AS n, avg(${gradeNum('rc.grade')})::text AS mean
          FROM record_competencies rc
          JOIN records r ON r.id = rc.record_id AND r.deleted_at IS NULL
          ${peerJoin}
          JOIN competencies c ON c.id = rc.competency_id
-        WHERE grade_num(rc.grade) IS NOT NULL
+        WHERE ${gradeNum('rc.grade')} IS NOT NULL
           AND r.training_date >= CURRENT_DATE - make_interval(months => $${m}::int)
         GROUP BY c.code`,
       [...peerParams, months]),
 
     query<MonthRow>(
       `SELECT to_char(date_trunc('month', r.training_date), 'YYYY-MM-01') AS "on",
-              count(*)::text AS n, avg(grade_num(rc.grade))::text AS mean
+              count(*)::text AS n, avg(${gradeNum('rc.grade')})::text AS mean
          FROM record_competencies rc
          JOIN records r ON r.id = rc.record_id AND r.deleted_at IS NULL
-        WHERE r.person_id = $1::uuid AND grade_num(rc.grade) IS NOT NULL
+        WHERE r.person_id = $1::uuid AND ${gradeNum('rc.grade')} IS NOT NULL
           AND r.training_date >= date_trunc('month', CURRENT_DATE) - make_interval(months => $2::int)
         GROUP BY 1 ORDER BY 1`,
       [personId, months]),
 
     query<MonthRow>(
       `SELECT to_char(date_trunc('month', r.training_date), 'YYYY-MM-01') AS "on",
-              count(*)::text AS n, avg(grade_num(rc.grade))::text AS mean
+              count(*)::text AS n, avg(${gradeNum('rc.grade')})::text AS mean
          FROM record_competencies rc
          JOIN records r ON r.id = rc.record_id AND r.deleted_at IS NULL
          ${peerJoin}
-        WHERE grade_num(rc.grade) IS NOT NULL
+        WHERE ${gradeNum('rc.grade')} IS NOT NULL
           AND r.training_date >= date_trunc('month', CURRENT_DATE) - make_interval(months => $${m}::int)
         GROUP BY 1 ORDER BY 1`,
       [...peerParams, months]),
 
     query<DistRow>(
-      `SELECT grade_num(rc.grade)::int AS grade, count(*)::text AS n
+      `SELECT ${gradeNum('rc.grade')}::int AS grade, count(*)::text AS n
          FROM record_competencies rc
          JOIN records r ON r.id = rc.record_id AND r.deleted_at IS NULL
-        WHERE r.person_id = $1::uuid AND grade_num(rc.grade) IS NOT NULL
+        WHERE r.person_id = $1::uuid AND ${gradeNum('rc.grade')} IS NOT NULL
           AND r.training_date >= CURRENT_DATE - make_interval(months => $2::int)
         GROUP BY 1 ORDER BY 1`,
       [personId, months]),
 
     query<DistRow>(
-      `SELECT grade_num(rc.grade)::int AS grade, count(*)::text AS n
+      `SELECT ${gradeNum('rc.grade')}::int AS grade, count(*)::text AS n
          FROM record_competencies rc
          JOIN records r ON r.id = rc.record_id AND r.deleted_at IS NULL
          ${peerJoin}
-        WHERE grade_num(rc.grade) IS NOT NULL
+        WHERE ${gradeNum('rc.grade')} IS NOT NULL
           AND r.training_date >= CURRENT_DATE - make_interval(months => $${m}::int)
         GROUP BY 1 ORDER BY 1`,
       [...peerParams, months]),
