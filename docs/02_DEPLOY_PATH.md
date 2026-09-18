@@ -63,7 +63,7 @@ DATABASE_URL=postgres://ava:$DB_PASS@db:5432/ava
 SESSION_SECRET=$(openssl rand -hex 32)
 INTERNAL_API_TOKEN=$(openssl rand -hex 32)
 AUTH_FORCE_PASSWORD_CHANGE=false
-APP_PORT=3100
+APP_PORT=3110
 DB_PORT=5433
 PDF_PORT=3101
 DATA_ROOT=/opt/ava/data
@@ -96,7 +96,7 @@ C="docker compose -p ava-prod --env-file .env -f deploy/compose.yml -f deploy/co
 $C up -d --wait db pdf
 $C run --rm app npm run migrate        # migrations only; reseeding is a separate, deliberate step
 $C up -d --wait --force-recreate app
-curl -s http://127.0.0.1:3100/api/health
+curl -s http://127.0.0.1:3110/api/health
 ```
 
 `-p ava-prod` is not decoration. The compose files declare the project name `ava`, which is also the

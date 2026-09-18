@@ -155,7 +155,9 @@ services:
       - --chromium-disable-javascript=false
       - --api-timeout=120s
     ports:
-      - "127.0.0.1:${PDF_PORT:-3001}:3000"
+      # 3101, not 3001: docs/01_ISOLATION.md reserves the 31xx block for this project, and an .env
+      # that omits PDF_PORT must not quietly bind a port Ava does not own.
+      - "127.0.0.1:${PDF_PORT:-3101}:3000"
     networks: [ava]
     logging: *default-logging
     healthcheck:

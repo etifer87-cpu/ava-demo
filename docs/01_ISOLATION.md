@@ -21,7 +21,7 @@ Both are fixed below and identical on the PC and on the server.
 
 | Service | PC (`.env`) | cvx-hel1 (`.env`) | Reason |
 |---|---|---|---|
-| app | `APP_PORT=3100` | `APP_PORT=3100` | 3000 is taken locally; on the server the corvanox demo stacks own their own ports |
+| app | `APP_PORT=3100` | `APP_PORT=3110` | 3000 is taken locally. **On cvx-hel1, 3100 is already published by `cvx-stage-web-1`** — the Corvanox staging web container, `127.0.0.1:3100->3000/tcp`, verified 2026-09-18. It is another project's stack and is not touched; Ava moves instead, so the two hosts differ on purpose. 3110-3112 were free at that check. |
 | db | `DB_PORT=5433` (compose.dev.yml) | `DB_PORT=5433` (compose.yml + prod overlay) | 5432 is taken by another local Postgres |
 | pdf | `PDF_PORT=3101` | `PDF_PORT=3101` | keep the 31xx block for Ava |
 | automation | not started | not started | out of scope |
@@ -36,10 +36,13 @@ docker ps --format "{{.Names}}  {{.Ports}}"
 ```
 
 ```bash
-# cvx-hel1
-ss -ltnp | grep -E ':(3100|5433|3101)\b'
+# cvx-hel1 - note 3110, not 3100
+ss -ltnp | grep -E ':(3110|5433|3101)\b'
 docker compose ls
 ```
+
+Run it as `sudo ss -ltnp` if a port comes back occupied and you need the owning process: without
+root the `users:(...)` column is blank, which is how 3100 looked free-of-blame for a while.
 
 Both must return nothing for the Ava ports and must not list any `ava` project yet.
 
@@ -58,7 +61,7 @@ Nothing under `/opt/ava` references it and nothing outside `/opt/ava` is edited 
 One hostname, one ingress rule, one Access application — all scoped to `avademo.corvanox.com`:
 
 - Tunnel: the existing Corvanox-team tunnel on cvx-hel1. Add an ingress entry
-  `avademo.corvanox.com → http://localhost:3100`. Do not reorder or edit other entries.
+  `avademo.corvanox.com → http://localhost:3110`. Do not reorder or edit other entries.
 - DNS: one CNAME `avademo` → the tunnel. Never MX, SPF or any apex record.
 - Access: application `Ava demo` on `avademo.corvanox.com`, policy one-time PIN for an allowlist of
   e-mail addresses. Same shape as `demo.corvanox.com`; a separate application.
