@@ -16,6 +16,9 @@ What was expected · what happened · what was done here · what the kit should 
 
 _(empty — nothing replicated yet)_
 
+## 2026-09-18 · db/migrations/0147_assessor_materialised.sql · kit migration is un-appliable on a clean DB
+Expected: migrations apply forward-only on a fresh `migrate -> seed` (root CLAUDE.md §5) · Found: 0147's final assertion RAISE EXCEPTIONs when mv_assessor_residual is empty, which it always is at migrate time on a clean build (seed:history runs after migrate), so reset:clean aborts at 0147 · Done here: kept the amended migration - the emptiness check was relaxed to a NOTICE with an n_src guard - and recorded the amendment in the file header, because a later migration cannot rescue an earlier abort and a checksum waiver in migrate.mjs is the escape hatch the project forbids · Kit should: make the emptiness check pipeline-conditional (NOTICE when the corpus itself is empty) in the migration as shipped, not as a post-hoc guard.
+
 ## 2026-09-08 · scaffold/ · no Dockerfile ships with the kit
 Expected: `docs/15_DEPLOYMENT.md` and `deploy/compose.yml` assume an image `APP_IMAGE` built from the scaffold · Found: no `Dockerfile` anywhere in `scaffold/` · Done here: a Dockerfile will be written in Phase 4 against `docs/15` · Kit should: ship `scaffold/Dockerfile` (multi-stage, Node 22, `APP_RELEASE` build arg) and reference it in `deploy/README.md`.
 

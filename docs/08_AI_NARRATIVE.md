@@ -130,7 +130,7 @@ still renders. The narrative is simply absent, and the screen says so.
 deployment, one language, one set of types, one thing to secure and to version at every airline that
 installs this.
 
-**n8n is a reasonable orchestrator and an unreasonable dependency.** It earns its place when
+**A workflow orchestrator is a reasonable tool and an unreasonable dependency.** It earns its place when
 non-developers need to edit a flow, or when a pipeline spans systems the app has no business knowing
 about. For a product shipped to several operators, a second runtime is a second thing to install,
 patch, back up, explain in a security review, and keep in step with the schema. If a queue is wanted

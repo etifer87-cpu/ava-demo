@@ -1,6 +1,21 @@
 -- 0147_assessor_materialised.sql
 -- The assessor analytics, materialised as a staged pipeline.
 --
+-- AMENDED 2026-09-17. The final assertion at the foot of this file was changed after this migration
+-- had shipped. What changed: the empty-mv_assessor_residual check was relaxed from a RAISE EXCEPTION
+-- to a RAISE NOTICE, and an n_src guard was added ahead of it (count mv_assessor_grades first).
+-- Why: the original assertion aborts EVERY clean build. reset:clean runs migrate before seed:history,
+-- so at migrate time no graded records exist, mv_assessor_residual is empty, and the exception fired -
+-- reset:clean failed here and every step after it never ran. The n_src guard distinguishes "no corpus
+-- yet, correct on a fresh database" (a notice) from "corpus present but the residual stage produced
+-- nothing" (still refused). The fix lives here, in place, and NOT in a later migration, because a
+-- migration runs in its own transaction and a RAISE EXCEPTION rolls it back and stops the run - a file
+-- numbered after 0147 could never execute once the original 0147 aborted.
+-- CONSEQUENCE: this edits a file that had already been applied. A database that recorded the ORIGINAL
+-- 0147 will see a checksum mismatch and refuse to migrate (scripts/migrate.mjs is forward-only, by
+-- design, with no waiver). Such a database must be rebuilt by migrate -> seed from this repo; it is
+-- never patched, and migrate.mjs is never loosened to accept the drift.
+--
 -- WHY. The kit's assessor views (0111-0116) are correct and stay the definition, but they are
 -- written as a stack of views over views: av_assessor_expected alone reads av_assessor_occurrence
 -- seven times (the rank-window self-join, the three fallback levels, the outer select), and each of
