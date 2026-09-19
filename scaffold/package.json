@@ -24,6 +24,7 @@
     "scan": "node --env-file-if-exists=.env scripts/neutrality-scan.mjs",
     "password": "node --env-file-if-exists=.env scripts/set-password.mjs",
     "reset:clean": "npm run migrate -- --to 0146 && npm run config:load && npm run migrate && npm run seed:framework && npm run seed:operator && npm run seed:library && npm run seed:program && npm run publish:programs && npm run seed:roster && node --env-file-if-exists=.env scripts/create-user.mjs admin_av operator_admin",
+    "reset:hard": "node --env-file-if-exists=.env scripts/reset-hard.mjs",
     "verify:clean": "node --env-file-if-exists=.env scripts/neutrality-scan.mjs && node --env-file-if-exists=.env scripts/verify.mjs --group schema && node --env-file-if-exists=.env scripts/verify.mjs --group config && node --env-file-if-exists=.env scripts/verify.mjs --group framework && node --env-file-if-exists=.env scripts/verify.mjs --group access",
     "user": "node --env-file-if-exists=.env scripts/create-user.mjs",
     "seed:operator": "node --env-file-if-exists=.env scripts/seed-operator.mjs",
