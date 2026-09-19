@@ -1,0 +1,772 @@
+{
+  "source": "Generic B787 malfunction set written for this demo - plain system names by ATA chapter, no manufacturer or device document behind it. Names only, as with the A320 index; the instructor's IOS carries the effects.",
+  "fleet": "B787",
+  "extracted": "2026-09-12",
+  "count": 57,
+  "malfunctions": [
+    {
+      "code": "malf.b787.21.cabin-altitude",
+      "title": "CABIN ALTITUDE",
+      "ata": "21",
+      "ata_label": "Air Cond / Press / Vent",
+      "group": "core",
+      "engines": [
+        "ALL"
+      ],
+      "options": [
+        "Slow",
+        "Rapid"
+      ]
+    },
+    {
+      "code": "malf.b787.21.pack-fault",
+      "title": "PACK FAULT",
+      "ata": "21",
+      "ata_label": "Air Cond / Press / Vent",
+      "group": "core",
+      "engines": [
+        "ALL"
+      ],
+      "options": [
+        "L",
+        "R"
+      ]
+    },
+    {
+      "code": "malf.b787.21.outflow-valve-fault",
+      "title": "OUTFLOW VALVE FAULT",
+      "ata": "21",
+      "ata_label": "Air Cond / Press / Vent",
+      "group": "core",
+      "engines": [
+        "ALL"
+      ],
+      "options": [
+        "Fwd",
+        "Aft"
+      ]
+    },
+    {
+      "code": "malf.b787.21.cabin-auto-inop",
+      "title": "CABIN AUTO INOP",
+      "ata": "21",
+      "ata_label": "Air Cond / Press / Vent",
+      "group": "core",
+      "engines": [
+        "ALL"
+      ],
+      "options": []
+    },
+    {
+      "code": "malf.b787.22.autopilot-disconnect",
+      "title": "AUTOPILOT DISCONNECT",
+      "ata": "22",
+      "ata_label": "Auto Flight",
+      "group": "core",
+      "engines": [
+        "ALL"
+      ],
+      "options": []
+    },
+    {
+      "code": "malf.b787.22.autothrottle-disconnect",
+      "title": "AUTOTHROTTLE DISCONNECT",
+      "ata": "22",
+      "ata_label": "Auto Flight",
+      "group": "core",
+      "engines": [
+        "ALL"
+      ],
+      "options": []
+    },
+    {
+      "code": "malf.b787.22.fmc-fault",
+      "title": "FMC FAULT",
+      "ata": "22",
+      "ata_label": "Auto Flight",
+      "group": "core",
+      "engines": [
+        "ALL"
+      ],
+      "options": [
+        "L",
+        "R"
+      ]
+    },
+    {
+      "code": "malf.b787.22.autoland-degrade",
+      "title": "AUTOLAND DEGRADE",
+      "ata": "22",
+      "ata_label": "Auto Flight",
+      "group": "core",
+      "engines": [
+        "ALL"
+      ],
+      "options": [
+        "No Land 3",
+        "No Autoland"
+      ]
+    },
+    {
+      "code": "malf.b787.24.generator-drive-fault",
+      "title": "GEN DRIVE FAULT",
+      "ata": "24",
+      "ata_label": "Electrical",
+      "group": "core",
+      "engines": [
+        "ALL"
+      ],
+      "options": [
+        "L1",
+        "L2",
+        "R1",
+        "R2"
+      ]
+    },
+    {
+      "code": "malf.b787.24.generator-off",
+      "title": "GEN OFF",
+      "ata": "24",
+      "ata_label": "Electrical",
+      "group": "core",
+      "engines": [
+        "ALL"
+      ],
+      "options": [
+        "L1",
+        "L2",
+        "R1",
+        "R2"
+      ]
+    },
+    {
+      "code": "malf.b787.24.bus-fault",
+      "title": "BUS FAULT",
+      "ata": "24",
+      "ata_label": "Electrical",
+      "group": "core",
+      "engines": [
+        "ALL"
+      ],
+      "options": [
+        "L 235V AC",
+        "R 235V AC",
+        "L DC",
+        "R DC"
+      ]
+    },
+    {
+      "code": "malf.b787.24.electrical-load-shed",
+      "title": "ELECTRICAL LOAD SHED",
+      "ata": "24",
+      "ata_label": "Electrical",
+      "group": "core",
+      "engines": [
+        "ALL"
+      ],
+      "options": []
+    },
+    {
+      "code": "malf.b787.24.battery-discharge",
+      "title": "BATTERY DISCHARGE",
+      "ata": "24",
+      "ata_label": "Electrical",
+      "group": "core",
+      "engines": [
+        "ALL"
+      ],
+      "options": [
+        "Main",
+        "APU"
+      ]
+    },
+    {
+      "code": "malf.b787.26.engine-fire",
+      "title": "ENGINE FIRE",
+      "ata": "26",
+      "ata_label": "Fire Protection",
+      "group": "core",
+      "engines": [
+        "ALL"
+      ],
+      "options": [
+        "L",
+        "R"
+      ]
+    },
+    {
+      "code": "malf.b787.26.engine-fire-unextinguishable",
+      "title": "ENGINE FIRE, UNEXTINGUISHABLE",
+      "ata": "26",
+      "ata_label": "Fire Protection",
+      "group": "core",
+      "engines": [
+        "ALL"
+      ],
+      "options": [
+        "L",
+        "R"
+      ]
+    },
+    {
+      "code": "malf.b787.26.cargo-fire",
+      "title": "CARGO FIRE",
+      "ata": "26",
+      "ata_label": "Fire Protection",
+      "group": "core",
+      "engines": [
+        "ALL"
+      ],
+      "options": [
+        "Fwd",
+        "Aft"
+      ]
+    },
+    {
+      "code": "malf.b787.26.smoke-lavatory",
+      "title": "SMOKE, LAVATORY",
+      "ata": "26",
+      "ata_label": "Fire Protection",
+      "group": "core",
+      "engines": [
+        "ALL"
+      ],
+      "options": []
+    },
+    {
+      "code": "malf.b787.26.smoke-equipment-cooling",
+      "title": "SMOKE, EQUIPMENT COOLING",
+      "ata": "26",
+      "ata_label": "Fire Protection",
+      "group": "core",
+      "engines": [
+        "ALL"
+      ],
+      "options": []
+    },
+    {
+      "code": "malf.b787.27.flight-control-mode-secondary",
+      "title": "FLIGHT CONTROL MODE, SECONDARY",
+      "ata": "27",
+      "ata_label": "Flight Controls",
+      "group": "core",
+      "engines": [
+        "ALL"
+      ],
+      "options": []
+    },
+    {
+      "code": "malf.b787.27.flight-control-mode-direct",
+      "title": "FLIGHT CONTROL MODE, DIRECT",
+      "ata": "27",
+      "ata_label": "Flight Controls",
+      "group": "core",
+      "engines": [
+        "ALL"
+      ],
+      "options": []
+    },
+    {
+      "code": "malf.b787.27.flaps-drive",
+      "title": "FLAPS DRIVE",
+      "ata": "27",
+      "ata_label": "Flight Controls",
+      "group": "core",
+      "engines": [
+        "ALL"
+      ],
+      "options": []
+    },
+    {
+      "code": "malf.b787.27.slats-drive",
+      "title": "SLATS DRIVE",
+      "ata": "27",
+      "ata_label": "Flight Controls",
+      "group": "core",
+      "engines": [
+        "ALL"
+      ],
+      "options": []
+    },
+    {
+      "code": "malf.b787.27.stabilizer-trim-fault",
+      "title": "STABILIZER TRIM FAULT",
+      "ata": "27",
+      "ata_label": "Flight Controls",
+      "group": "core",
+      "engines": [
+        "ALL"
+      ],
+      "options": [
+        "Runaway",
+        "Jam"
+      ]
+    },
+    {
+      "code": "malf.b787.27.speedbrake-fault",
+      "title": "SPEEDBRAKE FAULT",
+      "ata": "27",
+      "ata_label": "Flight Controls",
+      "group": "core",
+      "engines": [
+        "ALL"
+      ],
+      "options": []
+    },
+    {
+      "code": "malf.b787.28.fuel-leak-engine",
+      "title": "FUEL LEAK, ENGINE",
+      "ata": "28",
+      "ata_label": "Fuel",
+      "group": "core",
+      "engines": [
+        "ALL"
+      ],
+      "options": [
+        "L",
+        "R"
+      ]
+    },
+    {
+      "code": "malf.b787.28.fuel-leak-tank",
+      "title": "FUEL LEAK, TANK",
+      "ata": "28",
+      "ata_label": "Fuel",
+      "group": "core",
+      "engines": [
+        "ALL"
+      ],
+      "options": [
+        "L Main",
+        "R Main",
+        "Centre"
+      ]
+    },
+    {
+      "code": "malf.b787.28.fuel-pump-low-pressure",
+      "title": "FUEL PUMP LOW PRESSURE",
+      "ata": "28",
+      "ata_label": "Fuel",
+      "group": "core",
+      "engines": [
+        "ALL"
+      ],
+      "options": [
+        "L Fwd",
+        "L Aft",
+        "R Fwd",
+        "R Aft",
+        "Centre L",
+        "Centre R"
+      ]
+    },
+    {
+      "code": "malf.b787.28.fuel-imbalance",
+      "title": "FUEL IMBALANCE",
+      "ata": "28",
+      "ata_label": "Fuel",
+      "group": "core",
+      "engines": [
+        "ALL"
+      ],
+      "options": []
+    },
+    {
+      "code": "malf.b787.29.hydraulic-pressure-system",
+      "title": "HYD PRESS SYS",
+      "ata": "29",
+      "ata_label": "Hydraulic",
+      "group": "core",
+      "engines": [
+        "ALL"
+      ],
+      "options": [
+        "L",
+        "C",
+        "R"
+      ]
+    },
+    {
+      "code": "malf.b787.29.hydraulic-pump-fault",
+      "title": "HYD PUMP FAULT",
+      "ata": "29",
+      "ata_label": "Hydraulic",
+      "group": "core",
+      "engines": [
+        "ALL"
+      ],
+      "options": [
+        "L Eng",
+        "R Eng",
+        "C1 Elec",
+        "C2 Elec"
+      ]
+    },
+    {
+      "code": "malf.b787.29.hydraulic-quantity-low",
+      "title": "HYD QTY LOW",
+      "ata": "29",
+      "ata_label": "Hydraulic",
+      "group": "core",
+      "engines": [
+        "ALL"
+      ],
+      "options": [
+        "L",
+        "C",
+        "R"
+      ]
+    },
+    {
+      "code": "malf.b787.30.anti-ice-engine-fault",
+      "title": "ANTI-ICE ENG FAULT",
+      "ata": "30",
+      "ata_label": "Ice and Rain Protection",
+      "group": "core",
+      "engines": [
+        "ALL"
+      ],
+      "options": [
+        "L",
+        "R"
+      ]
+    },
+    {
+      "code": "malf.b787.30.anti-ice-wing-fault",
+      "title": "ANTI-ICE WING FAULT",
+      "ata": "30",
+      "ata_label": "Ice and Rain Protection",
+      "group": "core",
+      "engines": [
+        "ALL"
+      ],
+      "options": []
+    },
+    {
+      "code": "malf.b787.32.gear-disagree",
+      "title": "GEAR DISAGREE",
+      "ata": "32",
+      "ata_label": "Landing Gear",
+      "group": "core",
+      "engines": [
+        "ALL"
+      ],
+      "options": [
+        "Nose",
+        "L Main",
+        "R Main"
+      ]
+    },
+    {
+      "code": "malf.b787.32.antiskid-off",
+      "title": "ANTISKID OFF",
+      "ata": "32",
+      "ata_label": "Landing Gear",
+      "group": "core",
+      "engines": [
+        "ALL"
+      ],
+      "options": []
+    },
+    {
+      "code": "malf.b787.32.autobrake-fault",
+      "title": "AUTOBRAKE FAULT",
+      "ata": "32",
+      "ata_label": "Landing Gear",
+      "group": "core",
+      "engines": [
+        "ALL"
+      ],
+      "options": []
+    },
+    {
+      "code": "malf.b787.32.tyre-burst",
+      "title": "TYRE BURST",
+      "ata": "32",
+      "ata_label": "Landing Gear",
+      "group": "core",
+      "engines": [
+        "ALL"
+      ],
+      "options": [
+        "Nose L",
+        "Nose R",
+        "L Main",
+        "R Main"
+      ]
+    },
+    {
+      "code": "malf.b787.32.brake-temperature-high",
+      "title": "BRAKE TEMP HIGH",
+      "ata": "32",
+      "ata_label": "Landing Gear",
+      "group": "core",
+      "engines": [
+        "ALL"
+      ],
+      "options": [
+        "L",
+        "R"
+      ]
+    },
+    {
+      "code": "malf.b787.34.airspeed-unreliable",
+      "title": "AIRSPEED UNRELIABLE",
+      "ata": "34",
+      "ata_label": "Navigation",
+      "group": "core",
+      "engines": [
+        "ALL"
+      ],
+      "options": [
+        "Capt",
+        "F/O",
+        "Standby"
+      ]
+    },
+    {
+      "code": "malf.b787.34.pitot-blocked",
+      "title": "PITOT BLOCKED",
+      "ata": "34",
+      "ata_label": "Navigation",
+      "group": "core",
+      "engines": [
+        "ALL"
+      ],
+      "options": [
+        "Capt",
+        "F/O",
+        "Standby"
+      ]
+    },
+    {
+      "code": "malf.b787.34.nav-unable-rnp",
+      "title": "NAV UNABLE RNP",
+      "ata": "34",
+      "ata_label": "Navigation",
+      "group": "core",
+      "engines": [
+        "ALL"
+      ],
+      "options": []
+    },
+    {
+      "code": "malf.b787.34.gps-fault",
+      "title": "GPS FAULT",
+      "ata": "34",
+      "ata_label": "Navigation",
+      "group": "core",
+      "engines": [
+        "ALL"
+      ],
+      "options": [
+        "L",
+        "R"
+      ]
+    },
+    {
+      "code": "malf.b787.34.ils-fault",
+      "title": "ILS FAULT",
+      "ata": "34",
+      "ata_label": "Navigation",
+      "group": "core",
+      "engines": [
+        "ALL"
+      ],
+      "options": [
+        "L",
+        "R"
+      ]
+    },
+    {
+      "code": "malf.b787.34.weather-radar-fault",
+      "title": "WEATHER RADAR FAULT",
+      "ata": "34",
+      "ata_label": "Navigation",
+      "group": "core",
+      "engines": [
+        "ALL"
+      ],
+      "options": []
+    },
+    {
+      "code": "malf.b787.34.terrain-position-fault",
+      "title": "TERRAIN POSITION FAULT",
+      "ata": "34",
+      "ata_label": "Navigation",
+      "group": "core",
+      "engines": [
+        "ALL"
+      ],
+      "options": []
+    },
+    {
+      "code": "malf.b787.36.bleed-leak",
+      "title": "BLEED LEAK",
+      "ata": "36",
+      "ata_label": "Pneumatic",
+      "group": "core",
+      "engines": [
+        "ALL"
+      ],
+      "options": [
+        "L",
+        "R"
+      ]
+    },
+    {
+      "code": "malf.b787.36.bleed-off",
+      "title": "BLEED OFF",
+      "ata": "36",
+      "ata_label": "Pneumatic",
+      "group": "core",
+      "engines": [
+        "ALL"
+      ],
+      "options": [
+        "L",
+        "R"
+      ]
+    },
+    {
+      "code": "malf.b787.70.engine-failure-flameout",
+      "title": "ENGINE FLAMEOUT",
+      "ata": "70",
+      "ata_label": "Engine",
+      "group": "core",
+      "engines": [
+        "ALL"
+      ],
+      "options": [
+        "L",
+        "R"
+      ]
+    },
+    {
+      "code": "malf.b787.70.engine-severe-damage",
+      "title": "ENGINE SEVERE DAMAGE",
+      "ata": "70",
+      "ata_label": "Engine",
+      "group": "core",
+      "engines": [
+        "ALL"
+      ],
+      "options": [
+        "L",
+        "R"
+      ]
+    },
+    {
+      "code": "malf.b787.70.engine-surge",
+      "title": "ENGINE SURGE",
+      "ata": "70",
+      "ata_label": "Engine",
+      "group": "core",
+      "engines": [
+        "ALL"
+      ],
+      "options": [
+        "L",
+        "R"
+      ]
+    },
+    {
+      "code": "malf.b787.70.engine-oil-pressure-low",
+      "title": "ENGINE OIL PRESSURE LOW",
+      "ata": "70",
+      "ata_label": "Engine",
+      "group": "core",
+      "engines": [
+        "ALL"
+      ],
+      "options": [
+        "L",
+        "R"
+      ]
+    },
+    {
+      "code": "malf.b787.70.engine-vibration-high",
+      "title": "ENGINE VIBRATION HIGH",
+      "ata": "70",
+      "ata_label": "Engine",
+      "group": "core",
+      "engines": [
+        "ALL"
+      ],
+      "options": [
+        "L",
+        "R"
+      ]
+    },
+    {
+      "code": "malf.b787.70.engine-thrust-lever-fault",
+      "title": "ENGINE THRUST LEVER FAULT",
+      "ata": "70",
+      "ata_label": "Engine",
+      "group": "core",
+      "engines": [
+        "ALL"
+      ],
+      "options": [
+        "L",
+        "R"
+      ]
+    },
+    {
+      "code": "malf.b787.70.engine-eec-mode",
+      "title": "ENGINE CONTROL MODE",
+      "ata": "70",
+      "ata_label": "Engine",
+      "group": "core",
+      "engines": [
+        "ALL"
+      ],
+      "options": [
+        "L",
+        "R"
+      ]
+    },
+    {
+      "code": "malf.b787.70.engine-hot-start",
+      "title": "ENGINE HOT START",
+      "ata": "70",
+      "ata_label": "Engine",
+      "group": "core",
+      "engines": [
+        "ALL"
+      ],
+      "options": [
+        "L",
+        "R"
+      ]
+    },
+    {
+      "code": "malf.b787.70.engine-reverser-fault",
+      "title": "ENGINE REVERSER FAULT",
+      "ata": "70",
+      "ata_label": "Engine",
+      "group": "core",
+      "engines": [
+        "ALL"
+      ],
+      "options": [
+        "L",
+        "R"
+      ]
+    },
+    {
+      "code": "malf.b787.70.engine-bird-strike",
+      "title": "ENGINE BIRD STRIKE",
+      "ata": "70",
+      "ata_label": "Engine",
+      "group": "core",
+      "engines": [
+        "ALL"
+      ],
+      "options": [
+        "L",
+        "R"
+      ]
+    }
+  ]
+}

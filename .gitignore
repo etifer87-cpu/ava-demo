@@ -6,8 +6,20 @@ scaffold/.env
 scaffold/.env.*
 !scaffold/.env.example
 
-# data root and generated output
-/data/
+# data root and generated output.
+#
+# /data/* rather than /data/, and the library re-included: data/library IS SOURCE - the hand-authored
+# malfunction and guide catalogues that seed:library reads and that the IMAGE copies at
+# `COPY data/library /app/data/library`. Excluding the whole directory kept it out of every clone,
+# so the first build on cvx-hel1 failed at that COPY with "/data/library: not found" (2026-09-19).
+# The same rule already existed in scaffold/.gitignore, which governs scaffold/data/ and not this
+# one; fixing that file in September did not fix this path. A parent directory that is excluded
+# cannot have its children re-included, which is why this is /data/* and not /data/.
+#
+# Everything else under /data/ is GENERATED and stays out: programs (gen:programs), roster
+# (gen:roster), history (seed:history).
+/data/*
+!/data/library/
 scaffold/data/
 *.pdf.tmp
 /exports/

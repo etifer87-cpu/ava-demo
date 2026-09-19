@@ -1,0 +1,2938 @@
+{
+ "source": "A320-200 Malfunction Definition, Std 2.0 baseline, Rev G6 (2023-03-07) - IOS index only: button titles, ATA chapter, engine applicability and options. No effect, cue or procedure text is reproduced.",
+ "fleet": "A320",
+ "extracted": "2026-09-11",
+ "count": 218,
+ "malfunctions": [
+  {
+   "code": "malf.a320.21.cab-press-sys-fault",
+   "title": "CAB PRESS SYS FAULT",
+   "ata": "21",
+   "ata_label": "Air Cond / Press / Vent",
+   "group": "core",
+   "engines": [
+    "ALL"
+   ],
+   "options": [
+    "1",
+    "2"
+   ]
+  },
+  {
+   "code": "malf.a320.21.cabin-duct-overheat",
+   "title": "CABIN DUCT OVERHEAT",
+   "ata": "21",
+   "ata_label": "Air Cond / Press / Vent",
+   "group": "core",
+   "engines": [
+    "ALL"
+   ],
+   "options": [
+    "Fwd"
+   ]
+  },
+  {
+   "code": "malf.a320.21.cargo-duct-overheat",
+   "title": "CARGO DUCT OVERHEAT",
+   "ata": "21",
+   "ata_label": "Air Cond / Press / Vent",
+   "group": "core",
+   "engines": [
+    "ALL"
+   ],
+   "options": [
+    "Aft"
+   ]
+  },
+  {
+   "code": "malf.a320.21.door-leakage",
+   "title": "DOOR LEAKAGE",
+   "ata": "21",
+   "ata_label": "Air Cond / Press / Vent",
+   "group": "core",
+   "engines": [
+    "ALL"
+   ],
+   "options": []
+  },
+  {
+   "code": "malf.a320.21.excess-cab-altitude",
+   "title": "EXCESS CAB ALTITUDE",
+   "ata": "21",
+   "ata_label": "Air Cond / Press / Vent",
+   "group": "core",
+   "engines": [
+    "ALL"
+   ],
+   "options": []
+  },
+  {
+   "code": "malf.a320.21.hot-air-fault",
+   "title": "HOT AIR FAULT",
+   "ata": "21",
+   "ata_label": "Air Cond / Press / Vent",
+   "group": "core",
+   "engines": [
+    "ALL"
+   ],
+   "options": []
+  },
+  {
+   "code": "malf.a320.21.ldg-elevation-fault",
+   "title": "LDG ELEVATION FAULT",
+   "ata": "21",
+   "ata_label": "Air Cond / Press / Vent",
+   "group": "core",
+   "engines": [
+    "ALL"
+   ],
+   "options": []
+  },
+  {
+   "code": "malf.a320.21.negative-lo-differential-pressure",
+   "title": "NEGATIVE LO DIFFERENTIAL PRESSURE",
+   "ata": "21",
+   "ata_label": "Air Cond / Press / Vent",
+   "group": "core",
+   "engines": [
+    "ALL"
+   ],
+   "options": []
+  },
+  {
+   "code": "malf.a320.21.outflow-valve-stuck",
+   "title": "OUTFLOW VALVE STUCK",
+   "ata": "21",
+   "ata_label": "Air Cond / Press / Vent",
+   "group": "core",
+   "engines": [
+    "ALL"
+   ],
+   "options": []
+  },
+  {
+   "code": "malf.a320.21.pack-auto-shut-down-inop-for-starting",
+   "title": "PACK AUTO SHUT DOWN INOP FOR STARTING",
+   "ata": "21",
+   "ata_label": "Air Cond / Press / Vent",
+   "group": "core",
+   "engines": [
+    "ALL"
+   ],
+   "options": [
+    "2"
+   ]
+  },
+  {
+   "code": "malf.a320.21.pack-overheat",
+   "title": "PACK OVERHEAT",
+   "ata": "21",
+   "ata_label": "Air Cond / Press / Vent",
+   "group": "core",
+   "engines": [
+    "ALL"
+   ],
+   "options": [
+    "1",
+    "2"
+   ]
+  },
+  {
+   "code": "malf.a320.21.pack-regul-fault",
+   "title": "PACK REGUL FAULT",
+   "ata": "21",
+   "ata_label": "Air Cond / Press / Vent",
+   "group": "core",
+   "engines": [
+    "ALL"
+   ],
+   "options": [
+    "1",
+    "2"
+   ]
+  },
+  {
+   "code": "malf.a320.21.skin-outlet-valve-fault",
+   "title": "SKIN OUTLET VALVE FAULT",
+   "ata": "21",
+   "ata_label": "Air Cond / Press / Vent",
+   "group": "core",
+   "engines": [
+    "ALL"
+   ],
+   "options": []
+  },
+  {
+   "code": "malf.a320.21.structure-damage",
+   "title": "STRUCTURE DAMAGE",
+   "ata": "21",
+   "ata_label": "Air Cond / Press / Vent",
+   "group": "core",
+   "engines": [
+    "ALL"
+   ],
+   "options": []
+  },
+  {
+   "code": "malf.a320.21.vent-blowers-fault",
+   "title": "VENT BLOWERS FAULT",
+   "ata": "21",
+   "ata_label": "Air Cond / Press / Vent",
+   "group": "core",
+   "engines": [
+    "ALL"
+   ],
+   "options": []
+  },
+  {
+   "code": "malf.a320.21.vent-extract-fault",
+   "title": "VENT EXTRACT FAULT",
+   "ata": "21",
+   "ata_label": "Air Cond / Press / Vent",
+   "group": "core",
+   "engines": [
+    "ALL"
+   ],
+   "options": []
+  },
+  {
+   "code": "malf.a320.22.a-thr-fault",
+   "title": "A/THR FAULT",
+   "ata": "22",
+   "ata_label": "Autoflight",
+   "group": "core",
+   "engines": [
+    "ALL"
+   ],
+   "options": [
+    "1",
+    "2"
+   ]
+  },
+  {
+   "code": "malf.a320.22.ap-disengaged",
+   "title": "AP DISENGAGED",
+   "ata": "22",
+   "ata_label": "Autoflight",
+   "group": "core",
+   "engines": [
+    "ALL"
+   ],
+   "options": [
+    "1",
+    "2"
+   ]
+  },
+  {
+   "code": "malf.a320.22.auto-flt-tcas-mode-fault",
+   "title": "AUTO FLT TCAS MODE FAULT",
+   "ata": "22",
+   "ata_label": "Autoflight",
+   "group": "core",
+   "engines": [
+    "ALL"
+   ],
+   "options": []
+  },
+  {
+   "code": "malf.a320.22.drift-loc-beam-autoland",
+   "title": "DRIFT LOC BEAM (AUTOLAND)",
+   "ata": "22",
+   "ata_label": "Autoflight",
+   "group": "core",
+   "engines": [
+    "ALL"
+   ],
+   "options": []
+  },
+  {
+   "code": "malf.a320.22.fac-fault",
+   "title": "FAC FAULT",
+   "ata": "22",
+   "ata_label": "Autoflight",
+   "group": "core",
+   "engines": [
+    "IAE-V2500",
+    "CFM56-5B4",
+    "PW 1100-G",
+    "CFM LEAP-1A"
+   ],
+   "options": [
+    "1",
+    "2"
+   ]
+  },
+  {
+   "code": "malf.a320.22.fcu-fault",
+   "title": "FCU FAULT",
+   "ata": "22",
+   "ata_label": "Autoflight",
+   "group": "core",
+   "engines": [
+    "ALL"
+   ],
+   "options": [
+    "1",
+    "2"
+   ]
+  },
+  {
+   "code": "malf.a320.22.fd-fault",
+   "title": "FD FAULT",
+   "ata": "22",
+   "ata_label": "Autoflight",
+   "group": "core",
+   "engines": [
+    "ALL"
+   ],
+   "options": [
+    "1",
+    "2"
+   ]
+  },
+  {
+   "code": "malf.a320.22.fmgc-fault",
+   "title": "FMGC FAULT",
+   "ata": "22",
+   "ata_label": "Autoflight",
+   "group": "core",
+   "engines": [
+    "ALL"
+   ],
+   "options": [
+    "1",
+    "2"
+   ]
+  },
+  {
+   "code": "malf.a320.22.g-s-beam-drift-autoland",
+   "title": "G/S BEAM DRIFT (AUTOLAND)",
+   "ata": "22",
+   "ata_label": "Autoflight",
+   "group": "core",
+   "engines": [
+    "ALL"
+   ],
+   "options": []
+  },
+  {
+   "code": "malf.a320.22.land-capability-change",
+   "title": "LAND CAPABILITY CHANGE",
+   "ata": "22",
+   "ata_label": "Autoflight",
+   "group": "core",
+   "engines": [
+    "ALL"
+   ],
+   "options": []
+  },
+  {
+   "code": "malf.a320.22.long-flare",
+   "title": "LONG FLARE",
+   "ata": "22",
+   "ata_label": "Autoflight",
+   "group": "core",
+   "engines": [
+    "ALL"
+   ],
+   "options": []
+  },
+  {
+   "code": "malf.a320.22.map-shift",
+   "title": "MAP SHIFT",
+   "ata": "22",
+   "ata_label": "Autoflight",
+   "group": "core",
+   "engines": [
+    "ALL"
+   ],
+   "options": [
+    "SLOW",
+    "FAST"
+   ]
+  },
+  {
+   "code": "malf.a320.22.mcdu-fault",
+   "title": "MCDU FAULT",
+   "ata": "22",
+   "ata_label": "Autoflight",
+   "group": "core",
+   "engines": [
+    "ALL"
+   ],
+   "options": [
+    "1",
+    "2"
+   ]
+  },
+  {
+   "code": "malf.a320.22.no-flare",
+   "title": "NO FLARE",
+   "ata": "22",
+   "ata_label": "Autoflight",
+   "group": "core",
+   "engines": [
+    "ALL"
+   ],
+   "options": []
+  },
+  {
+   "code": "malf.a320.22.no-land-mode",
+   "title": "NO LAND MODE",
+   "ata": "22",
+   "ata_label": "Autoflight",
+   "group": "core",
+   "engines": [
+    "ALL"
+   ],
+   "options": []
+  },
+  {
+   "code": "malf.a320.22.no-rollout-mode",
+   "title": "NO ROLLOUT MODE",
+   "ata": "22",
+   "ata_label": "Autoflight",
+   "group": "core",
+   "engines": [
+    "ALL"
+   ],
+   "options": []
+  },
+  {
+   "code": "malf.a320.22.rnp-loss-of-nav-mode-app-nav-mode",
+   "title": "RNP - LOSS OF NAV MODE / APP NAV MODE",
+   "ata": "22",
+   "ata_label": "Autoflight",
+   "group": "core",
+   "engines": [
+    "ALL"
+   ],
+   "options": []
+  },
+  {
+   "code": "malf.a320.22.rudder-travel-limit-fault",
+   "title": "RUDDER TRAVEL LIMIT FAULT",
+   "ata": "22",
+   "ata_label": "Autoflight",
+   "group": "core",
+   "engines": [
+    "IAE-V2500",
+    "CFM56-5B4",
+    "PW 1100-G",
+    "CFM LEAP-1A"
+   ],
+   "options": [
+    "1",
+    "2"
+   ]
+  },
+  {
+   "code": "malf.a320.22.rudder-trim-fault",
+   "title": "RUDDER TRIM FAULT",
+   "ata": "22",
+   "ata_label": "Autoflight",
+   "group": "core",
+   "engines": [
+    "ALL"
+   ],
+   "options": [
+    "1",
+    "2"
+   ]
+  },
+  {
+   "code": "malf.a320.22.rudder-trim-reset-fault",
+   "title": "RUDDER TRIM RESET FAULT",
+   "ata": "22",
+   "ata_label": "Autoflight",
+   "group": "core",
+   "engines": [
+    "ALL"
+   ],
+   "options": []
+  },
+  {
+   "code": "malf.a320.22.rudder-trim-runaway",
+   "title": "RUDDER TRIM RUNAWAY",
+   "ata": "22",
+   "ata_label": "Autoflight",
+   "group": "core",
+   "engines": [
+    "ALL"
+   ],
+   "options": [
+    "L"
+   ]
+  },
+  {
+   "code": "malf.a320.22.yaw-damper-fault",
+   "title": "YAW DAMPER FAULT",
+   "ata": "22",
+   "ata_label": "Autoflight",
+   "group": "core",
+   "engines": [
+    "IAE-V2500",
+    "CFM56-5B4",
+    "PW 1100-G",
+    "CFM LEAP-1A"
+   ],
+   "options": [
+    "1",
+    "2"
+   ]
+  },
+  {
+   "code": "malf.a320.23.acp-fault",
+   "title": "ACP FAULT",
+   "ata": "23",
+   "ata_label": "Communications",
+   "group": "core",
+   "engines": [
+    "ALL"
+   ],
+   "options": [
+    "1"
+   ]
+  },
+  {
+   "code": "malf.a320.23.rmp-fault",
+   "title": "RMP FAULT",
+   "ata": "23",
+   "ata_label": "Communications",
+   "group": "core",
+   "engines": [
+    "ALL"
+   ],
+   "options": [
+    "1",
+    "2"
+   ]
+  },
+  {
+   "code": "malf.a320.24.ac-bus-fault",
+   "title": "AC BUS FAULT",
+   "ata": "24",
+   "ata_label": "Electrical",
+   "group": "core",
+   "engines": [
+    "ALL"
+   ],
+   "options": [
+    "1",
+    "2"
+   ]
+  },
+  {
+   "code": "malf.a320.24.ac-bus-fault-ess-shed",
+   "title": "AC BUS FAULT (ESS SHED)",
+   "ata": "24",
+   "ata_label": "Electrical",
+   "group": "core",
+   "engines": [
+    "ALL"
+   ],
+   "options": []
+  },
+  {
+   "code": "malf.a320.24.ac-bus-fault-ess",
+   "title": "AC BUS FAULT (ESS)",
+   "ata": "24",
+   "ata_label": "Electrical",
+   "group": "core",
+   "engines": [
+    "ALL"
+   ],
+   "options": []
+  },
+  {
+   "code": "malf.a320.24.ac-ess-feed-contactor-fault",
+   "title": "AC ESS FEED CONTACTOR FAULT",
+   "ata": "24",
+   "ata_label": "Electrical",
+   "group": "core",
+   "engines": [
+    "ALL"
+   ],
+   "options": []
+  },
+  {
+   "code": "malf.a320.24.bat-fault",
+   "title": "BAT FAULT",
+   "ata": "24",
+   "ata_label": "Electrical",
+   "group": "core",
+   "engines": [
+    "ALL"
+   ],
+   "options": [
+    "1",
+    "2"
+   ]
+  },
+  {
+   "code": "malf.a320.24.dc-bus-fault",
+   "title": "DC BUS FAULT",
+   "ata": "24",
+   "ata_label": "Electrical",
+   "group": "core",
+   "engines": [
+    "ALL"
+   ],
+   "options": [
+    "1",
+    "2"
+   ]
+  },
+  {
+   "code": "malf.a320.24.dc-bus-fault-bat",
+   "title": "DC BUS FAULT (BAT)",
+   "ata": "24",
+   "ata_label": "Electrical",
+   "group": "core",
+   "engines": [
+    "ALL"
+   ],
+   "options": []
+  },
+  {
+   "code": "malf.a320.24.dc-bus-fault-ess-shed",
+   "title": "DC BUS FAULT (ESS SHED)",
+   "ata": "24",
+   "ata_label": "Electrical",
+   "group": "core",
+   "engines": [
+    "ALL"
+   ],
+   "options": []
+  },
+  {
+   "code": "malf.a320.24.dc-bus-fault-ess",
+   "title": "DC BUS FAULT (ESS)",
+   "ata": "24",
+   "ata_label": "Electrical",
+   "group": "core",
+   "engines": [
+    "ALL"
+   ],
+   "options": []
+  },
+  {
+   "code": "malf.a320.24.gen-fault-excitation",
+   "title": "GEN FAULT (EXCITATION)",
+   "ata": "24",
+   "ata_label": "Electrical",
+   "group": "core",
+   "engines": [
+    "ALL"
+   ],
+   "options": [
+    "Gen1",
+    "Gen2",
+    "APU Gen",
+    "Emer Gen"
+   ]
+  },
+  {
+   "code": "malf.a320.24.gen-frequency-inc-dec",
+   "title": "GEN FREQUENCY INC/DEC",
+   "ata": "24",
+   "ata_label": "Electrical",
+   "group": "core",
+   "engines": [
+    "ALL"
+   ],
+   "options": [
+    "Gen1",
+    "Gen2"
+   ]
+  },
+  {
+   "code": "malf.a320.24.gen-voltage-inc-dec",
+   "title": "GEN VOLTAGE INC/DEC",
+   "ata": "24",
+   "ata_label": "Electrical",
+   "group": "core",
+   "engines": [
+    "ALL"
+   ],
+   "options": [
+    "Gen1",
+    "Gen2"
+   ]
+  },
+  {
+   "code": "malf.a320.24.idg-oil-lo-press",
+   "title": "IDG OIL LO PRESS",
+   "ata": "24",
+   "ata_label": "Electrical",
+   "group": "core",
+   "engines": [
+    "ALL"
+   ],
+   "options": [
+    "1",
+    "2"
+   ]
+  },
+  {
+   "code": "malf.a320.24.idg-oil-overheat",
+   "title": "IDG OIL OVERHEAT",
+   "ata": "24",
+   "ata_label": "Electrical",
+   "group": "core",
+   "engines": [
+    "ALL"
+   ],
+   "options": [
+    "1",
+    "2"
+   ]
+  },
+  {
+   "code": "malf.a320.24.static-inv-fault",
+   "title": "STATIC INV FAULT",
+   "ata": "24",
+   "ata_label": "Electrical",
+   "group": "core",
+   "engines": [
+    "ALL"
+   ],
+   "options": []
+  },
+  {
+   "code": "malf.a320.24.tr-fault",
+   "title": "TR FAULT",
+   "ata": "24",
+   "ata_label": "Electrical",
+   "group": "core",
+   "engines": [
+    "ALL"
+   ],
+   "options": [
+    "1",
+    "2"
+   ]
+  },
+  {
+   "code": "malf.a320.26.avionic-smoke",
+   "title": "AVIONIC SMOKE",
+   "ata": "26",
+   "ata_label": "Fire Protection",
+   "group": "core",
+   "engines": [
+    "ALL"
+   ],
+   "options": []
+  },
+  {
+   "code": "malf.a320.26.cargo-smoke-aft",
+   "title": "CARGO SMOKE (AFT)",
+   "ata": "26",
+   "ata_label": "Fire Protection",
+   "group": "core",
+   "engines": [
+    "ALL"
+   ],
+   "options": []
+  },
+  {
+   "code": "malf.a320.26.cargo-smoke-fwd",
+   "title": "CARGO SMOKE (FWD)",
+   "ata": "26",
+   "ata_label": "Fire Protection",
+   "group": "core",
+   "engines": [
+    "ALL"
+   ],
+   "options": []
+  },
+  {
+   "code": "malf.a320.27.ail-servo-fault",
+   "title": "AIL SERVO FAULT",
+   "ata": "27",
+   "ata_label": "Flight Controls",
+   "group": "core",
+   "engines": [
+    "ALL"
+   ],
+   "options": []
+  },
+  {
+   "code": "malf.a320.27.demonstration-of-alternate-law",
+   "title": "DEMONSTRATION OF ALTERNATE LAW",
+   "ata": "27",
+   "ata_label": "Flight Controls",
+   "group": "core",
+   "engines": [
+    "ALL"
+   ],
+   "options": []
+  },
+  {
+   "code": "malf.a320.27.demonstration-of-direct-law",
+   "title": "DEMONSTRATION OF DIRECT LAW",
+   "ata": "27",
+   "ata_label": "Flight Controls",
+   "group": "core",
+   "engines": [
+    "ALL"
+   ],
+   "options": []
+  },
+  {
+   "code": "malf.a320.27.elac-fault",
+   "title": "ELAC FAULT",
+   "ata": "27",
+   "ata_label": "Flight Controls",
+   "group": "core",
+   "engines": [
+    "ALL"
+   ],
+   "options": [
+    "1",
+    "2"
+   ]
+  },
+  {
+   "code": "malf.a320.27.elevator-fault",
+   "title": "ELEVATOR FAULT",
+   "ata": "27",
+   "ata_label": "Flight Controls",
+   "group": "core",
+   "engines": [
+    "ALL"
+   ],
+   "options": [
+    "L",
+    "R"
+   ]
+  },
+  {
+   "code": "malf.a320.27.fcdc-fault",
+   "title": "FCDC FAULT",
+   "ata": "27",
+   "ata_label": "Flight Controls",
+   "group": "core",
+   "engines": [
+    "ALL"
+   ],
+   "options": [
+    "1",
+    "2"
+   ]
+  },
+  {
+   "code": "malf.a320.27.flap-sys-fault",
+   "title": "FLAP SYS FAULT",
+   "ata": "27",
+   "ata_label": "Flight Controls",
+   "group": "core",
+   "engines": [
+    "ALL"
+   ],
+   "options": [
+    "1",
+    "2"
+   ]
+  },
+  {
+   "code": "malf.a320.27.flaps-locked-wtb",
+   "title": "FLAPS LOCKED (WTB)",
+   "ata": "27",
+   "ata_label": "Flight Controls",
+   "group": "core",
+   "engines": [
+    "ALL"
+   ],
+   "options": [
+    "L"
+   ]
+  },
+  {
+   "code": "malf.a320.27.pitch-trim-runaway-up",
+   "title": "PITCH TRIM RUNAWAY UP",
+   "ata": "27",
+   "ata_label": "Flight Controls",
+   "group": "core",
+   "engines": [
+    "ALL"
+   ],
+   "options": [
+    "Fast",
+    "Slow"
+   ]
+  },
+  {
+   "code": "malf.a320.27.sec-fault",
+   "title": "SEC FAULT",
+   "ata": "27",
+   "ata_label": "Flight Controls",
+   "group": "core",
+   "engines": [
+    "ALL"
+   ],
+   "options": [
+    "1",
+    "2",
+    "3"
+   ]
+  },
+  {
+   "code": "malf.a320.27.side-stick-fault",
+   "title": "SIDE STICK FAULT",
+   "ata": "27",
+   "ata_label": "Flight Controls",
+   "group": "core",
+   "engines": [
+    "ALL"
+   ],
+   "options": [
+    "L",
+    "R"
+   ]
+  },
+  {
+   "code": "malf.a320.27.sidestick-pitch-fault",
+   "title": "SIDESTICK PITCH FAULT",
+   "ata": "27",
+   "ata_label": "Flight Controls",
+   "group": "core",
+   "engines": [
+    "ALL"
+   ],
+   "options": [
+    "L",
+    "R"
+   ]
+  },
+  {
+   "code": "malf.a320.27.sidestick-roll-fault",
+   "title": "SIDESTICK ROLL FAULT",
+   "ata": "27",
+   "ata_label": "Flight Controls",
+   "group": "core",
+   "engines": [
+    "ALL"
+   ],
+   "options": [
+    "L",
+    "R"
+   ]
+  },
+  {
+   "code": "malf.a320.27.slats-locked-wtb",
+   "title": "SLATS LOCKED (WTB)",
+   "ata": "27",
+   "ata_label": "Flight Controls",
+   "group": "core",
+   "engines": [
+    "ALL"
+   ],
+   "options": [
+    "L"
+   ]
+  },
+  {
+   "code": "malf.a320.27.slats-sys-fault",
+   "title": "SLATS SYS FAULT",
+   "ata": "27",
+   "ata_label": "Flight Controls",
+   "group": "core",
+   "engines": [
+    "ALL"
+   ],
+   "options": [
+    "1",
+    "2"
+   ]
+  },
+  {
+   "code": "malf.a320.27.slats-flaps-handle-inop",
+   "title": "SLATS/FLAPS HANDLE INOP",
+   "ata": "27",
+   "ata_label": "Flight Controls",
+   "group": "core",
+   "engines": [
+    "ALL"
+   ],
+   "options": []
+  },
+  {
+   "code": "malf.a320.27.speedbrake-fault",
+   "title": "SPEEDBRAKE FAULT",
+   "ata": "27",
+   "ata_label": "Flight Controls",
+   "group": "core",
+   "engines": [
+    "ALL"
+   ],
+   "options": []
+  },
+  {
+   "code": "malf.a320.27.spoiler-retraction-fault-left-3",
+   "title": "SPOILER RETRACTION FAULT (LEFT 3)",
+   "ata": "27",
+   "ata_label": "Flight Controls",
+   "group": "core",
+   "engines": [
+    "ALL"
+   ],
+   "options": []
+  },
+  {
+   "code": "malf.a320.27.spoiler-retraction-fault-right-2",
+   "title": "SPOILER RETRACTION FAULT (RIGHT 2)",
+   "ata": "27",
+   "ata_label": "Flight Controls",
+   "group": "core",
+   "engines": [
+    "ALL"
+   ],
+   "options": []
+  },
+  {
+   "code": "malf.a320.27.stabilizer-jam",
+   "title": "STABILIZER JAM",
+   "ata": "27",
+   "ata_label": "Flight Controls",
+   "group": "core",
+   "engines": [
+    "ALL"
+   ],
+   "options": []
+  },
+  {
+   "code": "malf.a320.28.fqi-fault",
+   "title": "FQI FAULT",
+   "ata": "28",
+   "ata_label": "Fuel",
+   "group": "core",
+   "engines": [
+    "ALL"
+   ],
+   "options": []
+  },
+  {
+   "code": "malf.a320.28.fuel-qty-inc-dec",
+   "title": "FUEL QTY INC/DEC",
+   "ata": "28",
+   "ata_label": "Fuel",
+   "group": "core",
+   "engines": [
+    "ALL"
+   ],
+   "options": [
+    "L in",
+    "R in"
+   ]
+  },
+  {
+   "code": "malf.a320.28.fuel-temp-inc-dec",
+   "title": "FUEL TEMP INC/DEC",
+   "ata": "28",
+   "ata_label": "Fuel",
+   "group": "core",
+   "engines": [
+    "CFM56-5B4",
+    "CFM LEAP-1A",
+    "IAE-V2500",
+    "PW 1100-G"
+   ],
+   "options": [
+    "Left Inner"
+   ]
+  },
+  {
+   "code": "malf.a320.28.main-pump-fault",
+   "title": "MAIN PUMP FAULT",
+   "ata": "28",
+   "ata_label": "Fuel",
+   "group": "core",
+   "engines": [
+    "ALL"
+   ],
+   "options": [
+    "L1",
+    "L2",
+    "R1",
+    "R2"
+   ]
+  },
+  {
+   "code": "malf.a320.28.outer-to-inner-fault",
+   "title": "OUTER TO INNER FAULT",
+   "ata": "28",
+   "ata_label": "Fuel",
+   "group": "core",
+   "engines": [
+    "ALL"
+   ],
+   "options": [
+    "L"
+   ]
+  },
+  {
+   "code": "malf.a320.28.tank-fuel-leak",
+   "title": "TANK FUEL LEAK",
+   "ata": "28",
+   "ata_label": "Fuel",
+   "group": "core",
+   "engines": [
+    "ALL"
+   ],
+   "options": [
+    "L out",
+    "R out",
+    "L in",
+    "C",
+    "R in"
+   ]
+  },
+  {
+   "code": "malf.a320.28.tank-pumps-lo-press",
+   "title": "TANK PUMPS LO PRESS",
+   "ata": "28",
+   "ata_label": "Fuel",
+   "group": "core",
+   "engines": [
+    "ALL"
+   ],
+   "options": [
+    "Left"
+   ]
+  },
+  {
+   "code": "malf.a320.28.wing-qty-probe-failed",
+   "title": "WING QTY PROBE FAILED",
+   "ata": "28",
+   "ata_label": "Fuel",
+   "group": "core",
+   "engines": [
+    "ALL"
+   ],
+   "options": [
+    "L out",
+    "L in"
+   ]
+  },
+  {
+   "code": "malf.a320.28.x-feed-valve-fail",
+   "title": "X FEED VALVE FAIL",
+   "ata": "28",
+   "ata_label": "Fuel",
+   "group": "core",
+   "engines": [
+    "ALL"
+   ],
+   "options": [
+    "X-Feed"
+   ]
+  },
+  {
+   "code": "malf.a320.29.elec-pump-fault",
+   "title": "ELEC PUMP FAULT",
+   "ata": "29",
+   "ata_label": "Hydraulic",
+   "group": "core",
+   "engines": [
+    "ALL"
+   ],
+   "options": [
+    "Blue",
+    "Yellow"
+   ]
+  },
+  {
+   "code": "malf.a320.29.eng-pump-lo-press",
+   "title": "ENG PUMP LO PRESS",
+   "ata": "29",
+   "ata_label": "Hydraulic",
+   "group": "core",
+   "engines": [
+    "ALL"
+   ],
+   "options": [
+    "Green",
+    "Yellow"
+   ]
+  },
+  {
+   "code": "malf.a320.29.ptu-fault",
+   "title": "PTU FAULT",
+   "ata": "29",
+   "ata_label": "Hydraulic",
+   "group": "core",
+   "engines": [
+    "ALL"
+   ],
+   "options": []
+  },
+  {
+   "code": "malf.a320.29.rat-no-automatic-extension",
+   "title": "RAT NO AUTOMATIC EXTENSION",
+   "ata": "29",
+   "ata_label": "Hydraulic",
+   "group": "core",
+   "engines": [
+    "ALL"
+   ],
+   "options": []
+  },
+  {
+   "code": "malf.a320.29.rsvr-fluid-qty-inc-dec",
+   "title": "RSVR FLUID QTY INC/DEC",
+   "ata": "29",
+   "ata_label": "Hydraulic",
+   "group": "core",
+   "engines": [
+    "ALL"
+   ],
+   "options": [
+    "Green",
+    "Blue",
+    "Yellow"
+   ]
+  },
+  {
+   "code": "malf.a320.29.rsvr-lo-air-press",
+   "title": "RSVR LO AIR PRESS",
+   "ata": "29",
+   "ata_label": "Hydraulic",
+   "group": "core",
+   "engines": [
+    "ALL"
+   ],
+   "options": [
+    "Green",
+    "Blue",
+    "Yellow"
+   ]
+  },
+  {
+   "code": "malf.a320.29.rsvr-overheat",
+   "title": "RSVR OVERHEAT",
+   "ata": "29",
+   "ata_label": "Hydraulic",
+   "group": "core",
+   "engines": [
+    "ALL"
+   ],
+   "options": [
+    "Green",
+    "Blue",
+    "Yellow"
+   ]
+  },
+  {
+   "code": "malf.a320.30.eng-a-ice-valve-fault",
+   "title": "ENG A.ICE VALVE FAULT",
+   "ata": "30",
+   "ata_label": "Ice & Rain Protection",
+   "group": "core",
+   "engines": [
+    "ALL"
+   ],
+   "options": [
+    "1",
+    "2"
+   ]
+  },
+  {
+   "code": "malf.a320.30.left-stat-heat-fault",
+   "title": "LEFT STAT HEAT FAULT",
+   "ata": "30",
+   "ata_label": "Ice & Rain Protection",
+   "group": "core",
+   "engines": [
+    "ALL"
+   ],
+   "options": [
+    "Capt",
+    "F/O"
+   ]
+  },
+  {
+   "code": "malf.a320.30.pitot-heat-fault",
+   "title": "PITOT HEAT FAULT",
+   "ata": "30",
+   "ata_label": "Ice & Rain Protection",
+   "group": "core",
+   "engines": [
+    "ALL"
+   ],
+   "options": [
+    "Capt",
+    "F/O"
+   ]
+  },
+  {
+   "code": "malf.a320.30.probes-heat-fault",
+   "title": "PROBES HEAT FAULT",
+   "ata": "30",
+   "ata_label": "Ice & Rain Protection",
+   "group": "core",
+   "engines": [
+    "ALL"
+   ],
+   "options": [
+    "Capt",
+    "F/O"
+   ]
+  },
+  {
+   "code": "malf.a320.30.right-stat-heat-fault",
+   "title": "RIGHT STAT HEAT FAULT",
+   "ata": "30",
+   "ata_label": "Ice & Rain Protection",
+   "group": "core",
+   "engines": [
+    "ALL"
+   ],
+   "options": [
+    "Capt",
+    "F/O"
+   ]
+  },
+  {
+   "code": "malf.a320.30.tat-heat-fault",
+   "title": "TAT HEAT FAULT",
+   "ata": "30",
+   "ata_label": "Ice & Rain Protection",
+   "group": "core",
+   "engines": [
+    "ALL"
+   ],
+   "options": [
+    "Capt",
+    "F/O"
+   ]
+  },
+  {
+   "code": "malf.a320.30.wing-a-ice-fault",
+   "title": "WING A.ICE FAULT",
+   "ata": "30",
+   "ata_label": "Ice & Rain Protection",
+   "group": "core",
+   "engines": [
+    "ALL"
+   ],
+   "options": [
+    "L"
+   ]
+  },
+  {
+   "code": "malf.a320.30.wing-a-ice-open-on-ground",
+   "title": "WING A.ICE OPEN ON GROUND",
+   "ata": "30",
+   "ata_label": "Ice & Rain Protection",
+   "group": "core",
+   "engines": [
+    "ALL"
+   ],
+   "options": []
+  },
+  {
+   "code": "malf.a320.31.display-fault-lower-ecam",
+   "title": "DISPLAY FAULT (LOWER ECAM)",
+   "ata": "31",
+   "ata_label": "Indicating / Recording Systems",
+   "group": "core",
+   "engines": [
+    "ALL"
+   ],
+   "options": []
+  },
+  {
+   "code": "malf.a320.31.display-fault-nd",
+   "title": "DISPLAY FAULT (ND)",
+   "ata": "31",
+   "ata_label": "Indicating / Recording Systems",
+   "group": "core",
+   "engines": [
+    "ALL"
+   ],
+   "options": [
+    "F/O"
+   ]
+  },
+  {
+   "code": "malf.a320.31.display-fault-pfd",
+   "title": "DISPLAY FAULT (PFD)",
+   "ata": "31",
+   "ata_label": "Indicating / Recording Systems",
+   "group": "core",
+   "engines": [
+    "ALL"
+   ],
+   "options": [
+    "Capt"
+   ]
+  },
+  {
+   "code": "malf.a320.31.display-fault-upper-ecam",
+   "title": "DISPLAY FAULT (UPPER ECAM)",
+   "ata": "31",
+   "ata_label": "Indicating / Recording Systems",
+   "group": "core",
+   "engines": [
+    "ALL"
+   ],
+   "options": []
+  },
+  {
+   "code": "malf.a320.31.dmc-fault",
+   "title": "DMC FAULT",
+   "ata": "31",
+   "ata_label": "Indicating / Recording Systems",
+   "group": "core",
+   "engines": [
+    "ALL"
+   ],
+   "options": [
+    "1",
+    "2",
+    "3"
+   ]
+  },
+  {
+   "code": "malf.a320.31.ecp-fault",
+   "title": "ECP FAULT",
+   "ata": "31",
+   "ata_label": "Indicating / Recording Systems",
+   "group": "core",
+   "engines": [
+    "ALL"
+   ],
+   "options": []
+  },
+  {
+   "code": "malf.a320.31.fwc-fault",
+   "title": "FWC FAULT",
+   "ata": "31",
+   "ata_label": "Indicating / Recording Systems",
+   "group": "core",
+   "engines": [
+    "ALL"
+   ],
+   "options": [
+    "1",
+    "2"
+   ]
+  },
+  {
+   "code": "malf.a320.31.sdac-fault",
+   "title": "SDAC FAULT",
+   "ata": "31",
+   "ata_label": "Indicating / Recording Systems",
+   "group": "core",
+   "engines": [
+    "ALL"
+   ],
+   "options": [
+    "1",
+    "2"
+   ]
+  },
+  {
+   "code": "malf.a320.32.antiskid-fault",
+   "title": "ANTISKID FAULT",
+   "ata": "32",
+   "ata_label": "Landing Gear",
+   "group": "core",
+   "engines": [
+    "ALL"
+   ],
+   "options": []
+  },
+  {
+   "code": "malf.a320.32.auto-brk-fault",
+   "title": "AUTO BRK FAULT",
+   "ata": "32",
+   "ata_label": "Landing Gear",
+   "group": "core",
+   "engines": [
+    "ALL"
+   ],
+   "options": []
+  },
+  {
+   "code": "malf.a320.32.brake-hot",
+   "title": "BRAKE HOT",
+   "ata": "32",
+   "ata_label": "Landing Gear",
+   "group": "core",
+   "engines": [
+    "ALL"
+   ],
+   "options": [
+    "L Outer"
+   ]
+  },
+  {
+   "code": "malf.a320.32.bscu-fault",
+   "title": "BSCU FAULT",
+   "ata": "32",
+   "ata_label": "Landing Gear",
+   "group": "core",
+   "engines": [
+    "ALL"
+   ],
+   "options": [
+    "1",
+    "2"
+   ]
+  },
+  {
+   "code": "malf.a320.32.l-g-doors-not-closed",
+   "title": "L/G - DOORS NOT CLOSED",
+   "ata": "32",
+   "ata_label": "Landing Gear",
+   "group": "core",
+   "engines": [
+    "ALL"
+   ],
+   "options": []
+  },
+  {
+   "code": "malf.a320.32.l-g-gear-uplock-fault",
+   "title": "L/G GEAR UPLOCK FAULT",
+   "ata": "32",
+   "ata_label": "Landing Gear",
+   "group": "core",
+   "engines": [
+    "ALL"
+   ],
+   "options": [
+    "L Main"
+   ]
+  },
+  {
+   "code": "malf.a320.32.l-g-lever-locked",
+   "title": "L/G LEVER LOCKED",
+   "ata": "32",
+   "ata_label": "Landing Gear",
+   "group": "core",
+   "engines": [
+    "ALL"
+   ],
+   "options": []
+  },
+  {
+   "code": "malf.a320.32.l-g-not-down-locked",
+   "title": "L/G NOT DOWN LOCKED",
+   "ata": "32",
+   "ata_label": "Landing Gear",
+   "group": "core",
+   "engines": [
+    "ALL"
+   ],
+   "options": [
+    "L Main",
+    "Nose",
+    "R Main"
+   ]
+  },
+  {
+   "code": "malf.a320.32.l-g-not-down-locked-collapses",
+   "title": "L/G NOT DOWN LOCKED - COLLAPSES",
+   "ata": "32",
+   "ata_label": "Landing Gear",
+   "group": "core",
+   "engines": [
+    "ALL"
+   ],
+   "options": [
+    "L Main",
+    "Nose",
+    "R Main"
+   ]
+  },
+  {
+   "code": "malf.a320.32.lgciu-fault",
+   "title": "LGCIU FAULT",
+   "ata": "32",
+   "ata_label": "Landing Gear",
+   "group": "core",
+   "engines": [
+    "ALL"
+   ],
+   "options": [
+    "1",
+    "2"
+   ]
+  },
+  {
+   "code": "malf.a320.32.loss-of-braking",
+   "title": "LOSS OF BRAKING",
+   "ata": "32",
+   "ata_label": "Landing Gear",
+   "group": "core",
+   "engines": [
+    "ALL"
+   ],
+   "options": []
+  },
+  {
+   "code": "malf.a320.32.nose-wheel-steering-tiller",
+   "title": "NOSE WHEEL STEERING TILLER",
+   "ata": "32",
+   "ata_label": "Landing Gear",
+   "group": "core",
+   "engines": [
+    "ALL"
+   ],
+   "options": [
+    "Capt"
+   ]
+  },
+  {
+   "code": "malf.a320.32.nw-lo-press-burst-speed-90kt",
+   "title": "NW LO PRESS/BURST - SPEED(90KT)",
+   "ata": "32",
+   "ata_label": "Landing Gear",
+   "group": "core",
+   "engines": [
+    "ALL"
+   ],
+   "options": []
+  },
+  {
+   "code": "malf.a320.32.nw-steer-fault",
+   "title": "NW STEER FAULT",
+   "ata": "32",
+   "ata_label": "Landing Gear",
+   "group": "core",
+   "engines": [
+    "ALL"
+   ],
+   "options": []
+  },
+  {
+   "code": "malf.a320.32.retraction-fault",
+   "title": "RETRACTION FAULT",
+   "ata": "32",
+   "ata_label": "Landing Gear",
+   "group": "core",
+   "engines": [
+    "ALL"
+   ],
+   "options": [
+    "R Main"
+   ]
+  },
+  {
+   "code": "malf.a320.32.tyre-burst",
+   "title": "TYRE BURST",
+   "ata": "32",
+   "ata_label": "Landing Gear",
+   "group": "core",
+   "engines": [
+    "ALL"
+   ],
+   "options": [
+    "NW left",
+    "NW right",
+    "L Gear L",
+    "L Gear R",
+    "R Gear L",
+    "R Gear R"
+   ]
+  },
+  {
+   "code": "malf.a320.34.adr-fault",
+   "title": "ADR FAULT",
+   "ata": "34",
+   "ata_label": "Navigation",
+   "group": "core",
+   "engines": [
+    "ALL"
+   ],
+   "options": [
+    "1",
+    "3",
+    "2"
+   ]
+  },
+  {
+   "code": "malf.a320.34.airspeed-channel-adr-fault",
+   "title": "AIRSPEED CHANNEL ADR FAULT",
+   "ata": "34",
+   "ata_label": "Navigation",
+   "group": "core",
+   "engines": [
+    "ALL"
+   ],
+   "options": [
+    "1",
+    "3",
+    "2"
+   ]
+  },
+  {
+   "code": "malf.a320.34.att-discrepancy-pitch",
+   "title": "ATT DISCREPANCY (PITCH)",
+   "ata": "34",
+   "ata_label": "Navigation",
+   "group": "core",
+   "engines": [
+    "ALL"
+   ],
+   "options": [
+    "1",
+    "3",
+    "2"
+   ]
+  },
+  {
+   "code": "malf.a320.34.att-discrepancy-roll",
+   "title": "ATT DISCREPANCY (ROLL)",
+   "ata": "34",
+   "ata_label": "Navigation",
+   "group": "core",
+   "engines": [
+    "ALL"
+   ],
+   "options": [
+    "1",
+    "3",
+    "2"
+   ]
+  },
+  {
+   "code": "malf.a320.34.fm-gps-pos-disagree",
+   "title": "FM/GPS POS DISAGREE",
+   "ata": "34",
+   "ata_label": "Navigation",
+   "group": "core",
+   "engines": [
+    "ALL"
+   ],
+   "options": []
+  },
+  {
+   "code": "malf.a320.34.gps-fault",
+   "title": "GPS FAULT",
+   "ata": "34",
+   "ata_label": "Navigation",
+   "group": "core",
+   "engines": [
+    "ALL"
+   ],
+   "options": [
+    "1",
+    "2"
+   ]
+  },
+  {
+   "code": "malf.a320.34.gps-primary-lost",
+   "title": "GPS PRIMARY LOST",
+   "ata": "34",
+   "ata_label": "Navigation",
+   "group": "core",
+   "engines": [
+    "ALL"
+   ],
+   "options": [
+    "Capt",
+    "F/O"
+   ]
+  },
+  {
+   "code": "malf.a320.34.hdg-discrepancy",
+   "title": "HDG DISCREPANCY",
+   "ata": "34",
+   "ata_label": "Navigation",
+   "group": "core",
+   "engines": [
+    "ALL"
+   ],
+   "options": [
+    "1",
+    "3",
+    "2"
+   ]
+  },
+  {
+   "code": "malf.a320.34.ils-receiver-fault",
+   "title": "ILS RECEIVER FAULT",
+   "ata": "34",
+   "ata_label": "Navigation",
+   "group": "core",
+   "engines": [
+    "ALL"
+   ],
+   "options": [
+    "1",
+    "2"
+   ]
+  },
+  {
+   "code": "malf.a320.34.ir-fault",
+   "title": "IR FAULT",
+   "ata": "34",
+   "ata_label": "Navigation",
+   "group": "core",
+   "engines": [
+    "ALL"
+   ],
+   "options": [
+    "1",
+    "3",
+    "2"
+   ]
+  },
+  {
+   "code": "malf.a320.34.isis-horizon-fault",
+   "title": "ISIS HORIZON FAULT",
+   "ata": "34",
+   "ata_label": "Navigation",
+   "group": "core",
+   "engines": [
+    "ALL"
+   ],
+   "options": []
+  },
+  {
+   "code": "malf.a320.34.pitot-inlet-blockage",
+   "title": "PITOT INLET BLOCKAGE",
+   "ata": "34",
+   "ata_label": "Navigation",
+   "group": "core",
+   "engines": [
+    "ALL"
+   ],
+   "options": [
+    "Capt",
+    "Standby",
+    "F/O"
+   ]
+  },
+  {
+   "code": "malf.a320.34.ra-erroneous-indication",
+   "title": "RA ERRONEOUS INDICATION",
+   "ata": "34",
+   "ata_label": "Navigation",
+   "group": "core",
+   "engines": [
+    "ALL"
+   ],
+   "options": [
+    "1",
+    "2"
+   ]
+  },
+  {
+   "code": "malf.a320.34.ra-receiver-fault",
+   "title": "RA RECEIVER FAULT",
+   "ata": "34",
+   "ata_label": "Navigation",
+   "group": "core",
+   "engines": [
+    "ALL"
+   ],
+   "options": [
+    "1",
+    "2"
+   ]
+  },
+  {
+   "code": "malf.a320.34.rnp-altitude-discrepancy",
+   "title": "RNP - ALTITUDE DISCREPANCY",
+   "ata": "34",
+   "ata_label": "Navigation",
+   "group": "core",
+   "engines": [
+    "ALL"
+   ],
+   "options": []
+  },
+  {
+   "code": "malf.a320.34.rnp-egpws-loss-of-terrain-data",
+   "title": "RNP - EGPWS LOSS OF TERRAIN DATA",
+   "ata": "34",
+   "ata_label": "Navigation",
+   "group": "core",
+   "engines": [
+    "ALL"
+   ],
+   "options": []
+  },
+  {
+   "code": "malf.a320.34.rnp-fms1-fms2-pos-diff",
+   "title": "RNP - FMS1/FMS2 POS DIFF",
+   "ata": "34",
+   "ata_label": "Navigation",
+   "group": "core",
+   "engines": [
+    "ALL"
+   ],
+   "options": []
+  },
+  {
+   "code": "malf.a320.34.rnp-nav-accuracy-downgrad",
+   "title": "RNP - NAV ACCURACY DOWNGRAD",
+   "ata": "34",
+   "ata_label": "Navigation",
+   "group": "core",
+   "engines": [
+    "ALL"
+   ],
+   "options": []
+  },
+  {
+   "code": "malf.a320.34.row-rops-lost",
+   "title": "ROW/ROPS LOST",
+   "ata": "34",
+   "ata_label": "Navigation",
+   "group": "core",
+   "engines": [
+    "ALL"
+   ],
+   "options": []
+  },
+  {
+   "code": "malf.a320.34.t3cas-fault",
+   "title": "T3CAS FAULT",
+   "ata": "34",
+   "ata_label": "Navigation",
+   "group": "core",
+   "engines": [
+    "ALL"
+   ],
+   "options": []
+  },
+  {
+   "code": "malf.a320.34.total-pitot-blockage-blocked-pitot",
+   "title": "TOTAL PITOT BLOCKAGE (BLOCKED PITOT)",
+   "ata": "34",
+   "ata_label": "Navigation",
+   "group": "core",
+   "engines": [
+    "ALL"
+   ],
+   "options": [
+    "Capt",
+    "Standby",
+    "F/O"
+   ]
+  },
+  {
+   "code": "malf.a320.34.vor-receiver-fault",
+   "title": "VOR RECEIVER FAULT",
+   "ata": "34",
+   "ata_label": "Navigation",
+   "group": "core",
+   "engines": [
+    "ALL"
+   ],
+   "options": [
+    "1",
+    "2"
+   ]
+  },
+  {
+   "code": "malf.a320.34.wx-radar-fault",
+   "title": "WX RADAR FAULT",
+   "ata": "34",
+   "ata_label": "Navigation",
+   "group": "core",
+   "engines": [
+    "ALL"
+   ],
+   "options": []
+  },
+  {
+   "code": "malf.a320.35.lo-pr-oxy",
+   "title": "LO PR OXY",
+   "ata": "35",
+   "ata_label": "Oxygen",
+   "group": "core",
+   "engines": [
+    "IAE-V2500",
+    "CFM56-5B4",
+    "PW 1100-G",
+    "CFM LEAP-1A"
+   ],
+   "options": [
+    "Capt"
+   ]
+  },
+  {
+   "code": "malf.a320.36.apu-bleed-fault",
+   "title": "APU BLEED FAULT",
+   "ata": "36",
+   "ata_label": "Pneumatic",
+   "group": "core",
+   "engines": [
+    "ALL"
+   ],
+   "options": []
+  },
+  {
+   "code": "malf.a320.36.bleed-fault-hp-valve",
+   "title": "BLEED FAULT (HP VALVE)",
+   "ata": "36",
+   "ata_label": "Pneumatic",
+   "group": "core",
+   "engines": [
+    "IAE-V2500",
+    "CFM56-5B4",
+    "PW 1100-G",
+    "CFM LEAP-1A"
+   ],
+   "options": [
+    "1",
+    "2"
+   ]
+  },
+  {
+   "code": "malf.a320.36.bleed-fault-pr-valve",
+   "title": "BLEED FAULT (PR VALVE)",
+   "ata": "36",
+   "ata_label": "Pneumatic",
+   "group": "core",
+   "engines": [
+    "ALL"
+   ],
+   "options": [
+    "1",
+    "2"
+   ]
+  },
+  {
+   "code": "malf.a320.36.bleed-leak",
+   "title": "BLEED LEAK",
+   "ata": "36",
+   "ata_label": "Pneumatic",
+   "group": "core",
+   "engines": [
+    "ALL"
+   ],
+   "options": [
+    "1",
+    "2"
+   ]
+  },
+  {
+   "code": "malf.a320.36.bleed-low-temp",
+   "title": "BLEED LOW TEMP",
+   "ata": "36",
+   "ata_label": "Pneumatic",
+   "group": "core",
+   "engines": [
+    "ALL"
+   ],
+   "options": [
+    "1",
+    "2"
+   ]
+  },
+  {
+   "code": "malf.a320.36.bleed-not-closed",
+   "title": "BLEED NOT CLOSED",
+   "ata": "36",
+   "ata_label": "Pneumatic",
+   "group": "core",
+   "engines": [
+    "ALL"
+   ],
+   "options": [
+    "1",
+    "2"
+   ]
+  },
+  {
+   "code": "malf.a320.36.wing-bleed-leak",
+   "title": "WING BLEED LEAK",
+   "ata": "36",
+   "ata_label": "Pneumatic",
+   "group": "core",
+   "engines": [
+    "ALL"
+   ],
+   "options": [
+    "L",
+    "R"
+   ]
+  },
+  {
+   "code": "malf.a320.36.x-bleed-fault",
+   "title": "X-BLEED FAULT",
+   "ata": "36",
+   "ata_label": "Pneumatic",
+   "group": "core",
+   "engines": [
+    "ALL"
+   ],
+   "options": []
+  },
+  {
+   "code": "malf.a320.49.apu-fault",
+   "title": "APU FAULT",
+   "ata": "49",
+   "ata_label": "APU",
+   "group": "core",
+   "engines": [
+    "ALL"
+   ],
+   "options": []
+  },
+  {
+   "code": "malf.a320.49.apu-fire-exting",
+   "title": "APU FIRE (EXTING)",
+   "ata": "49",
+   "ata_label": "APU",
+   "group": "core",
+   "engines": [
+    "ALL"
+   ],
+   "options": []
+  },
+  {
+   "code": "malf.a320.49.apu-fire-unexting",
+   "title": "APU FIRE (UNEXTING)",
+   "ata": "49",
+   "ata_label": "APU",
+   "group": "core",
+   "engines": [
+    "ALL"
+   ],
+   "options": []
+  },
+  {
+   "code": "malf.a320.49.low-apu-oil-qty",
+   "title": "LOW APU OIL QTY",
+   "ata": "49",
+   "ata_label": "APU",
+   "group": "core",
+   "engines": [
+    "ALL"
+   ],
+   "options": []
+  },
+  {
+   "code": "malf.a320.52.cargo-door-open-switch",
+   "title": "CARGO DOOR OPEN (SWITCH)",
+   "ata": "52",
+   "ata_label": "Doors",
+   "group": "core",
+   "engines": [
+    "ALL"
+   ],
+   "options": [
+    "Fwd Cargo"
+   ]
+  },
+  {
+   "code": "malf.a320.52.slide-not-armed-disarmed",
+   "title": "SLIDE NOT ARMED / DISARMED",
+   "ata": "52",
+   "ata_label": "Doors",
+   "group": "core",
+   "engines": [
+    "ALL"
+   ],
+   "options": [
+    "R Aft"
+   ]
+  },
+  {
+   "code": "malf.a320.70.compressor-stall",
+   "title": "COMPRESSOR STALL",
+   "ata": "70",
+   "ata_label": "Power Plant",
+   "group": "core",
+   "engines": [
+    "CFM56-5B4",
+    "IAE-V2500",
+    "PW 1100-G",
+    "CFM LEAP-1A"
+   ],
+   "options": [
+    "1",
+    "2"
+   ]
+  },
+  {
+   "code": "malf.a320.70.egt-inc-dec",
+   "title": "EGT INC/DEC",
+   "ata": "70",
+   "ata_label": "Power Plant",
+   "group": "core",
+   "engines": [
+    "IAE-V2500",
+    "CFM56-5B4",
+    "PW 1100-G",
+    "CFM LEAP-1A"
+   ],
+   "options": [
+    "1",
+    "2"
+   ]
+  },
+  {
+   "code": "malf.a320.70.eiu-fault",
+   "title": "EIU FAULT",
+   "ata": "70",
+   "ata_label": "Power Plant",
+   "group": "core",
+   "engines": [
+    "IAE-V2500",
+    "CFM56-5B4",
+    "PW 1100-G",
+    "CFM LEAP-1A"
+   ],
+   "options": [
+    "1",
+    "2"
+   ]
+  },
+  {
+   "code": "malf.a320.70.eng-a-ice-valve-fault",
+   "title": "ENG A.ICE VALVE FAULT",
+   "ata": "70",
+   "ata_label": "Power Plant",
+   "group": "core",
+   "engines": [
+    "ALL"
+   ],
+   "options": [
+    "1",
+    "2"
+   ]
+  },
+  {
+   "code": "malf.a320.70.eng-bird-strike",
+   "title": "ENG BIRD STRIKE",
+   "ata": "70",
+   "ata_label": "Power Plant",
+   "group": "core",
+   "engines": [
+    "ALL"
+   ],
+   "options": [
+    "1",
+    "2"
+   ]
+  },
+  {
+   "code": "malf.a320.70.eng-fan-cowl-not-closed",
+   "title": "ENG FAN COWL NOT CLOSED",
+   "ata": "70",
+   "ata_label": "Power Plant",
+   "group": "core",
+   "engines": [
+    "PW 1100-G",
+    "CFM LEAP-1A"
+   ],
+   "options": [
+    "1",
+    "2"
+   ]
+  },
+  {
+   "code": "malf.a320.70.eng-fuel-filter-degrad",
+   "title": "ENG FUEL FILTER DEGRAD",
+   "ata": "70",
+   "ata_label": "Power Plant",
+   "group": "core",
+   "engines": [
+    "PW 1100-G",
+    "CFM LEAP-1A"
+   ],
+   "options": [
+    "1",
+    "2"
+   ]
+  },
+  {
+   "code": "malf.a320.70.eng-fuel-leak",
+   "title": "ENG FUEL LEAK",
+   "ata": "70",
+   "ata_label": "Power Plant",
+   "group": "core",
+   "engines": [
+    "PW 1100-G",
+    "CFM LEAP-1A"
+   ],
+   "options": [
+    "1",
+    "2"
+   ]
+  },
+  {
+   "code": "malf.a320.70.eng-fuel-oil-exchanger-clogged",
+   "title": "ENG FUEL/OIL EXCHANGER CLOGGED",
+   "ata": "70",
+   "ata_label": "Power Plant",
+   "group": "core",
+   "engines": [
+    "PW 1100-G"
+   ],
+   "options": [
+    "1",
+    "2"
+   ]
+  },
+  {
+   "code": "malf.a320.70.eng-hot-start",
+   "title": "ENG HOT START",
+   "ata": "70",
+   "ata_label": "Power Plant",
+   "group": "core",
+   "engines": [
+    "CFM LEAP-1A",
+    "CFM56-5B4",
+    "IAE-V2500",
+    "PW 1100-G"
+   ],
+   "options": [
+    "1",
+    "2"
+   ]
+  },
+  {
+   "code": "malf.a320.70.eng-hung-start",
+   "title": "ENG HUNG START",
+   "ata": "70",
+   "ata_label": "Power Plant",
+   "group": "core",
+   "engines": [
+    "CFM56-5B4",
+    "CFM LEAP-1A",
+    "IAE-V2500",
+    "PW 1100-G"
+   ],
+   "options": [
+    "1",
+    "2"
+   ]
+  },
+  {
+   "code": "malf.a320.70.eng-ignition-a-and-b-fault",
+   "title": "ENG IGNITION A AND B FAULT",
+   "ata": "70",
+   "ata_label": "Power Plant",
+   "group": "core",
+   "engines": [
+    "CFM LEAP-1A",
+    "IAE-V2500",
+    "CFM56-5B4",
+    "PW 1100-G"
+   ],
+   "options": [
+    "1",
+    "2"
+   ]
+  },
+  {
+   "code": "malf.a320.70.eng-oil-filter-degrad",
+   "title": "ENG OIL FILTER DEGRAD",
+   "ata": "70",
+   "ata_label": "Power Plant",
+   "group": "core",
+   "engines": [
+    "CFM LEAP-1A",
+    "PW 1100-G"
+   ],
+   "options": [
+    "1",
+    "2"
+   ]
+  },
+  {
+   "code": "malf.a320.70.eng-turbine-pressure-valve-fault",
+   "title": "ENG TURBINE PRESSURE VALVE FAULT",
+   "ata": "70",
+   "ata_label": "Power Plant",
+   "group": "core",
+   "engines": [
+    "CFM LEAP-1A"
+   ],
+   "options": [
+    "1",
+    "2"
+   ]
+  },
+  {
+   "code": "malf.a320.70.epr-mode-fault-n1-rated-mode",
+   "title": "EPR MODE FAULT - N1 RATED MODE",
+   "ata": "70",
+   "ata_label": "Power Plant",
+   "group": "core",
+   "engines": [
+    "IAE-V2500"
+   ],
+   "options": [
+    "1",
+    "2"
+   ]
+  },
+  {
+   "code": "malf.a320.70.epr-mode-fault-n1-unrated-mode",
+   "title": "EPR MODE FAULT - N1 UNRATED MODE",
+   "ata": "70",
+   "ata_label": "Power Plant",
+   "group": "core",
+   "engines": [
+    "IAE-V2500"
+   ],
+   "options": [
+    "1",
+    "2"
+   ]
+  },
+  {
+   "code": "malf.a320.70.extinguishable-fire-by-first-agent",
+   "title": "EXTINGUISHABLE FIRE BY FIRST AGENT",
+   "ata": "70",
+   "ata_label": "Power Plant",
+   "group": "core",
+   "engines": [
+    "ALL"
+   ],
+   "options": [
+    "Eng 1",
+    "Eng 2"
+   ]
+  },
+  {
+   "code": "malf.a320.70.extinguishable-fire-by-second-agent",
+   "title": "EXTINGUISHABLE FIRE BY SECOND AGENT",
+   "ata": "70",
+   "ata_label": "Power Plant",
+   "group": "core",
+   "engines": [
+    "ALL"
+   ],
+   "options": [
+    "Eng 1",
+    "Eng 2"
+   ]
+  },
+  {
+   "code": "malf.a320.70.fadec-fault",
+   "title": "FADEC FAULT",
+   "ata": "70",
+   "ata_label": "Power Plant",
+   "group": "core",
+   "engines": [
+    "ALL"
+   ],
+   "options": [
+    "1",
+    "2"
+   ]
+  },
+  {
+   "code": "malf.a320.70.flame-out-no-damage",
+   "title": "FLAME OUT (NO DAMAGE)",
+   "ata": "70",
+   "ata_label": "Power Plant",
+   "group": "core",
+   "engines": [
+    "IAE-V2500",
+    "CFM56-5B4",
+    "CFM LEAP-1A",
+    "PW 1100-G"
+   ],
+   "options": [
+    "1",
+    "2"
+   ]
+  },
+  {
+   "code": "malf.a320.70.flame-out-with-damage",
+   "title": "FLAME OUT (WITH DAMAGE)",
+   "ata": "70",
+   "ata_label": "Power Plant",
+   "group": "core",
+   "engines": [
+    "CFM LEAP-1A",
+    "IAE-V2500",
+    "CFM56-5B4",
+    "PW 1100-G"
+   ],
+   "options": [
+    "1",
+    "2"
+   ]
+  },
+  {
+   "code": "malf.a320.70.fuel-filter-clogging",
+   "title": "FUEL FILTER CLOGGING",
+   "ata": "70",
+   "ata_label": "Power Plant",
+   "group": "core",
+   "engines": [
+    "CFM LEAP-1A",
+    "IAE-V2500",
+    "CFM56-5B4",
+    "PW 1100-G"
+   ],
+   "options": [
+    "1",
+    "2"
+   ]
+  },
+  {
+   "code": "malf.a320.70.hidden-fuel-leak",
+   "title": "HIDDEN FUEL LEAK",
+   "ata": "70",
+   "ata_label": "Power Plant",
+   "group": "core",
+   "engines": [
+    "IAE-V2500",
+    "CFM56-5B4"
+   ],
+   "options": [
+    "1",
+    "2"
+   ]
+  },
+  {
+   "code": "malf.a320.70.high-vibrations-n1",
+   "title": "HIGH VIBRATIONS N1",
+   "ata": "70",
+   "ata_label": "Power Plant",
+   "group": "core",
+   "engines": [
+    "IAE-V2500",
+    "CFM56-5B4",
+    "PW 1100-G",
+    "CFM LEAP-1A"
+   ],
+   "options": [
+    "1",
+    "2"
+   ]
+  },
+  {
+   "code": "malf.a320.70.high-vibrations-n2",
+   "title": "HIGH VIBRATIONS N2",
+   "ata": "70",
+   "ata_label": "Power Plant",
+   "group": "core",
+   "engines": [
+    "IAE-V2500",
+    "CFM56-5B4",
+    "PW 1100-G",
+    "CFM LEAP-1A"
+   ],
+   "options": [
+    "1",
+    "2"
+   ]
+  },
+  {
+   "code": "malf.a320.70.hp-fuel-valve-fault",
+   "title": "HP FUEL VALVE FAULT",
+   "ata": "70",
+   "ata_label": "Power Plant",
+   "group": "core",
+   "engines": [
+    "CFM56-5B4",
+    "CFM LEAP-1A",
+    "IAE-V2500",
+    "PW 1100-G"
+   ],
+   "options": [
+    "1",
+    "2"
+   ]
+  },
+  {
+   "code": "malf.a320.70.n1-inc-dec",
+   "title": "N1 INC/DEC",
+   "ata": "70",
+   "ata_label": "Power Plant",
+   "group": "core",
+   "engines": [
+    "CFM LEAP-1A",
+    "IAE-V2500",
+    "CFM56-5B4",
+    "PW 1100-G"
+   ],
+   "options": [
+    "1",
+    "2"
+   ]
+  },
+  {
+   "code": "malf.a320.70.n1-vibration-peak-inc-dec",
+   "title": "N1 VIBRATION PEAK (INC/DEC)",
+   "ata": "70",
+   "ata_label": "Power Plant",
+   "group": "core",
+   "engines": [
+    "PW 1100-G",
+    "CFM LEAP-1A"
+   ],
+   "options": [
+    "1",
+    "2"
+   ]
+  },
+  {
+   "code": "malf.a320.70.n2-accessory-drive-lost",
+   "title": "N2 ACCESSORY DRIVE LOST",
+   "ata": "70",
+   "ata_label": "Power Plant",
+   "group": "core",
+   "engines": [
+    "IAE-V2500",
+    "CFM56-5B4"
+   ],
+   "options": [
+    "1",
+    "2"
+   ]
+  },
+  {
+   "code": "malf.a320.70.n2-inc-dec",
+   "title": "N2 INC/DEC",
+   "ata": "70",
+   "ata_label": "Power Plant",
+   "group": "core",
+   "engines": [
+    "CFM LEAP-1A",
+    "IAE-V2500",
+    "CFM56-5B4",
+    "PW 1100-G"
+   ],
+   "options": [
+    "1",
+    "2"
+   ]
+  },
+  {
+   "code": "malf.a320.70.oil-filter-clogged",
+   "title": "OIL FILTER CLOGGED",
+   "ata": "70",
+   "ata_label": "Power Plant",
+   "group": "core",
+   "engines": [
+    "IAE-V2500",
+    "CFM56-5B4",
+    "CFM LEAP-1A",
+    "PW 1100-G"
+   ],
+   "options": [
+    "1",
+    "2"
+   ]
+  },
+  {
+   "code": "malf.a320.70.oil-press-inc-dec",
+   "title": "OIL PRESS INC/DEC",
+   "ata": "70",
+   "ata_label": "Power Plant",
+   "group": "core",
+   "engines": [
+    "CFM LEAP-1A",
+    "CFM56-5B4",
+    "IAE-V2500",
+    "PW 1100-G"
+   ],
+   "options": [
+    "1",
+    "2"
+   ]
+  },
+  {
+   "code": "malf.a320.70.oil-qty-inc-dec",
+   "title": "OIL QTY INC/DEC",
+   "ata": "70",
+   "ata_label": "Power Plant",
+   "group": "core",
+   "engines": [
+    "CFM LEAP-1A",
+    "IAE-V2500",
+    "CFM56-5B4",
+    "PW 1100-G"
+   ],
+   "options": [
+    "1",
+    "2"
+   ]
+  },
+  {
+   "code": "malf.a320.70.oil-temp-inc-dec",
+   "title": "OIL TEMP INC/DEC",
+   "ata": "70",
+   "ata_label": "Power Plant",
+   "group": "core",
+   "engines": [
+    "IAE-V2500",
+    "CFM56-5B4",
+    "CFM LEAP-1A",
+    "PW 1100-G"
+   ],
+   "options": [
+    "1",
+    "2"
+   ]
+  },
+  {
+   "code": "malf.a320.70.reverser-fault",
+   "title": "REVERSER FAULT",
+   "ata": "70",
+   "ata_label": "Power Plant",
+   "group": "core",
+   "engines": [
+    "IAE-V2500",
+    "CFM56-5B4",
+    "PW 1100-G",
+    "CFM LEAP-1A"
+   ],
+   "options": [
+    "1",
+    "2"
+   ]
+  },
+  {
+   "code": "malf.a320.70.reverser-unlocked",
+   "title": "REVERSER UNLOCKED",
+   "ata": "70",
+   "ata_label": "Power Plant",
+   "group": "core",
+   "engines": [
+    "ALL"
+   ],
+   "options": [
+    "1",
+    "2"
+   ]
+  },
+  {
+   "code": "malf.a320.70.serious-damage-with-abrupt-power-loss",
+   "title": "SERIOUS DAMAGE WITH ABRUPT POWER LOSS",
+   "ata": "70",
+   "ata_label": "Power Plant",
+   "group": "core",
+   "engines": [
+    "CFM LEAP-1A",
+    "IAE-V2500",
+    "CFM56-5B4",
+    "PW 1100-G"
+   ],
+   "options": [
+    "1",
+    "2"
+   ]
+  },
+  {
+   "code": "malf.a320.70.serious-damage-with-unextinguishable-fire",
+   "title": "SERIOUS DAMAGE WITH UNEXTINGUISHABLE FIRE",
+   "ata": "70",
+   "ata_label": "Power Plant",
+   "group": "core",
+   "engines": [
+    "CFM LEAP-1A",
+    "IAE-V2500",
+    "CFM56-5B4",
+    "PW 1100-G"
+   ],
+   "options": [
+    "1",
+    "2"
+   ]
+  },
+  {
+   "code": "malf.a320.70.start-valve-fault",
+   "title": "START VALVE FAULT",
+   "ata": "70",
+   "ata_label": "Power Plant",
+   "group": "core",
+   "engines": [
+    "IAE-V2500",
+    "CFM56-5B4",
+    "CFM LEAP-1A",
+    "PW 1100-G"
+   ],
+   "options": [
+    "1",
+    "2"
+   ]
+  },
+  {
+   "code": "malf.a320.70.thr-lever-disagree",
+   "title": "THR LEVER DISAGREE",
+   "ata": "70",
+   "ata_label": "Power Plant",
+   "group": "core",
+   "engines": [
+    "IAE-V2500",
+    "CFM56-5B4",
+    "PW 1100-G",
+    "CFM LEAP-1A"
+   ],
+   "options": [
+    "1",
+    "2"
+   ]
+  },
+  {
+   "code": "malf.a320.70.thr-lever-fault",
+   "title": "THR LEVER FAULT",
+   "ata": "70",
+   "ata_label": "Power Plant",
+   "group": "core",
+   "engines": [
+    "IAE-V2500",
+    "CFM56-5B4",
+    "CFM LEAP-1A",
+    "PW 1100-G"
+   ],
+   "options": [
+    "1",
+    "2"
+   ]
+  },
+  {
+   "code": "malf.a320.70.unextinguishable-fire",
+   "title": "UNEXTINGUISHABLE FIRE",
+   "ata": "70",
+   "ata_label": "Power Plant",
+   "group": "core",
+   "engines": [
+    "ALL"
+   ],
+   "options": [
+    "Eng 1",
+    "Eng 2"
+   ]
+  },
+  {
+   "code": "malf.a320.70.volcanic-ash",
+   "title": "VOLCANIC ASH",
+   "ata": "70",
+   "ata_label": "Power Plant",
+   "group": "core",
+   "engines": [
+    "ALL"
+   ],
+   "options": []
+  },
+  {
+   "code": "malf.a320.opt.air-conditioning-smoke",
+   "title": "AIR CONDITIONING SMOKE",
+   "ata": null,
+   "ata_label": "Option - SMOKE",
+   "group": "option:SMOKE",
+   "engines": [
+    "ALL"
+   ],
+   "options": [
+    "Pack 1",
+    "Pack 2"
+   ]
+  },
+  {
+   "code": "malf.a320.opt.cb-panel-smoke",
+   "title": "CB PANEL SMOKE",
+   "ata": null,
+   "ata_label": "Option - SMOKE",
+   "group": "option:SMOKE",
+   "engines": [
+    "ALL"
+   ],
+   "options": [
+    "1"
+   ]
+  },
+  {
+   "code": "malf.a320.opt.instrument-panel-smoke",
+   "title": "INSTRUMENT PANEL SMOKE",
+   "ata": null,
+   "ata_label": "Option - SMOKE",
+   "group": "option:SMOKE",
+   "engines": [
+    "ALL"
+   ],
+   "options": [
+    "1"
+   ]
+  },
+  {
+   "code": "malf.a320.opt.overhead-panel-smoke",
+   "title": "OVERHEAD PANEL SMOKE",
+   "ata": null,
+   "ata_label": "Option - SMOKE",
+   "group": "option:SMOKE",
+   "engines": [
+    "ALL"
+   ],
+   "options": []
+  },
+  {
+   "code": "malf.a320.opt.atsu-fault",
+   "title": "ATSU FAULT",
+   "ata": null,
+   "ata_label": "Option - ATSU",
+   "group": "option:ATSU",
+   "engines": [
+    "ALL"
+   ],
+   "options": []
+  },
+  {
+   "code": "malf.a320.opt.hud-head-up-display-off",
+   "title": "HUD - HEAD UP DISPLAY OFF",
+   "ata": null,
+   "ata_label": "Option - HUD",
+   "group": "option:HUD",
+   "engines": [
+    "ALL"
+   ],
+   "options": [
+    "Capt",
+    "F/O"
+   ]
+  },
+  {
+   "code": "malf.a320.opt.hud-hud-fpv-disagree",
+   "title": "HUD - HUD FPV DISAGREE",
+   "ata": null,
+   "ata_label": "Option - HUD",
+   "group": "option:HUD",
+   "engines": [
+    "ALL"
+   ],
+   "options": []
+  },
+  {
+   "code": "malf.a320.opt.hud-loss-of-synthetic-runway-and-loc-track",
+   "title": "HUD - LOSS OF SYNTHETIC RUNWAY AND LOC TRACK",
+   "ata": null,
+   "ata_label": "Option - HUD",
+   "group": "option:HUD",
+   "engines": [
+    "ALL"
+   ],
+   "options": []
+  },
+  {
+   "code": "malf.a320.opt.gpws-fault",
+   "title": "GPWS FAULT",
+   "ata": null,
+   "ata_label": "Option - TCAS/EGPWS",
+   "group": "option:TCAS/EGPWS",
+   "engines": [
+    "ALL"
+   ],
+   "options": []
+  },
+  {
+   "code": "malf.a320.opt.tcas-fault",
+   "title": "TCAS FAULT",
+   "ata": null,
+   "ata_label": "Option - TCAS/EGPWS",
+   "group": "option:TCAS/EGPWS",
+   "engines": [
+    "ALL"
+   ],
+   "options": []
+  }
+ ]
+}
