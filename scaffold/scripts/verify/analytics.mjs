@@ -75,26 +75,51 @@ export const checks = [
     },
   },
   {
-    name: 'every av_* view is selectable',
-    async run({ client }) {
+    name: 'every av_* view is selectable within the configured time',
+    async run({ client, analytics }) {
+      // EVERY PROBE IS BOUNDED, and the bound is the assertion. A view that does not return
+      // inside gate.view_probe_timeout_ms fails BY NAME and the deploy stops - which is what an
+      // unbounded probe could never do. On 2026-09-19 av_assessor_adjusted ran for two hours and
+      // twenty-five minutes without returning, holding read locks that queued a migration behind
+      // it and every later reader behind that: the gate did not fail, it stopped, and it took the
+      // database with it. "Returns within N seconds" is a stronger claim than "returns
+      // eventually", so this narrows nothing; it makes an assertion out of something that was
+      // previously only a hope.
+      const timeoutMs = analytics.int('gate.view_probe_timeout_ms');
       const { rows: views } = await client.query(
         `SELECT viewname FROM pg_views WHERE schemaname = 'public' AND viewname LIKE 'av\\_%' ORDER BY 1`,
       );
       const broken = [];
-      for (const { viewname } of views) {
-        try {
-          // LIMIT 1 through a subquery: the view must plan AND execute, and a view whose config
-          // key is missing raises at execution rather than at plan time.
-          await client.query(`SELECT count(*) FROM (SELECT * FROM ${viewname} LIMIT 1) probe`);
-        } catch (err) {
-          broken.push(`${viewname}: ${err.message.split('\n')[0]}`);
+      const slow = [];
+      await client.query(`SET statement_timeout = ${Number(timeoutMs)}`);
+      try {
+        for (const { viewname } of views) {
+          const started = Date.now();
+          try {
+            // LIMIT 1 through a subquery: the view must plan AND execute, and a view whose config
+            // key is missing raises at execution rather than at plan time.
+            await client.query(`SELECT count(*) FROM (SELECT * FROM ${viewname} LIMIT 1) probe`);
+            const ms = Date.now() - started;
+            if (ms > timeoutMs / 3) slow.push(`${viewname} ${(ms / 1000).toFixed(1)}s`);
+          } catch (err) {
+            // 57014 is query_canceled: the statement timeout fired. Report it as the timing
+            // failure it is rather than as an unreadable view, because the two have different fixes.
+            broken.push(err.code === '57014'
+              ? `${viewname}: no first row in ${(timeoutMs / 1000).toFixed(0)}s`
+              : `${viewname}: ${err.message.split('\n')[0]}`);
+          }
         }
+      } finally {
+        // Back to unbounded for every later assertion: this limit is this check's, not the suite's.
+        await client.query('SET statement_timeout = 0');
       }
+      const note = slow.length > 0 ? `; slowest ${slow.slice(0, 3).join(', ')}` : '';
       return {
         ok: views.length > 0 && broken.length === 0,
         detail: views.length === 0 ? 'no av_* views exist; the analytics migrations did not run'
-          : broken.length === 0 ? `${views.length} views, all selectable`
-          : broken.slice(0, 2).join('; ') + (broken.length > 2 ? ` (+${broken.length - 2})` : ''),
+          : broken.length === 0 ? `${views.length} views, all selectable${note}`
+          : `${broken.length} of ${views.length} failed: ` + broken.slice(0, 3).join('; ')
+            + (broken.length > 3 ? ` (+${broken.length - 3})` : ''),
       };
     },
   },

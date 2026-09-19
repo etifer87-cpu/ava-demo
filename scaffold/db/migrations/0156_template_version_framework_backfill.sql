@@ -20,7 +20,9 @@ UPDATE session_template_versions stv
    SET framework_id = src.framework_id,
        updated_at   = now()
   FROM (
-    SELECT tc.template_version_id, min(tc.framework_id) AS framework_id
+    -- array_agg, not min(): PostgreSQL has no min() for uuid. The HAVING below already
+    -- guarantees the version names exactly one framework, so the first element IS the value.
+    SELECT tc.template_version_id, (array_agg(DISTINCT tc.framework_id))[1] AS framework_id
       FROM template_competencies tc
      GROUP BY tc.template_version_id
     HAVING count(DISTINCT tc.framework_id) = 1

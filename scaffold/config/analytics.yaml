@@ -18,7 +18,7 @@
 # rate_display and are applied at render only.
 # ---------------------------------------------------------------------------
 
-version: "1.4"
+version: "1.5"
 updated: "2026-09-13"
 # Free-text note recorded with the version in config_versions on every load.
 note: "v1.3: grade_scale.code_meanings names which non-scoring code a surface uses for each situation, so no component picks one by string. No threshold changed. Illustrative values; an operator tunes these against their own baseline before publishing an indicator. v1.1: program_indicator.scopes.template_kinds now name the process kinds of docs/04 section 4 directly, because migration 0032 replaced the six coarse families with the template_kinds catalogue. No threshold changed."
@@ -522,3 +522,25 @@ data_quality:
   # Dimensions are bucketed by the record's values at session time, falling back
   # to the template's, and only then to the person's current values.
   dimension_fallback: ["record", "template", "person_current"]
+
+# ---------------------------------------------------------------------------
+# 15. The gate suite's own limits.
+# ---------------------------------------------------------------------------
+gate:
+  # How long ONE av_* view may take to return its first row before the gate
+  # calls it unusable. This is an assertion, not an escape: a view that exceeds
+  # it FAILS, loudly and by name, and the deploy stops exactly as it would for
+  # any other failure.
+  #
+  # It exists because the alternative is worse. On 2026-09-19 a probe of
+  # av_assessor_adjusted ran for two hours and twenty-five minutes without
+  # returning, holding read locks that queued a migration behind it and every
+  # later reader behind that. The gate did not fail; it stopped, printed
+  # nothing, and took the database with it. A check that can hang forever is
+  # not a gate, and "returns within this many seconds" is a STRONGER claim than
+  # "returns eventually", not a weaker one.
+  #
+  # Thirty seconds is far beyond any view a screen reads: the slowest of those
+  # measured 161 ms fleet-wide. A view that needs longer is not one a surface
+  # can use, whatever it computes.
+  view_probe_timeout_ms: 30000
