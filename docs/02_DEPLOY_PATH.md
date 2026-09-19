@@ -58,8 +58,8 @@ APP_BASE_URL=https://avademo.corvanox.com
 TZ=America/Bogota
 POSTGRES_USER=ava
 POSTGRES_PASSWORD=$DB_PASS
-POSTGRES_DB=ava
-DATABASE_URL=postgres://ava:$DB_PASS@db:5432/ava
+POSTGRES_DB=ava_demo
+DATABASE_URL=postgres://ava:$DB_PASS@db:5432/ava_demo
 SESSION_SECRET=$(openssl rand -hex 32)
 INTERNAL_API_TOKEN=$(openssl rand -hex 32)
 AUTH_FORCE_PASSWORD_CHANGE=false
@@ -75,6 +75,14 @@ unset DB_PASS
 ```
 
 Two things in there are easy to get wrong and expensive to find:
+
+- **The database is `ava_demo` on every host, and that is now load-bearing.** It read `ava` here and
+  `ava_demo` everywhere else until 2026-09-19; nobody recalled choosing two names, so it was drift.
+  One name matters more than it used to: `npm run reset:hard` refuses unless `--drop-database <name>`
+  matches the database DATABASE_URL points at, and that guard exists so a stale `.env` cannot empty
+  the wrong instance. A name that differs per host turns the guard into a memory test, on the machine
+  where being wrong costs most. `ava_demo` rather than `ava` because cvx-hel1 is shared - it already
+  runs `cvx-stage-web-1` - and `ava` is the name another project reaches for.
 
 - **`DATABASE_URL` names the SERVICE `db` on 5432**, not `localhost` on the published port. Inside
   the compose network the app is a container; point it at localhost and it resolves its own
