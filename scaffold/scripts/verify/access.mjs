@@ -146,6 +146,21 @@ export const checks = [
         }
       }
 
+      // A CHECK THAT CANNOT SEE ITS SUBJECT MUST FAIL, NOT PASS. With no source files at all this
+      // found nothing, concluded nothing was wrong, and reported "0 client components, 0
+      // server-only modules, no crossing" - green, while proving nothing. That is what it did on
+      // cvx-hel1 on 2026-09-19, because the runtime image carries .next/standalone and not app/,
+      // components/ or lib/. An access-control assertion that reports green when it is blind is
+      // worse than one that is absent: nobody goes looking for a check that passes.
+      if (files.length === 0) {
+        return {
+          ok: false,
+          detail: 'no source files under app/, components/ or lib/ - this check reads SOURCE and '
+            + 'cannot run against a built image. Run it where the repository is, not in the runtime '
+            + 'container (docs/02_DEPLOY_PATH.md section 9).',
+        };
+      }
+
       const clients = files.filter((f) => /^\s*['"]use client['"]/m.test(text.get(f)));
       const problems = [];
       for (const client of clients) {

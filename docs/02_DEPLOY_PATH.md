@@ -17,12 +17,17 @@ host, written once, never copied.
 | Secrets | generated into the server's `.env` by the snippet below, vault entry `vault: Avianca/avademo-env` | `.env` in git, `.env` over scp, a password on a command line |
 | Image | built ON the server from the pulled commit, tagged `ava-demo:<sha>` | pushing images from the PC |
 
-## Git remote (decision pending — see brain DECISIONS)
+## Git remote (decided 2026-09-19)
 
-Preferred: a private remote (GitHub private repo or a Gitea on cvx-hel1) that both the PC and the
-server can reach; the server pulls with a read-only deploy key. Fallback if no remote is wanted:
-`git bundle create ava.bundle main` on the PC, `scp` the bundle, `git pull ava.bundle main` on the
-server — still git, still a commit, still no file copies.
+`github.com/etifer87-cpu/ava-demo`, private. The PC pushes to it; the server pulls from it with a
+**read-only deploy key**, because the server has no reason to write and a key that cannot push is one
+fewer thing to get wrong. The key is per-repository, not an account key: a deploy key compromised on
+a shared host exposes this repository and nothing else of yours.
+
+The fallback, if the remote is ever unavailable: `git bundle create ava.bundle main` on the PC, `scp`
+the bundle, `git pull ava.bundle main` on the server — still git, still a commit, still no file
+copies. What is NEVER done is copying files to the server, which is rule 6: a deploy that cannot be
+named by a commit cannot be reproduced or rolled back.
 
 ## The image
 
@@ -144,7 +149,22 @@ finishes. Expect roughly 9 000 sessions, 11 000 records and 536 subjects.
 1. `/api/health` reports `env: prod`, the expected release sha, `framework: CBTA 9 / 73`,
    `subjects: N`, `inference: <mode>`.
 2. `npm run smoke` from inside the container fetches every route and every subject page.
-3. `npm run verify` green, including the neutrality scan.
+3. **`node scripts/verify.mjs` on the server - NOT `npm run verify`.** The npm script chains the
+   neutrality scan in front of the gate, and that scan reads `NEUTRALITY_WORDLIST`, which points at
+   a list kept deliberately OUTSIDE this repository and therefore does not exist on the server. Do
+   not copy the word list onto the host to make it run: the scan checks SOURCE, the host is running
+   a commit that was scanned before it was pushed, and re-scanning identical source proves nothing
+   while putting the list exactly where it is not supposed to be. The gate suite checks the DATABASE
+   this host just built, and that is the part that has to run here.
+
+   Two access assertions read source too, and cannot pass in the runtime container, which carries
+   `.next/standalone` rather than `app/`, `components/` and `lib/`. Both now FAIL there by design
+   and say why. Until 2026-09-19 one of them PASSED instead, reporting "0 client components, 0
+   server-only modules" - green, having seen nothing. A check that cannot see its subject must fail:
+   nobody goes looking for an assertion that passes.
+
+   Expect on a fresh server build: **23 of 26**, failing the two source-reading access assertions and
+   whatever the seed does not yet exercise. Read every failure; do not accept a count.
 4. **Sign in through Cloudflare Access and save something** — open a session, or change a template.
    Not a page load: a POST. Until 2026-09-15 every redirect after a POST was built from the server's
    own bind address, so the write succeeded and the browser landed on a dead URL. It is fixed
