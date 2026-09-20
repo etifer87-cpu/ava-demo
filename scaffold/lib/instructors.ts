@@ -1,6 +1,7 @@
 import { query, queryOne } from '@/lib/db';
 import { analyticsConfig, checkKinds, failOutcomes, policy } from '@/lib/config';
 import { standardisationIndex, justificationRate, olsSlope, welch, type AnalyticsConfig, type AsiResult, type WelchResult } from '@/lib/analytics';
+import { foldedLikeAny } from './search';
 
 /**
  * lib/instructors.ts - the instructor bench and one instructor's grading profile.
@@ -101,7 +102,7 @@ export async function listInstructors(f: BenchFilters, visible: Set<string> | nu
   const where: string[] = ["p.deleted_at IS NULL AND p.roster_status = 'active' AND cardinality(p.instructor_roles) > 0"];
   const params: unknown[] = [];
   if (visible) { if (visible.size === 0) where.push('false'); else { params.push([...visible]); where.push(`p.id = ANY($${params.length}::uuid[])`); } }
-  if (f.q) { params.push(`%${f.q}%`); where.push(`(p.full_name ILIKE $${params.length} OR p.external_id ILIKE $${params.length} OR p.seniority_number::text = $${params.length})`); }
+  if (f.q) { params.push(`%${f.q}%`); where.push(`(${foldedLikeAny(['p.full_name', 'p.external_id'], `$${params.length}`)} OR p.seniority_number::text = $${params.length})`); }
   if (f.fleet) { params.push(f.fleet); where.push(`ac.code = $${params.length}`); }
   if (f.base) { params.push(f.base); where.push(`ou.code = $${params.length}`); }
   if (f.qual) { params.push(f.qual); where.push(`$${params.length} = ANY(p.instructor_roles)`); }
@@ -303,7 +304,7 @@ export async function benchAnalysis(f: BenchFilters, visible: Set<string> | null
   const where: string[] = ["p.deleted_at IS NULL AND p.roster_status = 'active' AND cardinality(p.instructor_roles) > 0"];
   const params: unknown[] = [];
   if (visible) { if (visible.size === 0) where.push('false'); else { params.push([...visible]); where.push(`p.id = ANY($${params.length}::uuid[])`); } }
-  if (f.q) { params.push(`%${f.q}%`); where.push(`(p.full_name ILIKE $${params.length} OR p.external_id ILIKE $${params.length})`); }
+  if (f.q) { params.push(`%${f.q}%`); where.push(`(${foldedLikeAny(['p.full_name', 'p.external_id'], `$${params.length}`)})`); }
   if (f.fleet) { params.push(f.fleet); where.push(`ac.code = $${params.length}`); }
   if (f.base) { params.push(f.base); where.push(`ou.code = $${params.length}`); }
   if (f.qual) { params.push(f.qual); where.push(`$${params.length} = ANY(p.instructor_roles)`); }

@@ -2,6 +2,7 @@ import 'server-only';
 import { randomBytes } from 'node:crypto';
 import { cookies } from 'next/headers';
 import { query } from './db';
+import { foldedLikeAny } from './search';
 
 /**
  * lib/admin.ts - shared pieces of the administration module: the account directory query, role
@@ -147,7 +148,7 @@ export async function listAccounts(opts: {
   if (opts.status === 'inactive') where.push('NOT u.is_active');
   if (opts.q) {
     params.push(`%${opts.q}%`);
-    where.push(`(u.username ILIKE $${params.length} OR p.full_name ILIKE $${params.length} OR p.external_id ILIKE $${params.length} OR u.email ILIKE $${params.length})`);
+    where.push(`(${foldedLikeAny(['u.username', 'p.full_name', 'p.external_id', 'u.email'], `$${params.length}`)})`);
   }
   if (opts.role) {
     params.push(opts.role);
@@ -255,7 +256,7 @@ export async function listDirectory(opts: { q?: string; role?: string; fleet?: s
   else if (status) { params.push(status); where.push(`p.roster_status = $${params.length}`); }
   if (opts.q) {
     params.push(`%${opts.q}%`);
-    where.push(`(p.full_name ILIKE $${params.length} OR p.external_id ILIKE $${params.length} OR u.username ILIKE $${params.length} OR u.email ILIKE $${params.length})`);
+    where.push(`(${foldedLikeAny(['p.full_name', 'p.external_id', 'u.username', 'u.email'], `$${params.length}`)})`);
   }
   if (opts.role) { params.push(opts.role); where.push(`EXISTS (SELECT 1 FROM user_roles x WHERE x.user_id = u.id AND x.role_code = $${params.length})`); }
   if (opts.fleet) { params.push(opts.fleet); where.push(`ac.code = $${params.length}`); }

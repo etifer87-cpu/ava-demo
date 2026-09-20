@@ -1,5 +1,6 @@
 import 'server-only';
 import { query } from './db';
+import { foldedLikeAny } from './search';
 
 /**
  * lib/templates.ts - the program list and its options. docs/06_PROGRAM_BUILDER.md section 5.1.
@@ -36,7 +37,7 @@ export interface ProgramRow {
 export async function listPrograms(opts: { q?: string; kind?: string; fleet?: string; status?: string }): Promise<ProgramRow[]> {
   const where: string[] = ['t.deleted_at IS NULL'];
   const params: unknown[] = [];
-  if (opts.q) { params.push(`%${opts.q}%`); where.push(`(t.name ILIKE $${params.length} OR t.code ILIKE $${params.length} OR v.setup->'program'->>'code' ILIKE $${params.length} OR v.setup->'program'->>'module' ILIKE $${params.length})`); }
+  if (opts.q) { params.push(`%${opts.q}%`); where.push(`(${foldedLikeAny(['t.name', 't.code', "v.setup->'program'->>'code'", "v.setup->'program'->>'module'"], `$${params.length}`)})`); }
   if (opts.kind) { params.push(opts.kind); where.push(`t.template_kind = $${params.length}`); }
   if (opts.fleet) { params.push(opts.fleet); where.push(`ac.code = $${params.length}`); }
   if (opts.status === 'draft' || opts.status === 'published' || opts.status === 'retired') { params.push(opts.status); where.push(`v.status = $${params.length}`); }

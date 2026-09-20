@@ -1,6 +1,7 @@
 import 'server-only';
 import { query, transaction } from '@/lib/db';
 import { audit, type AuditActor, type RequestContext } from '@/lib/audit';
+import { foldedLikeAny } from '../search';
 
 /**
  * lib/program/library.ts - the element library as the builder's rail sees it.
@@ -47,7 +48,7 @@ export interface LibraryRow {
 export async function listLibrary(opts: { q?: string; fleet?: string | null }): Promise<LibraryRow[]> {
   const params: unknown[] = [];
   const where = ['l.deleted_at IS NULL', 'l.is_active'];
-  if (opts.q) { params.push(`%${opts.q}%`); where.push(`(l.title ILIKE $${params.length} OR l.code ILIKE $${params.length} OR l.content->>'summary' ILIKE $${params.length})`); }
+  if (opts.q) { params.push(`%${opts.q}%`); where.push(`(${foldedLikeAny(['l.title', 'l.code', "l.content->>'summary'"], `$${params.length}`)})`); }
   if (opts.fleet) { params.push(`fleet:${opts.fleet}`); where.push(`(NOT EXISTS (SELECT 1 FROM unnest(l.tags) t WHERE t LIKE 'fleet:%') OR $${params.length} = ANY (l.tags))`); }
   return query<LibraryRow>(`
     SELECT l.id, l.code, l.element_type, COALESCE(l.title, l.code) AS title,

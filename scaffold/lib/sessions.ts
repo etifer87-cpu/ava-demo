@@ -2,6 +2,7 @@ import 'server-only';
 import { query, queryOne } from '@/lib/db';
 import { policy, templateKind, type TemplateKind } from '@/lib/config';
 import { boundFleets, type ResolvedAccess } from '@/lib/access';
+import { foldedLike, foldedLikeAny } from './search';
 
 /**
  * lib/sessions.ts - the sessions a person may see, the programs they may open one against, and the
@@ -113,9 +114,10 @@ export async function listSessions(f: SessionFilters, access: ResolvedAccess, pa
   if (f.fleet) { params.push(f.fleet); where.push(`ac.code = $${params.length}`); }
   if (f.q) {
     params.push(`%${f.q}%`);
-    where.push(`(t.name ILIKE $${params.length} OR ap.full_name ILIKE $${params.length}
+    const p = `$${params.length}`;
+    where.push(`(${foldedLikeAny(['t.name', 'ap.full_name'], p)}
                  OR EXISTS (SELECT 1 FROM session_subjects ss2 JOIN people sp2 ON sp2.id = ss2.person_id
-                             WHERE ss2.session_id = s.id AND sp2.full_name ILIKE $${params.length}))`);
+                             WHERE ss2.session_id = s.id AND ${foldedLike('sp2.full_name', p)}))`);
   }
   const fleets = boundFleets(access, 'training.sessions.view');
   if (fleets) { params.push([...fleets]); where.push(`(s.asset_class_id = ANY($${params.length}::uuid[]) OR s.asset_class_id IS NULL)`); }
@@ -188,7 +190,7 @@ export async function subjectOptions(visible: Set<string> | null, fleet: string 
   const params: unknown[] = [];
   if (visible) { if (visible.size === 0) where.push('false'); else { params.push([...visible]); where.push(`p.id = ANY($${params.length}::uuid[])`); } }
   if (fleet) { params.push(fleet); where.push(`ac.code = $${params.length}`); }
-  if (q) { params.push(`%${q}%`); where.push(`(p.full_name ILIKE $${params.length} OR p.external_id ILIKE $${params.length} OR p.seniority_number::text = $${params.length})`); }
+  if (q) { params.push(`%${q}%`); where.push(`(${foldedLikeAny(['p.full_name', 'p.external_id'], `$${params.length}`)} OR p.seniority_number::text = $${params.length})`); }
   return query<SubjectOption>(`
     SELECT p.id, p.full_name, p.position, p.external_id, p.seniority_number, ac.code AS fleet, ou.code AS base
       FROM people p
