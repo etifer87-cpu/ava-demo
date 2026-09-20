@@ -351,7 +351,17 @@ function gradingOf(c: Collector, v: unknown, path: string): Grading {
     competency_grade_mode: oneOf(gc, gradingRaw, 'competency_grade_mode', COMPETENCY_GRADE_MODES, 'none') ?? 'none',
     competencies,
   };
-  if (out.competency_grade_mode !== 'none' && competencies.length === 0) gc.add('competencies', 'competency grading is on but no competency is targeted');
+  // DELIBERATELY NOT A PARSE PROBLEM. A grading mode with an empty competency list is bad policy,
+  // not a broken shape: it parses, round-trips and stores perfectly well. It used to be added here,
+  // and because write.ts refuses a save that produced ANY parse problem, the state could never be
+  // stored - which made `task.no_competencies` (config/rules.yaml, severity: block) unreachable: a
+  // blocker for a condition the builder would not let you create. Untick the last competency on a
+  // graded exercise and the save was refused instead of the header going red, which is the opposite
+  // of what the Findings card promises.
+  //
+  // The division of labour: SHAPE answers 'can this be represented', RULES answer 'may this be
+  // published'. A draft is allowed to be mid-thought; publish.ts refuses on blockers, so nothing
+  // incomplete can escape into a published version. See config/rules.yaml `task.no_competencies`.
   c.problems.push(...gc.problems);
   return out;
 }

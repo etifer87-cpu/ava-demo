@@ -83,9 +83,15 @@ describe('task content', () => {
     expect(problems.some((p) => p.path === 'conduct.malfunction')).toBe(true);
   });
 
-  it('competency grading with no target competency is reported - a grade against nothing', () => {
-    const { problems } = parseTaskContent({ grading: { competency_grade_mode: 'scale_1_5' } }, vocab);
-    expect(problems.some((p) => p.path === 'grading.competencies')).toBe(true);
+  // A grade against nothing is bad POLICY, not a broken shape, so the parser accepts it and
+  // `task.no_competencies` (config/rules.yaml, severity: block) refuses the publish. While the
+  // parser reported it, write.ts refused the save - and the blocker could therefore never fire on
+  // anything, because the state it names could not be stored. See the findings test below.
+  it('competency grading with no target competency PARSES - shape stores it, rules refuse to publish it', () => {
+    const { value, problems } = parseTaskContent({ grading: { competency_grade_mode: 'scale_1_5' } }, vocab);
+    expect(problems.some((p) => p.path === 'grading.competencies')).toBe(false);
+    expect(value.grading.competency_grade_mode).toBe('scale_1_5');
+    expect(value.grading.competencies).toEqual([]);
   });
 
   it('serialises to the canonical spelling and parses back to the same value', () => {
@@ -141,7 +147,8 @@ describe('section grading', () => {
     expect(ok.problems).toEqual([]);
     expect(ok.value.grading.competency_grade_mode).toBe('scale_1_5');
     const bad = parseSectionContent({ grading: { competency_grade_mode: 'scale_1_5' } }, vocab);
-    expect(bad.problems.some((p) => p.path === 'grading.competencies')).toBe(true);
+    expect(bad.problems.some((p) => p.path === 'grading.competencies')).toBe(false);
+    expect(bad.value.grading.competencies).toEqual([]);
   });
 });
 
@@ -212,6 +219,18 @@ describe('rules registry', () => {
 describe('findings', () => {
   const build = (rows: ElementRow[], setup: unknown = { period: '4:00' }, kind = 'ebt_recurrent') => evaluate(buildTree(rows, setup, kind, vocab).tree, registry);
   const ids = (rows: ElementRow[], setup?: unknown, kind?: string) => build(rows, setup, kind).map((f) => f.rule);
+
+  it('a graded exercise targeting no competency is a blocker, and it names the exercise', () => {
+    const rows = DAY.map((r) => (r.element_key === 'eval1.loft'
+      ? row({ ...r, element_key: 'eval1.loft', element_type: 'task', parent_key: 'eval1', content: { grading: { competency_grade_mode: 'scale_1_5', competencies: [] }, aims: { grading_criteria: 'stated' } } })
+      : r));
+    const f = build(rows).find((x) => x.rule === 'task.no_competencies');
+    expect(f).toBeDefined();
+    expect(f?.severity).toBe('block');
+    expect(f?.at).toBe('eval1.loft');
+    // and it is gone the moment a competency is ticked again
+    expect(ids(DAY)).not.toContain('task.no_competencies');
+  });
 
   it('a complete EBT day passes the phase and reinforcement blockers', () => {
     const f = build(DAY);
