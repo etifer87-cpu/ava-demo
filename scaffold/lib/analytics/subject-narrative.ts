@@ -177,11 +177,27 @@ export async function runSubjectAnalysis(input: RunInput): Promise<AnalysisRunRe
     `SELECT id FROM config_versions WHERE name = 'analytics' AND is_active LIMIT 1`,
   );
 
+  // The framework is NOT optional on a run, even though the column has been nullable since 0031.
+  // A run is a statement about a pilot measured against a competency vocabulary; without the
+  // framework it cannot be read back years later, and `every graded or evidence-bearing row
+  // carries a framework` is exactly the gate assertion that caught this path writing NULL on the
+  // server on 2026-09-20. Resolved the same way every other reader resolves it.
+  const framework = await queryOne<{ id: string }>(
+    `SELECT id FROM competency_frameworks WHERE is_active ORDER BY created_at LIMIT 1`,
+  );
+  if (!framework?.id) {
+    throw new Error(
+      'no active competency framework: an analysis run cannot be attributed to a vocabulary that ' +
+        'does not exist. Seed the framework before requesting an analysis.',
+    );
+  }
+
   const started = await queryOne<{ id: string }>(
-    `INSERT INTO analysis_runs (person_id, run_kind, status, requested_by, config_version_id, figures, sources)
-     VALUES ($1::uuid, 'subject', 'running', $2::uuid, $3::uuid, $4::jsonb, $5::jsonb)
+    `INSERT INTO analysis_runs (person_id, framework_id, run_kind, status, requested_by, config_version_id, figures, sources)
+     VALUES ($1::uuid, $2::uuid, 'subject', 'running', $3::uuid, $4::uuid, $5::jsonb, $6::jsonb)
      RETURNING id`,
-    [input.personId, input.requestedBy, configVersion?.id ?? null, JSON.stringify(figures), JSON.stringify(sources)],
+    [input.personId, framework.id, input.requestedBy, configVersion?.id ?? null,
+     JSON.stringify(figures), JSON.stringify(sources)],
   );
   const id = started?.id;
   if (!id) throw new Error('the analysis run could not be created');
