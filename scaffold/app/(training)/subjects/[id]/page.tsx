@@ -38,6 +38,29 @@ import RecordsTable, { type RecordListRow } from '@/components/program/RecordDia
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
+/**
+ * The browser tab said "Avianca Training Management System" on this page and named itself on every
+ * other one, which is visible every time anyone switches tabs in a demonstration.
+ *
+ * The access check is repeated here for the reason the page states below: a title that names a
+ * person the caller may not see turns this route into an id oracle, and metadata is rendered
+ * before the page body decides to answer notFound().
+ */
+export async function generateMetadata({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
+  const generic = labels().subject;
+  if (!UUID_RE.test(id)) return { title: generic };
+  const access = await resolveAccess(await requireSession());
+  if (!(await canOnPerson(access, 'people.view', id))) return { title: generic };
+  const p = await queryOne<{ full_name: string }>(
+    `SELECT full_name FROM people WHERE id = $1::uuid AND deleted_at IS NULL`,
+    [id],
+  );
+  return { title: p?.full_name ?? generic };
+}
+
+const UUID_RE = /^[0-9a-f-]{36}$/i;
+
 interface PersonRow {
   id: string;
   external_id: string;

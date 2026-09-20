@@ -157,7 +157,7 @@ export default async function InstructorAnalysisPage({ searchParams }: { searchP
         />
       </Card>
 
-      <Card title="How to read this page" note="Written on the surface because an unlabelled benchmark is a bug report waiting to happen (docs/06 §13.7).">
+      <Card title="How to read this page" note="Written on the surface because an unlabelled benchmark is a bug report waiting to happen.">
         <ul className="small" style={{ margin: 0, paddingLeft: '1.2em' }}>
           <li><strong>Adjusted leniency</strong> is this instructor&apos;s grades minus what the same pilots earned in the same competencies from <em>other</em> instructors, shrunk toward zero by n / (n + {cfg.assessor_fairness.adjusted_delta.k_shrink}) so a small sample cannot reach the extremes. The raw own-mean-minus-group-mean delta is shown beside it and is never used to band or flag.</li>
           <li><strong>Baselines include everyone.</strong> The peer mean per competency, the group mean and the median leniency are computed over every instructor who has graded, including any whose row you cannot open and including dormant ones - removing them would change every other instructor&apos;s number. The rows you can see exclude your own.</li>

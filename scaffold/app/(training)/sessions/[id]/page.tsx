@@ -116,7 +116,7 @@ export default async function SessionPage({ params }: { params: Promise<{ id: st
         </Card>
       ) : null}
 
-      <Card title="Grading" note="docs/04_ETR.md §5">
+      <Card title="Grading">
         {canGrade ? (
           /* THIS PARAGRAPH DESCRIBES THE SESSION'S ACTUAL STATE. It used to say, on every session
              whatever had happened to it, that "signing and the freeze into a record are the next

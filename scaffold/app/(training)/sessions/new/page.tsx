@@ -110,7 +110,7 @@ export default async function NewSessionPage({ searchParams }: { searchParams: P
         </Card>
       )}
 
-      <Card title="What happens next" note="docs/04_ETR.md §2">
+      <Card title="What happens next">
         <p className="small" style={{ margin: 0 }}>
           The session opens <strong>{'open'}</strong> and nothing is recorded yet. Grading it writes grades as
           you click them; the first signature by either party locks everything, and finalising freezes a
