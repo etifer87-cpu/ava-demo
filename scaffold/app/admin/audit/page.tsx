@@ -5,6 +5,7 @@ import { resolveAccess, requireCapability } from '@/lib/access';
 import Breadcrumbs from '@/components/ui/Breadcrumbs';
 import DataTable, { type Column } from '@/components/ui/DataTable';
 import FilterBar, { TextFilter } from '@/components/ui/FilterBar';
+import { foldedLikeAny } from '@/lib/search';
 
 /**
  * /admin/audit - the App Log.
@@ -72,11 +73,11 @@ export default async function AuditPage({ searchParams }: { searchParams: Promis
   }
   if (q) {
     params.push(`%${q}%`);
-    where.push(`(a.actor_label ILIKE $${params.length} OR a.action ILIKE $${params.length} OR a.entity_id ILIKE $${params.length} OR a.reason ILIKE $${params.length} OR a.details::text ILIKE $${params.length})`);
+    where.push(`(${foldedLikeAny(['a.actor_label', 'a.action', 'a.entity_id', 'a.reason', 'a.details::text'], `$${params.length}`)})`);
   }
   if (actor) {
     params.push(`%${actor}%`);
-    where.push(`a.actor_label ILIKE $${params.length}`);
+    where.push(foldedLikeAny(['a.actor_label'], `$${params.length}`));
   }
   if (/^\d{4}-\d{2}-\d{2}$/.test(from)) { params.push(from); where.push(`a.occurred_at >= $${params.length}::date`); }
   if (/^\d{4}-\d{2}-\d{2}$/.test(to))   { params.push(to);   where.push(`a.occurred_at < ($${params.length}::date + interval '1 day')`); }

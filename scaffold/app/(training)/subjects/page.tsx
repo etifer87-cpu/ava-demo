@@ -9,6 +9,7 @@ import FilterBar, { SelectFilter } from '@/components/ui/FilterBar';
 import LiveSearch from '@/components/ui/LiveSearch';
 import Pager, { pageParams } from '@/components/ui/Pager';
 import { labels, policy } from '@/lib/config';
+import { foldedLikeAny } from '@/lib/search';
 
 /**
  * /subjects - the roster.
@@ -101,7 +102,7 @@ export default async function SubjectsPage({
   if (watch === 'yes') where.push('p.watch_list');
   if (q) {
     params.push(`%${q}%`);
-    where.push(`(p.full_name ILIKE $${params.length} OR p.external_id ILIKE $${params.length})`);
+    where.push(`(${foldedLikeAny(['p.full_name', 'p.external_id'], `$${params.length}`)})`);
   }
   if (orgUnit) {
     params.push(orgUnit);

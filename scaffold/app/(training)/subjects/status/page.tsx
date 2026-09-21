@@ -11,6 +11,7 @@ import LiveSearch from '@/components/ui/LiveSearch';
 import Pager, { pageParams } from '@/components/ui/Pager';
 import { InitialKanban, type BoardPilot } from '@/components/training/InitialKanban';
 import { buildInitialCard, type MilestoneSession, type StageDef } from '@/lib/training/initial';
+import { foldedLikeAny } from '@/lib/search';
 
 /**
  * /subjects/status - training status across the roster.
@@ -67,7 +68,7 @@ export default async function TrainingStatusPage({ searchParams }: { searchParam
   const params: unknown[] = [];
   if (visible !== ALL_PEOPLE) { if (visible.size === 0) where.push('false'); else { params.push([...visible]); where.push(`p.id = ANY($${params.length}::uuid[])`); } }
   if (group === 'line') where.push('p.training_course IS NULL'); else if (group === 'initial') where.push('p.training_course IS NOT NULL');
-  if (q) { params.push(`%${q}%`); where.push(`(p.full_name ILIKE $${params.length} OR p.external_id ILIKE $${params.length})`); }
+  if (q) { params.push(`%${q}%`); where.push(`(${foldedLikeAny(['p.full_name', 'p.external_id'], `$${params.length}`)})`); }
   if (fleet) { params.push(fleet); where.push(`ac.code = $${params.length}`); }
   if (base) { params.push(base); where.push(`ou.code = $${params.length}`); }
   if (position) { params.push(position); where.push(`p.position = $${params.length}`); }

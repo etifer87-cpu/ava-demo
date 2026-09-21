@@ -7,6 +7,7 @@ import Breadcrumbs from '@/components/ui/Breadcrumbs';
 import { StatusChip, PriorityChip } from '@/components/ui/TicketChips';
 import DataTable, { type Column } from '@/components/ui/DataTable';
 import FilterBar, { TextFilter, SelectFilter } from '@/components/ui/FilterBar';
+import { foldedLikeAny } from '@/lib/search';
 
 /**
  * /admin/tickets - the Tech Log queue.
@@ -47,7 +48,7 @@ export default async function TicketsPage({ searchParams }: { searchParams: Prom
   else if (status !== 'all') { params.push(status); where.push(`t.status = $${params.length}`); }
   if (priority) { params.push(priority); where.push(`t.priority = $${params.length}`); }
   if (category) { params.push(category); where.push(`t.category = $${params.length}`); }
-  if (q) { params.push(`%${q}%`); where.push(`(t.subject ILIKE $${params.length} OR t.description ILIKE $${params.length} OR t.reporter_label ILIKE $${params.length} OR t.route ILIKE $${params.length})`); }
+  if (q) { params.push(`%${q}%`); where.push(`(${foldedLikeAny(['t.subject', 't.description', 't.reporter_label', 't.route'], `$${params.length}`)})`); }
 
   const [rows, counts] = await Promise.all([
     query<Row>(

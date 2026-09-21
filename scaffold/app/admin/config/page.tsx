@@ -13,6 +13,7 @@ import DataTable, { type Column } from '@/components/ui/DataTable';
 import FilterBar from '@/components/ui/FilterBar';
 import LiveSearch from '@/components/ui/LiveSearch';
 import Pager, { pageParams } from '@/components/ui/Pager';
+import { foldedLikeAny } from '@/lib/search';
 
 /**
  * /admin/config - what configuration this instance is running, and whether it matches the files.
@@ -77,7 +78,9 @@ export default async function ConfigPage({ searchParams }: { searchParams: Promi
 
   const params: unknown[] = [];
   let where = '';
-  if (q) { params.push(`%${q}%`); where = `WHERE key ILIKE $1`; }
+  // Config keys are ASCII by construction, so folding is a no-op here. Swept anyway: one ILIKE left
+  // in the codebase is the one the next search box gets copied from.
+  if (q) { params.push(`%${q}%`); where = `WHERE ${foldedLikeAny(['key'], '$1')}`; }
 
   const [versions, keys, keyCount] = await Promise.all([
     query<VersionRow>(`

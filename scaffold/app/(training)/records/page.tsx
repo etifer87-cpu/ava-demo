@@ -7,6 +7,7 @@ import Card from '@/components/ui/Card';
 import Chip from '@/components/ui/Chip';
 import DataTable, { type Column } from '@/components/ui/DataTable';
 import FilterBar, { TextFilter, SelectFilter } from '@/components/ui/FilterBar';
+import { foldedLikeAny } from '@/lib/search';
 
 /**
  * /records - signed records, from every source.
@@ -80,7 +81,7 @@ export default async function RecordsPage({
   }
   if (q) {
     params.push(`%${q}%`);
-    where.push(`(r.title ILIKE $${params.length} OR p.full_name ILIKE $${params.length} OR p.external_id ILIKE $${params.length})`);
+    where.push(`(${foldedLikeAny(['r.title', 'p.full_name', 'p.external_id'], `$${params.length}`)})`);
   }
   if (source) {
     params.push(source);

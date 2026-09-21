@@ -74,11 +74,15 @@ lands in the shell history and in the npm log.
 - **Andrea Betancur** — `a.betancur`, `instructor` bound to **A320**, TRI, CP, base CLO, seniority
   110. The instructor of record, and a real roster row.
 
-**The §3 session is created at set-up, dated the demo day.** Andrea's seeded sessions are all dated
-ahead, so her "To grade" list is empty and nothing is waiting where an instructor's day starts. So,
-signed in as Andrea, `/sessions/new` → **EBT Module 2 - Session 1 - A320** → the crew below → today's
-date → device FFS-A320. Then grade it up to the last two exercises, so §3 finishes it live rather
-than starting from nothing.
+**The §3 session is created at set-up, dated the demo day.** Signed in as Andrea, `/sessions/new`
+→ **EBT Module 2 - Session 1 - A320** → the crew below → today's date → device FFS-A320. Then grade
+it up to the last two exercises, so §3 finishes it live rather than starting from nothing.
+
+**Her "To grade" list is NOT empty, and this paragraph used to claim it was.** The generator seeds
+work in the past as well as ahead: on 2026-09-20 she had **Type rating FFS 7 - A320, 2026-09-14,
+Open · to grade** — dated five days before the build that produced it, so a rebuild on the demo
+morning will leave something similar. The session created at set-up carries today's date and sits at
+the top of the list; take that one, and do not be surprised by its neighbour.
 
 **Naming the second pilot is what makes it a crew session.** The form takes one pilot by default and
 a second, optional, below it; the second seat is the other seat by definition and is not a choice.
@@ -86,15 +90,23 @@ One session, flown once, with a record each. (Until 2026-09-15 the form took one
 step was impossible as written — every crewed session in the instance had been written by the
 seeder. See KIT_DEFECTS.)
 
-**The crew**, both of them Andrea's own pilots with finalised history with her from May:
+**The crew**, both of them Andrea's own pilots, with a finalised session flown with her:
 
-- **Andrés Marín Morales** — FO, **PM**;
-- **Emilio Arango** — CP, **PF**.
+- **Pedro Marín** — CP, **PF**;
+- **Javier Beltrán** — FO, **PM**.
 
-They flew EBT Module 1 Sessions 1 and 2 with Andrea in May and are booked with her again in
-November, so §3 and §4 are the same two people and the same instructor. Confirm the pair on the
-rehearsal against `/sessions/mine` → **Finalised**: the seed is deterministic, but a regenerated
-roster is a different roster.
+They flew **EBT Module 2 - Session 1 - A320 with Andrea on 2026-08-10** — finalised, two records,
+both pilots signed. That is the same program §3 creates and the same seat shape, so §3 and §4 are
+the same two people and the same instructor. They are NOT booked with her again: Andrea instructs no
+future session with this pair, so do not promise one in the room.
+
+**Confirm the pair at the rehearsal** against `/sessions/mine` → **Finalised**. The seed is
+deterministic, but a regenerated roster is a different roster — and that is not hypothetical. Until
+2026-09-21 this paragraph named Andrés Marín Morales and Emilio Arango "with finalised history with
+her from May". They are a real pair who fly together, but **they have no session with Andrea at
+all**: their May 2026 EBT was with Daniela Vélez, and November is booked with Vélez, Lucas Guerrero
+and Cristian González Prieto. The roster had been regenerated and nobody had re-run this check.
+Guillermo Peña + Esteban Rojas (2026-07-27) are the same shape if this pair ever goes stale.
 
 - `docker ps` shows `ava-db` and `ava-pdf` up — **the PDF step fails silently in rehearsal if the
   renderer is down**, so check it, not just the app. `PDF_URL` must be `http://127.0.0.1:3101`,
@@ -160,7 +172,7 @@ will my instructors see" before anyone asks.
 
 Switch to Andrea's tab. `/sessions/mine` → **To grade** → the session created in §0.
 
-**It is a crew.** Andrés flies PM, Emilio flies PF, and the surface carries a tab per pilot plus a
+**It is a crew.** Javier flies PM, Pedro flies PF, and the surface carries a tab per pilot plus a
 tab for the session. Say it early, because a room of chief pilots counts the seats: *"Every graded
 element is graded per pilot, in the seat they flew."*
 
@@ -175,7 +187,7 @@ element is graded per pilot, in the seat they flew."*
    and that one signature freezes the content for both pilots — each against their own hash, because
    each flew a different seat and earned different grades. The session locks: the surface does not
    disappear, it goes read-only and says why.
-6. **Hand over, twice.** Andrés signs on the same screen, then Emilio. Each signs as themselves.
+6. **Hand over, twice.** Javier signs on the same screen, then Pedro. Each signs as themselves.
    Where a pilot has no account the fallback is their employee id, and the record says which of the
    two actually happened — say that out loud, and say that on a live system every pilot who signs has
    an account.
@@ -192,10 +204,17 @@ the check is chosen when the session is created.
 
 ## 4 · One pilot over time (2 min) — built
 
-Back to the manager's tab. `/subjects/<Andrés Marín Morales>`: the nine-spoke competency radar,
+Back to the manager's tab. `/subjects/<Pedro Marín>`: the nine-spoke competency radar,
 band-coloured averages, the 3×3 trend grid, and the record list with the session from §3 at the top
-and his Module 1 records from May beneath it — same pilot, same instructor, real history. Open one —
-the record pop-up renders the frozen snapshot, not a template lookup. **Open the PDF from there too.**
+and his **EBT Module 2 Session 1 from 2026-08-10, signed by Andrea**, beneath it — same pilot, same
+instructor, real history. Open one — the record pop-up renders the frozen snapshot, not a template
+lookup. **Open the PDF from there too.**
+
+He carries **32 records back to 2015 and 225 competency grades**, so the radar is dense and the
+trends have something to show; he is also a **TRI**, which is worth one sentence — an instructor is
+checked like everybody else, by somebody else. What he does NOT have is a failure in recent history:
+the pilot this section used to name had a failed line check to point at, and this one does not. If
+the section needs that beat, take it from the alert queue on §1 instead.
 
 Sentence: *"This is the same nine-competency model your regulator uses, and every band has a threshold
 you can see and change in a configuration file, not in our code."*
@@ -321,8 +340,9 @@ In the database after the §0 rebuild sequence:
 
 - **Andrea Betancur** — CP, A320, base CLO, seniority 110, TRI; account `a.betancur` holding
   `instructor` bound to A320, created by hand and password-set that morning;
-- **Andrés Marín Morales** (FO) and **Emilio Arango** (CP) — the crew of §3 and the subjects of
-  §4, both with finalised EBT Module 1 records signed by Andrea in May;
+- **Pedro Marín** (CP, TRI) and **Javier Beltrán** (FO) — the crew of §3 and the subjects of §4,
+  with a finalised EBT Module 2 Session 1 flown with Andrea on 2026-08-10, two records, both
+  signed. §4 opens on Pedro;
 - the Training Standards Manager account of §0, created before the rehearsal;
 - 48 published programs, the EBT ones named **EBT Module 1/2 - Session 1/2 - <fleet>** by year, plus
   the LFUS sector program and the line check;
