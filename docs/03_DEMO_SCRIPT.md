@@ -50,10 +50,10 @@ login below is created by hand after `reset:clean` and given a password the same
 
 ```powershell
 npm run user -- a.betancur instructor --fleet A320 --person "Andrea Betancur"
-npm run user -- <manager> training_manager --person "<their roster name>"
+npm run user -- l.guerrero training_manager,head_of_training --person AV20047
 npm run password -- admin_av
 npm run password -- a.betancur
-npm run password -- <manager>
+npm run password -- l.guerrero
 ```
 
 **`--person` is not optional for the instructor.** An account and a roster row are different things —
@@ -68,9 +68,26 @@ at least 12 characters, and the prompt is interactive - never put one on the com
 lands in the shell history and in the npm log.
 
 - `admin_av` — the operator's administrator, for §8 only;
-- **the Training Standards Manager** — `training_manager`, unbound to any fleet, granted to one of
-  the seeded roster pilots (chosen at the rehearsal and written into this line then). This is the
-  persona logged in for most of the demo, because a manager's screens are the ones a manager buys;
+- **Lucas Guerrero** — `l.guerrero`, **AV20047**, CP, base BOG, A320, seniority 47, **TRE and
+  TRI**, joined 2008. Holds `training_manager` AND `head_of_training`, unbound to any fleet. This is
+  the persona logged in for most of the demo, because a manager's screens are the ones a manager
+  buys. Chosen 2026-09-21; a senior examiner who owns the programme is who assigns roles at an
+  airline, and he is on the bench in §6 without being one of its outliers.
+
+  **`head_of_training` is not decoration — §7 does not work without it.** `/admin/roles` is gated on
+  `platform.roles.assign`. **`training_manager` does not hold it**: it covers every training screen
+  and none of the role matrix, so the manager persona meets a refusal on the first page §7 opens.
+  `head_of_training` is, in the database's own words, "everything the training manager holds, plus
+  accounts, role grants, audit, settings and the tech log" — so it supplies the matrix and
+  `platform.users.manage`, which is what changes Andrea's fleet binding in place. Verified on
+  2026-09-21: signed in as `l.guerrero`, `/admin/roles` opens and shows 14 roles / 48 capabilities,
+  with `operator_admin` marked **locked**. It also makes §7's line about not being able to remove
+  your own right to assign roles demonstrable ON THE ACCOUNT YOU ARE SIGNED INTO, which is stronger
+  than showing it on somebody else's.
+
+  **Do NOT also grant this account `operator_admin`.** §8 signs in as `admin_av` because the
+  administrator is a DIFFERENT person from the manager; an operator-admin manager bypasses every
+  binding and there is nothing left for §7 to narrow or §8 to separate;
 - **Andrea Betancur** — `a.betancur`, `instructor` bound to **A320**, TRI, CP, base CLO, seniority
   110. The instructor of record, and a real roster row.
 
@@ -340,10 +357,12 @@ In the database after the §0 rebuild sequence:
 
 - **Andrea Betancur** — CP, A320, base CLO, seniority 110, TRI; account `a.betancur` holding
   `instructor` bound to A320, created by hand and password-set that morning;
+- **Lucas Guerrero** — CP, A320, base BOG, seniority 47, TRE and TRI, AV20047; account
+  `l.guerrero` holding `training_manager` + `head_of_training`, unbound to any fleet. The manager
+  persona of §0;
 - **Pedro Marín** (CP, TRI) and **Javier Beltrán** (FO) — the crew of §3 and the subjects of §4,
   with a finalised EBT Module 2 Session 1 flown with Andrea on 2026-08-10, two records, both
   signed. §4 opens on Pedro;
-- the Training Standards Manager account of §0, created before the rehearsal;
 - 48 published programs, the EBT ones named **EBT Module 1/2 - Session 1/2 - <fleet>** by year, plus
   the LFUS sector program and the line check;
 - three years of history: ~9,000 sessions and ~11,000 records, with the planted patterns the bench
