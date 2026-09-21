@@ -1,6 +1,7 @@
 import { redirect } from 'next/navigation';
 import { getSession } from '@/lib/session';
 import { brand } from '@/lib/config';
+import { noticeRequired } from '@/lib/demo-notice';
 
 /**
  * The credential entry screen. A plain POST form: no client component, no fetch, no token in
@@ -28,6 +29,17 @@ export default async function LoginPage({
   searchParams: Promise<{ next?: string; error?: string }>;
 }) {
   const sp = await searchParams;
+
+  /* The deployed demonstration asks for the notice BEFORE the credential form. Checked before the
+     session lookup so that arriving with a stale cookie does not skip it. Returns here afterwards,
+     carrying the caller's own `next` so the detour is invisible. */
+  if (await noticeRequired()) {
+    const back = sp.next && sp.next.startsWith('/') && !sp.next.startsWith('//')
+      ? `/login?next=${encodeURIComponent(sp.next)}`
+      : '/login';
+    redirect(`/disclaimer?next=${encodeURIComponent(back)}`);
+  }
+
   const session = await getSession();
   if (session) redirect(sp.next && sp.next.startsWith('/') ? sp.next : '/');
 
