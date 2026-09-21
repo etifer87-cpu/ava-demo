@@ -28,7 +28,23 @@ import { verifySessionCookie, SESSION_COOKIE_NAME } from '@/lib/session';
  * a locked door rather than as an open one.
  */
 
-const PUBLIC_EXACT = new Set<string>(['/login', '/api/auth/login', '/api/health']);
+/**
+ * The public set.
+ *
+ * `/disclaimer` and its POST target are public BECAUSE THEY STAND IN FRONT OF /login: the notice is
+ * shown before anyone has credentials, so a caller reaching it never has a session. Leaving them
+ * closed is a redirect loop, not a locked door - /login sends an un-accepted caller to /disclaimer
+ * and this gate sends a sessionless caller to /login, forever. The notice itself carries no data:
+ * it reads one cookie of its own and writes one.
+ */
+const PUBLIC_EXACT = new Set<string>([
+  '/login',
+  '/api/auth/login',
+  '/api/health',
+  '/disclaimer',
+  '/disclaimer/declined',
+  '/api/disclaimer',
+]);
 
 /** Static and framework paths that never carry data. */
 const PUBLIC_PREFIXES = ['/_next/', '/favicon', '/fonts/', '/images/', '/logo', '/brand/'];
