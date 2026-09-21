@@ -15,7 +15,7 @@ import { subjectPanel } from '@/lib/analytics/subject-panel';
 import { buildChartTokens } from '@/components/charts/chart-tokens';
 import GradeDistributionRows from '@/components/charts/GradeDistributionRows';
 import PeerCompare from '@/components/charts/PeerCompare';
-import TwoLineTrend from '@/components/charts/TwoLineTrend';
+import TrendScrubber from '@/components/charts/TrendScrubber';
 import ZoomableChart from '@/components/charts/ZoomableChart';
 import GradeChip from '@/components/ui/GradeChip';
 
@@ -280,25 +280,16 @@ export default async function SubjectAnalysisPage({
 
           <Card
             title="The trend, against the fleet"
-            note={`Monthly mean of every competency grade. A month with no training is a gap, never a zero. Peer group: ${panel.peerLabel}.`}
+            note={`Mean competency grade in the months this pilot trained, against ${panel.peerLabel}. The whole career is on the slider; the window opens on the most recent two years.`}
             testId="panel-trend"
           >
-            <ZoomableChart
-              title={`Monthly mean competency grade — this pilot against ${panel.peerLabel}`}
-              dialogChildren={(
-                <TwoLineTrend
-                  id="subject-trend" points={panel.trend} tokens={tokens} pxPerUnit={2.68}
-                  min={scale.min} max={scale.max} peerLabel={panel.peerLabel}
-                  label="Monthly mean competency grade, this pilot against the peer group"
-                />
-              )}
-            >
-              <TwoLineTrend
-                id="subject-trend" points={panel.trend} tokens={tokens}
-                min={scale.min} max={scale.max} peerLabel={panel.peerLabel}
-                label="Monthly mean competency grade, this pilot against the peer group"
-              />
-            </ZoomableChart>
+            {/* Not wrapped in ZoomableChart: the slider is the interaction here, and a chart that
+                opens a dialog when you press its own control is a trap. */}
+            <TrendScrubber
+              points={panel.trend} tokens={tokens}
+              min={scale.min} max={scale.max} peerLabel={panel.peerLabel}
+              label="Mean competency grade by month, this pilot against the peer group"
+            />
           </Card>
         </>
       ) : null}

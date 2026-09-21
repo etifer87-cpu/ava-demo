@@ -165,25 +165,31 @@ export async function subjectPanel(personId: string, months = 12): Promise<Subje
       [...peerParams, months]),
 
     query<MonthRow>(
+    /* THE TREND SERIES IS NOT WINDOWED, unlike every other panel on this page.
+       The peer comparison and the distribution answer "how is this pilot doing lately", so they
+       take the `months` window. The trend answers "which way is this pilot going", and the chart
+       carries a slider: windowing the QUERY would mean the slider could only ever scrub across
+       what the server had already decided to show. It returns the whole career and the browser
+       chooses the window. An EBT programme trains twice a year, so twelve months was two points -
+       which is not a trend, it is a line segment. */
       `SELECT to_char(date_trunc('month', r.training_date), 'YYYY-MM-01') AS "on",
               count(*)::text AS n, avg(${gradeNum('rc.grade')})::text AS mean
          FROM record_competencies rc
          JOIN records r ON r.id = rc.record_id AND r.deleted_at IS NULL
         WHERE r.person_id = $1::uuid AND ${gradeNum('rc.grade')} IS NOT NULL
-          AND r.training_date >= date_trunc('month', CURRENT_DATE) - make_interval(months => $2::int)
         GROUP BY 1 ORDER BY 1`,
-      [personId, months]),
+      [personId]),
 
     query<MonthRow>(
+      // Same span as the subject series above, so the two lines share an axis at every slider position.
       `SELECT to_char(date_trunc('month', r.training_date), 'YYYY-MM-01') AS "on",
               count(*)::text AS n, avg(${gradeNum('rc.grade')})::text AS mean
          FROM record_competencies rc
          JOIN records r ON r.id = rc.record_id AND r.deleted_at IS NULL
          ${peerJoin}
         WHERE ${gradeNum('rc.grade')} IS NOT NULL
-          AND r.training_date >= date_trunc('month', CURRENT_DATE) - make_interval(months => $${m}::int)
         GROUP BY 1 ORDER BY 1`,
-      [...peerParams, months]),
+      [...peerParams]),
 
     query<DistRow>(
       `SELECT ${gradeNum('rc.grade')}::int AS grade, count(*)::text AS n

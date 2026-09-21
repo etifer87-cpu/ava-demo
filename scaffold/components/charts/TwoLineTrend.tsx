@@ -5,20 +5,25 @@
  * and the comparison is honest. A second y-axis would let the two lines be scaled until they told
  * whatever story was wanted.
  *
- * A MONTH WITH NO TRAINING IS A GAP, NOT A ZERO - and the line still crosses it, DASHED. A pilot
- * trains three or four times a year, so a subject line drawn only where there is data is a handful
- * of unconnected dots that nobody can read a direction from. Connecting them solid would be the
- * opposite lie: it claims a value for every month in between. So the line joins the points and says
- * which parts are measured - SOLID between consecutive months, DASHED where it spans months with no
- * training. Dropping to zero would invent a grade nobody awarded and is never an option.
+ * A MONTH WITH NO TRAINING IS A GAP, NOT A ZERO. Dropping to zero would invent a grade nobody
+ * awarded and is never an option.
  *
- * IT SPANS THE WHOLE AXIS. Before the first grade and after the last, the line is CARRIED FLAT at
- * that value, dashed like any other unmeasured stretch. A senior pilot who trains twice a year had
- * a line occupying a third of the chart while the fleet's ran edge to edge, and two series on one
- * axis that cover different spans are read as one being shorter rather than one being sparser.
- * Carrying it flat states the only thing that is actually known outside the measured range - that
- * the last grade is still the last grade - and the dash says it was not measured. The end caps are
- * drawn WITHOUT markers, so nobody mistakes the chart edge for a session.
+ * THE SUBJECT LINE IS A CONNECTOR BETWEEN SESSIONS, and every session carries a MARKER. Until
+ * 2026-09-21 the line was solid between consecutive months and dashed across months with no
+ * training, with the ends carried flat and dashed. The reasoning was sound and the result was not:
+ * an EBT programme trains twice a year, so two consecutive months with training essentially never
+ * occur, and the solid state was unreachable. Every pilot's line was 100% dashed with a legend key
+ * reading "no training" beside it - which reads as a verdict on the pilot rather than a key, and
+ * was reported as exactly that.
+ *
+ * So the dash is gone. The line now simply joins the points where training happened, and the
+ * MARKERS carry the honesty the dash used to: the line is visibly a connector between marked
+ * sessions, not a monthly series, and the caption says so. It does not claim a value for the months
+ * in between; it claims a direction between two things that were measured, which is what the reader
+ * is here for.
+ *
+ * The ends are no longer carried. With the whole career on the axis and a slider over it, a stub to
+ * the chart edge is noise rather than context.
  *
  * No hooks, ids from the `id` prop, colours resolved - server, browser and PDF render the same bytes.
  */
@@ -98,16 +103,7 @@ export function TwoLineTrend({
   /* Every measured point in order, and whether each segment bridges a gap. A segment from index 3 to
      index 4 is one month and is measured; 3 to 9 spans five months nobody flew. */
   const measured = points.map((p, i) => ({ i, v: p.subject })).filter((p): p is { i: number; v: number } => p.v !== null);
-  const segments = measured.slice(1).map((pt, k) => ({
-    from: measured[k]!, to: pt, bridged: pt.i - measured[k]!.i > 1,
-  }));
-  /* The carried ends. Only drawn where there is actually axis left to cover, so a pilot who trained
-     in the first and last month of the window gets no stub. */
-  const firstM = measured[0] ?? null;
-  const lastM = measured[measured.length - 1] ?? null;
-  const leadIn = firstM && firstM.i > 0 ? { from: { i: 0, v: firstM.v }, to: firstM } : null;
-  const leadOut = lastM && lastM.i < points.length - 1
-    ? { from: lastM, to: { i: points.length - 1, v: lastM.v } } : null;
+  const segments = measured.slice(1).map((pt, k) => ({ from: measured[k]!, to: pt }));
 
   const ticks: number[] = [];
   for (let t = Math.ceil(min); t <= max; t += 1) ticks.push(t);
@@ -131,21 +127,11 @@ export function TwoLineTrend({
           : <path key={`p${k}`} d={path(run)} fill="none" stroke={tokens.series.secondary}
                   strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" />
       ))}
-      {[leadIn, leadOut].map((sg, k) => (sg === null ? null : (
-        <line
-          key={`cap${k}`}
-          x1={x(sg.from.i)} y1={y(sg.from.v)} x2={x(sg.to.i)} y2={y(sg.to.v)}
-          stroke={subjectColour} strokeWidth={2} strokeLinecap="round"
-          strokeDasharray="4 4" opacity={0.75}
-        />
-      )))}
       {segments.map((sg) => (
         <line
           key={`${sg.from.i}-${sg.to.i}`}
           x1={x(sg.from.i)} y1={y(sg.from.v)} x2={x(sg.to.i)} y2={y(sg.to.v)}
           stroke={subjectColour} strokeWidth={2} strokeLinecap="round"
-          strokeDasharray={sg.bridged ? '4 4' : undefined}
-          opacity={sg.bridged ? 0.75 : 1}
         />
       ))}
       {measured.length === 1 ? (
@@ -166,13 +152,11 @@ export function TwoLineTrend({
         <text x={L + 22} y={8} fontSize={FS.value} fill={tokens.surface.ink} dominantBaseline="middle">this pilot</text>
         <line x1={L + 108} x2={L + 124} y1={8} y2={8} stroke={tokens.series.secondary} strokeWidth={2} strokeLinecap="round" />
         <text x={L + 130} y={8} fontSize={FS.value} fill={tokens.surface.inkMuted} dominantBaseline="middle">{peerLabel}</text>
-        {segments.some((sg) => sg.bridged) || leadIn || leadOut ? (
-          <>
-            <line x1={width - 150} x2={width - 134} y1={8} y2={8} stroke={subjectColour}
-                  strokeWidth={2} strokeLinecap="round" strokeDasharray="4 4" opacity={0.75} />
-            <text x={width - 128} y={8} fontSize={FS.value} fill={tokens.surface.inkMuted}
-                  dominantBaseline="middle">no training</text>
-          </>
+        {measured.length ? (
+          <text x={width - R} y={8} fontSize={FS.value} fill={tokens.surface.inkMuted}
+                textAnchor="end" dominantBaseline="middle">
+            {`${measured.length} ${measured.length === 1 ? 'session' : 'sessions'} marked`}
+          </text>
         ) : null}
       </g>
       <desc>
