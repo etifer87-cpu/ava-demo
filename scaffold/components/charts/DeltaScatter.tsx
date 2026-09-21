@@ -32,6 +32,7 @@ export interface DeltaPoint {
  */
 export function DeltaScatter({
   id, points, outlierAbs, peerMedian, zones, tokens, width = 900, height = 300,
+  pxPerUnit = 1.28,
 }: {
   readonly id: string;
   readonly points: readonly DeltaPoint[];
@@ -39,12 +40,18 @@ export function DeltaScatter({
   readonly peerMedian: number | null;
   readonly zones: readonly LeniencyZone[];
   readonly tokens: ChartTokens;
+  /**
+   * Rendered pixels per viewBox unit, for the type scale. Defaults to this chart's measured
+   * inline ratio; an ENLARGED copy in a dialog has a different one and must pass it, or its
+   * labels come out SMALLER than the small copy's. See CHART_TYPE_PX.
+   */
+  readonly pxPerUnit?: number;
   readonly width?: number;
   readonly height?: number;
 }) {
   const cid = chartId(id);
   // Measured 2026-09-21: 900 units render in 1150px. The scale is stated in pixels; see CHART_TYPE_PX.
-  const FS = chartType(1.28);
+  const FS = chartType(pxPerUnit);
   const legendH = zones.length ? 14 : 0;
   const innerW = width - PAD.left - PAD.right;
   const innerH = height - PAD.top - PAD.bottom - legendH;

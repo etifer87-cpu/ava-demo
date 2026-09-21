@@ -280,7 +280,24 @@ export default async function AnalyticsOverviewPage(
       </div>
 
       <Card title="The trend" note={`Monthly mean of every competency grade, ${TREND_MONTHS + 1} months. A month with no training has no point - it is not a zero.`}>
-        <ZoomableChart title="Population mean competency grade, by month">
+        <ZoomableChart
+          title="Population mean competency grade, by month"
+          dialogChildren={(
+            <TrendSparkline
+              id="population-trend-big"
+              points={months.map((m) => ({ on: m.on, value: m.value, label: `${m.on.slice(0, 7)} · ${m.n} grades` }))}
+              tokens={tokens}
+              colour={tokens.series.primary}
+              min={scale.min}
+              max={scale.max}
+              width={760}
+              height={140}
+              pxPerUnit={1.98}
+              label="Population mean competency grade, by month, enlarged"
+              emptyText="Not enough history to draw a trend."
+            />
+          )}
+        >
           <TrendSparkline
             id="population-trend"
             points={months.map((m) => ({ on: m.on, value: m.value, label: `${m.on.slice(0, 7)} · ${m.n} grades` }))}

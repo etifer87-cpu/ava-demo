@@ -7,6 +7,7 @@ import { benchAnalysis, leaning, LEANING_LABEL, LEANING_TONE } from '@/lib/instr
 import type { AnalyticsConfig } from '@/lib/analytics';
 import { buildChartTokens } from '@/components/charts/chart-tokens';
 import { KpiTile } from '@/components/charts/KpiTile';
+import ZoomableChart from '@/components/charts/ZoomableChart';
 import { AsiHistogram } from '@/components/charts/AsiHistogram';
 import { DeltaScatter } from '@/components/charts/DeltaScatter';
 import { BiasHeatmap } from '@/components/charts/BiasHeatmap';
@@ -123,18 +124,36 @@ export default async function InstructorAnalysisPage({ searchParams }: { searchP
       </div>
 
       <Card title="Standardisation index across the bench" note="One bar per index bucket, coloured by band. Instructors below the banding minimum are counted beside the chart, never inside it.">
-        <AsiHistogram id="asi-hist" scores={scores} notBanded={a.totals.provisional} bands={si.bands} tokens={tokens} width={900} height={210} />
+        {/* Two ids, because AsiHistogram namespaces its own. See ZoomableChart. */}
+        <ZoomableChart
+          title="Standardisation index across the bench"
+          dialogChildren={<AsiHistogram id="asi-hist-big" scores={scores} notBanded={a.totals.provisional} bands={si.bands} tokens={tokens} width={1400} height={420} pxPerUnit={1.07} />}
+        >
+          <AsiHistogram id="asi-hist" scores={scores} notBanded={a.totals.provisional} bands={si.bands} tokens={tokens} width={900} height={210} />
+        </ZoomableChart>
       </Card>
 
       <Card
         title="Adjusted leniency against the evidence behind it"
         note="Zero is agreement with what the same pilots earned from other instructors. The bands step outward from zero, so how far an instructor sits from the bench is read from the band as well as the position; vertical height is how many grades the figure rests on."
       >
-        <DeltaScatter
-          id="delta-scatter"
-          points={a.rows.filter((r) => r.delta_adjusted !== null).map((r) => ({ id: r.id, label: r.full_name, x: r.delta_adjusted as number, y: r.n_grades, provisional: r.is_provisional, outlier: r.is_outlier }))}
-          outlierAbs={outlierAbs} peerMedian={a.peerMedianDelta} zones={zones} tokens={tokens}
-        />
+        <ZoomableChart
+          title="Adjusted leniency against the evidence behind it"
+          dialogChildren={(
+            <DeltaScatter
+              id="delta-scatter-big"
+              points={a.rows.filter((r) => r.delta_adjusted !== null).map((r) => ({ id: r.id, label: r.full_name, x: r.delta_adjusted as number, y: r.n_grades, provisional: r.is_provisional, outlier: r.is_outlier }))}
+              outlierAbs={outlierAbs} peerMedian={a.peerMedianDelta} zones={zones} tokens={tokens}
+              width={1400} height={470} pxPerUnit={1.07}
+            />
+          )}
+        >
+          <DeltaScatter
+            id="delta-scatter"
+            points={a.rows.filter((r) => r.delta_adjusted !== null).map((r) => ({ id: r.id, label: r.full_name, x: r.delta_adjusted as number, y: r.n_grades, provisional: r.is_provisional, outlier: r.is_outlier }))}
+            outlierAbs={outlierAbs} peerMedian={a.peerMedianDelta} zones={zones} tokens={tokens}
+          />
+        </ZoomableChart>
       </Card>
 
       <Card

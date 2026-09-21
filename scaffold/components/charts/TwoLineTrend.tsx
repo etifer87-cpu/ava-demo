@@ -36,11 +36,18 @@ export interface TwoLinePoint {
 
 export function TwoLineTrend({
   id, points, tokens, min, max, peerLabel, label, colour,
+  pxPerUnit = 2.05,
   width = 560, height = 170, emptyText = 'Not enough history to draw a trend.',
 }: {
   readonly id: string;
   readonly points: readonly TwoLinePoint[];
   readonly tokens: ChartTokens;
+  /**
+   * Rendered pixels per viewBox unit, for the type scale. Defaults to the measured inline
+   * ratio; an enlarged copy in a dialog has a different one and must pass it. See
+   * CHART_TYPE_PX.
+   */
+  readonly pxPerUnit?: number;
   readonly min: number;
   readonly max: number;
   readonly peerLabel: string;
@@ -54,7 +61,7 @@ export function TwoLineTrend({
   // Measured 2026-09-21: 560 units render in 1150px, a ratio of 2.05, so this chart's text
   // was coming out at 20.5px - the LARGEST in the product - from the same '9.5' literal that
   // gave PeerCompare 9.3px. This brings it down to the shared scale. See CHART_TYPE_PX.
-  const FS = chartType(2.05);
+  const FS = chartType(pxPerUnit);
   const subjectColour = colour ?? tokens.series.primary;
 
   if (points.length < 2) {

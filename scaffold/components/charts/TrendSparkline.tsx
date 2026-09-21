@@ -30,6 +30,12 @@ export interface TrendSparklineProps {
   readonly id: string;
   readonly points: readonly SparklinePoint[];
   readonly tokens: ChartTokens;
+  /**
+   * Rendered pixels per viewBox unit, for the type scale. Defaults to the measured inline
+   * ratio; an enlarged copy in a dialog has a different one and must pass it. See
+   * CHART_TYPE_PX.
+   */
+  readonly pxPerUnit?: number;
   /** The series colour - normally the competency's own colour. */
   readonly colour: string;
   readonly min?: number;
@@ -50,6 +56,7 @@ export function TrendSparkline({
   id,
   points,
   tokens,
+  pxPerUnit = 1.51,
   colour,
   min = 1,
   max = 5,
@@ -67,7 +74,7 @@ export function TrendSparkline({
   // the same component elsewhere carried a hand-tuned 1.2, 1.3, 1.35 or 2.2 to compensate - which
   // is the hand-tuning CHART_TYPE_PX exists to retire. `fontScale` remains for DELIBERATE
   // deviation, such as the enlarged copy in a dialog, and defaults to 1.
-  const FS = chartType(1.51);
+  const FS = chartType(pxPerUnit);
   const uid = chartId(id);
   const n = points.length;
   const valid = points

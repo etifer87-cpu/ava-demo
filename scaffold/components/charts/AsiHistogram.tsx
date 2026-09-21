@@ -14,19 +14,26 @@ import { chartId, chartType, PAD } from './chart-tokens';
  */
 export function AsiHistogram({
   id, scores, notBanded, bands, tokens, width = 460, height = 190, bucket = 10,
+  pxPerUnit = 1.28,
 }: {
   readonly id: string;
   readonly scores: readonly number[];
   readonly notBanded: number;
   readonly bands: { green_min: number; amber_min: number };
   readonly tokens: ChartTokens;
+  /**
+   * Rendered pixels per viewBox unit, for the type scale. Defaults to this chart's measured
+   * inline ratio; an ENLARGED copy in a dialog has a different one and must pass it, or its
+   * labels come out SMALLER than the small copy's. See CHART_TYPE_PX.
+   */
+  readonly pxPerUnit?: number;
   readonly width?: number;
   readonly height?: number;
   readonly bucket?: number;
 }) {
   const cid = chartId(id);
   // Measured 2026-09-21: 460 units render in 590px. The scale is stated in pixels; see CHART_TYPE_PX.
-  const FS = chartType(1.28);
+  const FS = chartType(pxPerUnit);
   const n = Math.ceil(100 / bucket);
   const bucketOf = (s: number) => Math.min(n - 1, Math.max(0, Math.floor(s / bucket)));
   const counts = Array.from({ length: n }, (_, i) => scores.filter((s) => bucketOf(s) === i).length);

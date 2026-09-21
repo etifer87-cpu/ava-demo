@@ -6,6 +6,7 @@ import { resolveAccess, can, canOnPerson } from '@/lib/access';
 import { gradeScale, gradePalette, labels, averageBand, competencyDisplayName } from '@/lib/config';
 import { buildChartTokens } from '@/components/charts/chart-tokens';
 import { CompetencyRadar } from '@/components/charts/CompetencyRadar';
+import ZoomableChart from '@/components/charts/ZoomableChart';
 import { TrendCard } from '@/components/charts/TrendCard';
 import { KpiTile } from '@/components/charts/KpiTile';
 import Breadcrumbs from '@/components/ui/Breadcrumbs';
@@ -260,21 +261,53 @@ export default async function SubjectProfilePage({ params, searchParams }: { par
               <AutoSubmitSelect name="kind" label="Show" value={kind} resetParams={['page']} options={[{ value: '', label: 'All trainings and checks' }, ...kinds.map((k) => ({ value: k.record_kind, label: `${k.record_kind} (${k.n})` }))]} />
             </div>
             <div className="profile-grid">
-              <div className="profile-panel"><CompetencyRadar
-                id={`radar-${person.id}`}
-                label={`Competency profile for ${person.full_name}`}
-                competencies={competencies.map((c) => ({ competencyId: c.id, code: c.code, name: c.name }))}
-                tokens={tokens}
-                min={scale.min}
-                max={scale.max}
-                size={300}
-                showValues={false}
-                showRingLabels
-                vertexRadius={2.4}
-                series={[
-                  { key: 'subject', label: 'This pilot', emphasis: 'primary', values: competencies.map((c) => meanBy.get(c.id) ?? null) },
-                ]}
-              /></div>
+              <div className="profile-panel">
+                {/* Two copies with two different ids: the radar namespaces its SVG ids through
+                    chartId, so one id in the document twice would point aria-labelledby at the
+                    wrong <title>. See ZoomableChart. The enlarged copy also prints the values,
+                    which do not fit at 300 units. */}
+                <ZoomableChart
+                  title={`Competency profile for ${person.full_name}`}
+                  dialogChildren={(
+                    /* The radar is SQUARE, so full dialog width makes it taller than the viewport
+                       and the dialog scrolls. Capped against the viewport height instead. */
+                    <div style={{ maxWidth: 'min(100%, 62vh)', margin: '0 auto' }}>
+                    <CompetencyRadar
+                      id={`radar-big-${person.id}`}
+                      label={`Competency profile for ${person.full_name}, enlarged`}
+                      competencies={competencies.map((c) => ({ competencyId: c.id, code: c.code, name: c.name }))}
+                      tokens={tokens}
+                      min={scale.min}
+                      max={scale.max}
+                      size={640}
+                      pxPerUnit={1.21}
+                      showValues
+                      showRingLabels
+                      vertexRadius={4}
+                      series={[
+                        { key: 'subject', label: 'This pilot', emphasis: 'primary', values: competencies.map((c) => meanBy.get(c.id) ?? null) },
+                      ]}
+                    />
+                    </div>
+                  )}
+                >
+                  <CompetencyRadar
+                    id={`radar-${person.id}`}
+                    label={`Competency profile for ${person.full_name}`}
+                    competencies={competencies.map((c) => ({ competencyId: c.id, code: c.code, name: c.name }))}
+                    tokens={tokens}
+                    min={scale.min}
+                    max={scale.max}
+                    size={300}
+                    showValues={false}
+                    showRingLabels
+                    vertexRadius={2.4}
+                    series={[
+                      { key: 'subject', label: 'This pilot', emphasis: 'primary', values: competencies.map((c) => meanBy.get(c.id) ?? null) },
+                    ]}
+                  />
+                </ZoomableChart>
+              </div>
               <div className="profile-panel">
                 <ul className="averages" data-testid="competency-averages">
                   {competencies.map((c) => {

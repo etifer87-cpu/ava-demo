@@ -8,6 +8,7 @@ import { getInstructor, getInstructorAnalysis, leaning, alertLabel, LEANING_LABE
 import type { AnalyticsConfig } from '@/lib/analytics';
 import { buildChartTokens } from '@/components/charts/chart-tokens';
 import { KpiTile } from '@/components/charts/KpiTile';
+import ZoomableChart from '@/components/charts/ZoomableChart';
 import { LeniencyInterval } from '@/components/charts/LeniencyInterval';
 import { TrendSparkline } from '@/components/charts/TrendSparkline';
 import Breadcrumbs from '@/components/ui/Breadcrumbs';
@@ -134,8 +135,17 @@ export default async function InstructorAnalysisPage({ params, searchParams }: {
         title="Adjusted leniency"
         note="This instructor's grades minus what the same pilots earned in the same competencies from other instructors, shrunk toward zero for sample size. The interval is the reading, not the point: a delta whose interval spans zero is not a finding."
       >
-        <LeniencyInterval id="lenint" delta={a?.delta_adjusted ?? null} ciHalfWidth={a?.ci_half_width ?? null} rawDelta={a?.delta_unadjusted ?? null}
-          provisional={a?.is_provisional ?? true} outlierAbs={outlierAbs} peerMedian={an.peerMedianDelta} peers={an.peerDeltas} zones={zones} tokens={tokens} />
+        <ZoomableChart
+          title="Adjusted leniency"
+          dialogChildren={(
+            <LeniencyInterval id="lenint-big" delta={a?.delta_adjusted ?? null} ciHalfWidth={a?.ci_half_width ?? null} rawDelta={a?.delta_unadjusted ?? null}
+              provisional={a?.is_provisional ?? true} outlierAbs={outlierAbs} peerMedian={an.peerMedianDelta} peers={an.peerDeltas} zones={zones} tokens={tokens}
+              width={1400} height={235} pxPerUnit={1.07} />
+          )}
+        >
+          <LeniencyInterval id="lenint" delta={a?.delta_adjusted ?? null} ciHalfWidth={a?.ci_half_width ?? null} rawDelta={a?.delta_unadjusted ?? null}
+            provisional={a?.is_provisional ?? true} outlierAbs={outlierAbs} peerMedian={an.peerMedianDelta} peers={an.peerDeltas} zones={zones} tokens={tokens} />
+        </ZoomableChart>
         <div className="row" style={{ marginTop: 'var(--space-3)', gap: 'var(--space-4)' }}>
           <span className="small"><strong>{a?.n_grades ?? 0}</strong> grades <span className="muted">over {a?.n_records ?? 0} records and {a?.n_subjects ?? 0} pilots</span></span>
           <span className="small">Mean grade <strong>{fmt(a?.mean_grade)}</strong> <span className="muted">bench {fmt(prof.groupMean)}</span></span>

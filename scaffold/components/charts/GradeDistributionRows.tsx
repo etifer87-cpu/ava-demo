@@ -34,6 +34,12 @@ export interface GradeDistributionRowsProps {
   readonly id: string;
   readonly counts: readonly GradeRowCount[];
   readonly tokens: ChartTokens;
+  /**
+   * Rendered pixels per viewBox unit, for the type scale. Defaults to the measured inline
+   * ratio; an enlarged copy in a dialog has a different one and must pass it. See
+   * CHART_TYPE_PX.
+   */
+  readonly pxPerUnit?: number;
   /** The operator's word for each grade, from brand.yaml. Absent is fine; the numeral carries it. */
   readonly gradeLabels?: Readonly<Record<number, string>>;
   readonly min: number;
@@ -65,6 +71,7 @@ const X_PCT = 556;
 
 export function GradeDistributionRows({
   id, counts, tokens, gradeLabels, min, max, belowStandardMax, label,
+  pxPerUnit = 0.98,
   emptyText = 'No competency grade has been recorded in this window.',
   hrefForGrade, selectedGrade = null,
 }: GradeDistributionRowsProps) {
@@ -78,7 +85,7 @@ export function GradeDistributionRows({
   const total = grades.reduce((a, g) => a + (byGrade.get(g) ?? 0), 0);
   // Measured 2026-09-21: 560 units render in 550px. Declared before the empty-state return below,
   // which also prints text. See CHART_TYPE_PX.
-  const FS = chartType(0.98);
+  const FS = chartType(pxPerUnit);
   if (!(total > 0)) {
     return (
       <svg viewBox={`0 0 ${W} 40`} width="100%" role="img" aria-label={label}

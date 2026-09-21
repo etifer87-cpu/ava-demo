@@ -32,6 +32,12 @@ export interface CompetencyRadarProps {
   readonly competencies: readonly { competencyId: string; code: string; name: string }[];
   readonly series: readonly RadarSeries[];
   readonly tokens: ChartTokens;
+  /**
+   * Rendered pixels per viewBox unit, for the type scale. Defaults to this chart's measured
+   * inline ratio; an ENLARGED copy in a dialog has a different one and must pass it, or its
+   * labels come out smaller than the small copy's. See CHART_TYPE_PX.
+   */
+  readonly pxPerUnit?: number;
   readonly min?: number;
   readonly max?: number;
   readonly size?: number;
@@ -55,6 +61,7 @@ export function CompetencyRadar({
   competencies,
   series,
   tokens,
+  pxPerUnit = 1.80,
   min = 1,
   max = 5,
   size = 320,
@@ -70,7 +77,7 @@ export function CompetencyRadar({
   // Measured 2026-09-21: a 300-unit viewBox renders in 541px, the largest viewBox-to-screen ratio
   // in the product (1.8), so its units buy nearly twice the pixels of a KPI tile's. See
   // CHART_TYPE_PX in chart-tokens - the scale is stated in pixels for exactly this reason.
-  const FS = chartType(1.80);
+  const FS = chartType(pxPerUnit);
   const n = competencies.length;
   const cx = size / 2;
   const cy = size / 2;

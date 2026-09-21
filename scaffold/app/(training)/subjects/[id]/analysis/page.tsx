@@ -230,7 +230,18 @@ export default async function SubjectAnalysisPage({
               note={`Mean competency grade over ${panel.months} months, this pilot against ${panel.peerLabel}. The axis is the whole ${scale.min}-${scale.max} scale, not the range of the data.`}
               testId="panel-peer"
             >
-              <ZoomableChart title={`Competency means — this pilot against ${panel.peerLabel}`}>
+              <ZoomableChart
+                title={`Competency means — this pilot against ${panel.peerLabel}`}
+                /* Same chart, wider dialog: 560 units in 1502px is a ratio of 2.68 against 0.98
+                   inline, so without this its labels render at 34px. */
+                dialogChildren={(
+                  <PeerCompare
+                    id="subject-peer" rows={panel.peer} tokens={tokens} pxPerUnit={2.68}
+                    min={scale.min} max={scale.max} peerLabel={panel.peerLabel}
+                    label="Competency means, this pilot against the peer group"
+                  />
+                )}
+              >
                 <PeerCompare
                   id="subject-peer" rows={panel.peer} tokens={tokens}
                   min={scale.min} max={scale.max} peerLabel={panel.peerLabel}
@@ -244,7 +255,18 @@ export default async function SubjectAnalysisPage({
               note={`Every competency grade in the ${panel.months}-month window. Below standard is at or under ${scale.below_standard_max}.`}
               testId="panel-distribution"
             >
-              <ZoomableChart title="Where their grades sit">
+              <ZoomableChart
+                title="Where their grades sit"
+                dialogChildren={(
+                  <GradeDistributionRows
+                    id="subject-distribution" counts={panel.distribution.subject} tokens={tokens} pxPerUnit={2.68}
+                    gradeLabels={Object.fromEntries(gradePalette().map((g) => [g.grade, g.label]))}
+                    min={scale.min} max={scale.max} belowStandardMax={scale.below_standard_max}
+                    label="This pilot's competency grades, by grade"
+                    emptyText="No competency grade in this window."
+                  />
+                )}
+              >
                 <GradeDistributionRows
                   id="subject-distribution" counts={panel.distribution.subject} tokens={tokens}
                   gradeLabels={Object.fromEntries(gradePalette().map((g) => [g.grade, g.label]))}
@@ -261,7 +283,16 @@ export default async function SubjectAnalysisPage({
             note={`Monthly mean of every competency grade. A month with no training is a gap, never a zero. Peer group: ${panel.peerLabel}.`}
             testId="panel-trend"
           >
-            <ZoomableChart title={`Monthly mean competency grade — this pilot against ${panel.peerLabel}`}>
+            <ZoomableChart
+              title={`Monthly mean competency grade — this pilot against ${panel.peerLabel}`}
+              dialogChildren={(
+                <TwoLineTrend
+                  id="subject-trend" points={panel.trend} tokens={tokens} pxPerUnit={2.68}
+                  min={scale.min} max={scale.max} peerLabel={panel.peerLabel}
+                  label="Monthly mean competency grade, this pilot against the peer group"
+                />
+              )}
+            >
               <TwoLineTrend
                 id="subject-trend" points={panel.trend} tokens={tokens}
                 min={scale.min} max={scale.max} peerLabel={panel.peerLabel}

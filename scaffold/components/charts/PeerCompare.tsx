@@ -36,10 +36,17 @@ const X_DELTA = 558;
 
 export function PeerCompare({
   id, rows, tokens, min, max, peerLabel, label,
+  pxPerUnit = 0.98,
 }: {
   readonly id: string;
   readonly rows: readonly PeerCompareRow[];
   readonly tokens: ChartTokens;
+  /**
+   * Rendered pixels per viewBox unit, for the type scale. Defaults to the measured inline
+   * ratio; an enlarged copy in a dialog has a different one and must pass it. See
+   * CHART_TYPE_PX.
+   */
+  readonly pxPerUnit?: number;
   readonly min: number;
   readonly max: number;
   readonly peerLabel: string;
@@ -49,7 +56,7 @@ export function PeerCompare({
   const height = rows.length * ROW + 46;
   // Measured 2026-09-21: 560 units render in 550px, so units are pixels here and the text was
   // 9.3px. Same viewBox width as TwoLineTrend, half the apparent size. See CHART_TYPE_PX.
-  const FS = chartType(0.98);
+  const FS = chartType(pxPerUnit);
   const ticks: number[] = [];
   for (let t = min; t <= max; t += 1) ticks.push(t);
 
