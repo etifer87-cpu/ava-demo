@@ -51,12 +51,38 @@ async function settingInt(key: string, fallback: number): Promise<number> {
   return Number.isFinite(n) ? n : fallback;
 }
 
+/**
+ * A username is an IDENTIFIER, so it is compared as bytes and anything invisible in it is a bug.
+ *
+ * WHY THIS IS NOT PARANOIA. On 2026-09-21 nobody could sign in to the deployed demonstration.
+ * The audit log showed `{"username": "l.guerrero"}` and the users table held `l.guerrero`, and the
+ * lookup matched neither: the submitted string was `e2808b6c2e...` - a leading U+200B ZERO WIDTH
+ * SPACE, picked up by copying the name out of rendered text and then remembered by the browser's
+ * autofill. `.trim()` does not remove it because it is not whitespace, it renders as nothing at
+ * all, and the failure presents as "those credentials were not accepted" - a wrong-password
+ * message for a username that was never found. `failed_login_count` stays at 0 and the audit row
+ * carries no user id, which is the only visible trace.
+ *
+ * So: normalise, then drop every format character (\p{Cf}: zero-width space, zero-width joiner,
+ * the BOM, bidi marks) and every space (\p{Zs}: including U+00A0, which a copy out of HTML
+ * routinely carries). No username in this system contains a space, so removing them cannot turn
+ * one account's name into another's.
+ *
+ * THE PASSWORD IS NOT TOUCHED. A password is a secret, not an identifier: every byte of it is
+ * meaningful, and silently editing one would make a correct password fail and an incorrect one
+ * occasionally pass.
+ */
+function cleanUsername(raw: unknown): string {
+  if (typeof raw !== 'string') return '';
+  return raw.normalize('NFKC').replace(/[\p{Cf}\p{Zs}\s]/gu, '');
+}
+
 async function readCredentials(request: NextRequest) {
   const type = request.headers.get('content-type') ?? '';
   if (type.includes('application/json')) {
     const body = (await request.json().catch(() => ({}))) as Record<string, unknown>;
     return {
-      username: typeof body.username === 'string' ? body.username.trim() : '',
+      username: cleanUsername(body.username),
       password: typeof body.password === 'string' ? body.password : '',
       next: typeof body.next === 'string' ? body.next : '/',
       wantsJson: true,
@@ -64,7 +90,7 @@ async function readCredentials(request: NextRequest) {
   }
   const form = await request.formData();
   return {
-    username: String(form.get('username') ?? '').trim(),
+    username: cleanUsername(form.get('username')),
     password: String(form.get('password') ?? ''),
     next: String(form.get('next') ?? '/'),
     wantsJson: false,
