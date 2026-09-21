@@ -124,9 +124,13 @@ export function GradeDistributionRows({
         const chosen = selectedGrade === g;
         const body = (
           <g>
+            {/* ONE string child. React puts a comment node between adjacent text children on the
+                server, the browser's SVG parser drops it, and hydration fails on the difference -
+                the trap LeniencyInterval documents at the top of its file and this had walked
+                straight into. Build the sentence in JS, interpolate once. */}
             <title>
-              {`Grade ${g}${word ? `, ${word}` : ''}: ${num(n)} grades, ${showPct(n)} of ${num(total)}`}
-              {hrefForGrade ? ' \u2014 open to see which competencies' : ''}
+              {`Grade ${g}${word ? `, ${word}` : ''}: ${num(n)} grades, ${showPct(n)} of ${num(total)}`
+                + (hrefForGrade ? ' \u2014 open to see which competencies' : '')}
             </title>
             {chosen ? (
               <rect x={-4} y={y + 2} width={W + 8} height={ROW - 4} rx={4}
