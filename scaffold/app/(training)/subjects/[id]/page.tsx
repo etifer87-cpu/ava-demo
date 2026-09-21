@@ -268,7 +268,6 @@ export default async function SubjectProfilePage({ params, searchParams }: { par
                 min={scale.min}
                 max={scale.max}
                 size={300}
-                labelFontSize={8}
                 showValues={false}
                 showRingLabels
                 vertexRadius={2.4}

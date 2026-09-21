@@ -17,7 +17,7 @@ export function TrendCard({ code, name, colour, points, tokens, min, max }: { re
     <>
       <button type="button" className="trend-card" onClick={() => dialog.current?.showModal()} title="Enlarge" data-testid={`trend-${code}`}>
         <div className="trend-title"><span className="mono trend-code" style={{ color: colour }}>{code}</span> {name}</div>
-        <TrendSparkline id={`spark-${code}`} label={`${code} trend`} points={points} tokens={tokens} colour={colour} min={min} max={max} fontScale={1.35} dotRadius={2.1} />
+        <TrendSparkline id={`spark-${code}`} label={`${code} trend`} points={points} tokens={tokens} colour={colour} min={min} max={max} fontScale={1} dotRadius={2.1} />
       </button>
       <dialog ref={dialog} className="modal modal-wide" aria-labelledby={`trend-${code}-title`} onCancel={(e) => e.preventDefault()}>
         <div className="stack">
@@ -27,7 +27,7 @@ export function TrendCard({ code, name, colour, points, tokens, min, max }: { re
             <span className="spacer" />
             <button type="button" className="button button-quiet xs" onClick={() => dialog.current?.close()} aria-label="Close">✕ Close</button>
           </div>
-          <TrendSparkline id={`spark-big-${code}`} label={`${code} trend, enlarged`} points={points} tokens={tokens} colour={colour} min={min} max={max} width={720} height={260} fontScale={2.2} dotRadius={5} />
+          <TrendSparkline id={`spark-big-${code}`} label={`${code} trend, enlarged`} points={points} tokens={tokens} colour={colour} min={min} max={max} width={720} height={260} fontScale={1.4} dotRadius={5} />
           <p className="xs muted" style={{ margin: 0 }}>Hover a point for the session behind it. Gaps are breaks in the line, never zeros.</p>
         </div>
       </dialog>

@@ -23,6 +23,7 @@
 
 import type { ChartTokens } from './chart-tokens';
 import { gradeColour, gradeInk, gradeTint } from './chart-tokens';
+import { chartType } from './chart-tokens';
 
 export interface GradeRowCount {
   readonly grade: number;
@@ -75,12 +76,15 @@ export function GradeDistributionRows({
   for (let g = max; g >= min; g -= 1) grades.push(g);
 
   const total = grades.reduce((a, g) => a + (byGrade.get(g) ?? 0), 0);
+  // Measured 2026-09-21: 560 units render in 550px. Declared before the empty-state return below,
+  // which also prints text. See CHART_TYPE_PX.
+  const FS = chartType(0.98);
   if (!(total > 0)) {
     return (
       <svg viewBox={`0 0 ${W} 40`} width="100%" role="img" aria-label={label}
            style={{ display: 'block', background: tokens.surface.bg }} fontFamily={tokens.fontStack}>
         <rect x={0} y={4} width={W} height={32} fill="none" stroke={tokens.surface.border} />
-        <text x={W / 2} y={20} fontSize={11} fill={tokens.surface.inkMuted}
+        <text x={W / 2} y={20} fontSize={FS.label} fill={tokens.surface.inkMuted}
               textAnchor="middle" dominantBaseline="middle">{emptyText}</text>
       </svg>
     );
@@ -125,10 +129,10 @@ export function GradeDistributionRows({
             {/* The ink comes from the palette, not from a literal: white on some grades in this
                 ramp is 2.15:1. brand.yaml resolves it; the chart is handed the answer because the
                 PDF renderer cannot read a CSS custom property. */}
-            <text x={X_NUM + 9} y={y + 15.5} fontSize={11} fontWeight={700} fill={gradeInk(tokens, g)}
+            <text x={X_NUM + 9} y={y + 15.5} fontSize={FS.label} fontWeight={700} fill={gradeInk(tokens, g)}
                   textAnchor="middle" dominantBaseline="middle">{g}</text>
             {word ? (
-              <text x={X_WORD} y={y + 15.5} fontSize={11} fill={tokens.surface.ink} dominantBaseline="middle">{word}</text>
+              <text x={X_WORD} y={y + 15.5} fontSize={FS.label} fill={tokens.surface.ink} dominantBaseline="middle">{word}</text>
             ) : null}
             {/* The track shows what the bar is a share OF, so a short bar reads as small rather than
                 as a rendering accident. */}
@@ -137,9 +141,9 @@ export function GradeDistributionRows({
             <rect x={X_BAR} y={y + 9} width={BAR_W} height={12} rx={3} fill={gradeTint(tokens, g)}
                   stroke={tokens.surface.border} strokeWidth={0.5} />
             {n > 0 ? <rect x={X_BAR} y={y + 9} width={Math.max(2, w)} height={12} rx={3} fill={colour} /> : null}
-            <text x={X_COUNT} y={y + 15.5} fontSize={11} fill={tokens.surface.ink} textAnchor="end"
+            <text x={X_COUNT} y={y + 15.5} fontSize={FS.label} fill={tokens.surface.ink} textAnchor="end"
                   dominantBaseline="middle" fontFamily={tokens.fontStack}>{num(n)}</text>
-            <text x={X_PCT} y={y + 15.5} fontSize={11} fill={n === 0 ? tokens.surface.inkMuted : tokens.surface.ink}
+            <text x={X_PCT} y={y + 15.5} fontSize={FS.label} fill={n === 0 ? tokens.surface.inkMuted : tokens.surface.ink}
                   textAnchor="end" dominantBaseline="middle">{n === 0 ? 'none' : showPct(n)}</text>
           </g>
         );
@@ -155,12 +159,12 @@ export function GradeDistributionRows({
           <line x1={0} x2={W} y1={yOf(splitAfter) - RULE / 2} y2={yOf(splitAfter) - RULE / 2}
                 stroke={tokens.surface.border} strokeDasharray="3 3" />
           <rect x={0} y={yOf(splitAfter) - RULE / 2 - 8} width={126} height={16} fill={tokens.surface.bg} />
-          <text x={0} y={yOf(splitAfter) - RULE / 2} fontSize={10} fill={tokens.surface.inkMuted}
+          <text x={0} y={yOf(splitAfter) - RULE / 2} fontSize={FS.axis} fill={tokens.surface.inkMuted}
                 dominantBaseline="middle">below standard, {num(below)} · {showPct(below)}</text>
         </g>
       ) : null}
 
-      <text x={0} y={height - 8} fontSize={10.5} fill={tokens.surface.inkMuted}>
+      <text x={0} y={height - 8} fontSize={FS.axis} fill={tokens.surface.inkMuted}>
         {num(total)} competency grades · mean {mean.toFixed(2)} · {num(below)} at or under {belowStandardMax}
       </text>
       <desc>

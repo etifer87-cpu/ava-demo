@@ -178,7 +178,7 @@ export default async function InstructorPage({ params, searchParams }: { params:
           ) : <p className="muted small">No observable behaviour ticked yet.</p>}
           <div style={{ marginTop: 'var(--space-3)' }}>
             <div className="xs muted" style={{ letterSpacing: '0.04em' }}>MONTHLY RESIDUAL · mean of (own grade − expected)</div>
-            {prof.monthly.length ? <TrendSparkline id="spark-residual" label="Monthly mean residual" points={prof.monthly} tokens={tokens} colour={tokens.series.primary} min={-residualRange} max={residualRange} width={520} height={120} fontScale={1.3} dotRadius={2.4} /> : <p className="muted small">No month with grades yet.</p>}
+            {prof.monthly.length ? <TrendSparkline id="spark-residual" label="Monthly mean residual" points={prof.monthly} tokens={tokens} colour={tokens.series.primary} min={-residualRange} max={residualRange} width={520} height={120} fontScale={1} dotRadius={2.4} /> : <p className="muted small">No month with grades yet.</p>}
           </div>
         </Card>
       </div>

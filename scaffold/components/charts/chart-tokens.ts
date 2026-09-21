@@ -206,3 +206,67 @@ export function chartId(id: string): string {
   }
   return `c-${slug}`;
 }
+
+/* ------------------------------------------------------------------ type */
+
+/**
+ * THE TYPE SCALE, IN PIXELS THE ROOM WILL SEE.
+ *
+ * SVG text is sized in viewBox units, so the same `fontSize` renders at a different apparent size
+ * in every chart: apparent px = units × renderedWidthPx ÷ viewBoxWidth. Measured on 2026-09-21 the
+ * ratio ran from 1.02 (KPI tile, 220 units in 224px) to 1.80 (radar, 300 units in 541px), which is
+ * why the literals scattered through these components produced 9.2px in one chart and 14.6px in
+ * another while all reading "9". A single shared number scale would preserve that spread exactly.
+ *
+ * So the scale is stated in PIXELS and converted per chart from its own measured ratio. Change a
+ * number here and every chart moves together in apparent size rather than in units.
+ *
+ * Each chart passes its own RATIO - rendered pixels per viewBox unit - measured in the browser on
+ * 2026-09-21 at a ~1540px window, the shape a demonstration is given in:
+ *
+ *   PeerCompare        560 units in  550px   0.98
+ *   GradeDistribution  560 units in  550px   0.98
+ *   KpiTile            220 units in  224px   1.02   (284px on /analytics, so 1.02 is the floor)
+ *   AsiHistogram       460 units in  590px   1.28
+ *   DeltaScatter       900 units in 1150px   1.28
+ *   LeniencyInterval   900 units in 1150px   1.28
+ *   TrendSparkline     760 units in 1150px   1.51   (200 units in 360px elsewhere, 1.80)
+ *   CompetencyRadar    300 units in  541px   1.80
+ *   TwoLineTrend       560 units in 1150px   2.05
+ *
+ * The ratio, not the width, is what stays put: a chart given a different `width` prop keeps it.
+ * Where one component renders at two ratios, the LOWER one is used, which makes CHART_TYPE_PX a
+ * floor rather than an exact size - text is never smaller than this, and is larger in a roomier
+ * container. That spread is inherent to a viewBox; what was wrong before was that the spread ran
+ * from 9.1px to 20.5px with every source file saying "9.5".
+ *
+ * The floor of 12.5 is what a projector at the back of a training department can still read.
+ */
+export const CHART_TYPE_PX = {
+  /** Tick labels, axis captions, band names - the smallest thing a chart is allowed to print. */
+  axis: 12.5,
+  /** A number printed on or beside a mark. */
+  value: 13.5,
+  /** A series or category name; the thing a reader matches against a legend. */
+  label: 14.5,
+  /** The one figure a tile exists to show. */
+  emphasis: 30,
+} as const;
+
+export type ChartType = Record<keyof typeof CHART_TYPE_PX, number>;
+
+/**
+ * Convert the pixel scale into this chart's viewBox units.
+ *
+ * @param pxPerUnit rendered pixels per viewBox unit for this chart - the table above
+ */
+export function chartType(pxPerUnit: number): ChartType {
+  const unitsPerPx = 1 / pxPerUnit;
+  const at = (px: number) => Math.round(px * unitsPerPx * 10) / 10;
+  return {
+    axis: at(CHART_TYPE_PX.axis),
+    value: at(CHART_TYPE_PX.value),
+    label: at(CHART_TYPE_PX.label),
+    emphasis: at(CHART_TYPE_PX.emphasis),
+  };
+}

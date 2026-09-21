@@ -13,7 +13,7 @@
  */
 
 import type { ChartTokens } from './chart-tokens';
-import { chartId, gradeColour, PAD, xAt, yAt } from './chart-tokens';
+import { chartId, chartType, gradeColour, PAD, xAt, yAt } from './chart-tokens';
 
 export interface SparklinePoint {
   readonly on: string;              // ISO date; used for the end labels only
@@ -61,7 +61,13 @@ export function TrendSparkline({
   fontScale = 1,
   dotRadius = 2.5,
 }: TrendSparklineProps) {
-  const fs = (n: number) => n * fontScale;
+  // Measured 2026-09-21: this component renders at 1.51 px per unit at its widest call (760 units
+  // in 1150px on /analytics) and 1.80 at its narrowest (200 in 360). The lower is used, so the
+  // scale is a floor. Before this, /analytics passed no fontScale and its axis text was 9.1px while
+  // the same component elsewhere carried a hand-tuned 1.2, 1.3, 1.35 or 2.2 to compensate - which
+  // is the hand-tuning CHART_TYPE_PX exists to retire. `fontScale` remains for DELIBERATE
+  // deviation, such as the enlarged copy in a dialog, and defaults to 1.
+  const FS = chartType(1.51);
   const uid = chartId(id);
   const n = points.length;
   const valid = points
@@ -110,7 +116,7 @@ export function TrendSparkline({
           />
           <text
             x={PAD.left - 4} y={py(g)}
-            fontSize={fs(6)} fill={tokens.surface.inkMuted}
+            fontSize={FS.axis * fontScale} fill={tokens.surface.inkMuted}
             textAnchor="end" dominantBaseline="middle"
           >
             {g}
@@ -121,7 +127,7 @@ export function TrendSparkline({
       {valid.length === 0 && (
         <text
           x={width / 2} y={height / 2}
-          fontSize={fs(9)} fill={tokens.surface.inkMuted} textAnchor="middle"
+          fontSize={FS.value * fontScale} fill={tokens.surface.inkMuted} textAnchor="middle"
         >
           {emptyText}
         </text>
@@ -167,13 +173,13 @@ export function TrendSparkline({
         <>
           <text
             x={PAD.left} y={height - 4}
-            fontSize={fs(6)} fill={tokens.surface.inkMuted} textAnchor="start"
+            fontSize={FS.axis * fontScale} fill={tokens.surface.inkMuted} textAnchor="start"
           >
             {points[0]?.on.slice(0, 7)}
           </text>
           <text
             x={width - PAD.right} y={height - 4}
-            fontSize={fs(6)} fill={tokens.surface.inkMuted} textAnchor="end"
+            fontSize={FS.axis * fontScale} fill={tokens.surface.inkMuted} textAnchor="end"
           >
             {points[n - 1]?.on.slice(0, 7)}
           </text>
@@ -183,7 +189,7 @@ export function TrendSparkline({
       {annotation && (
         <text
           x={width - PAD.right} y={PAD.top + 6}
-          fontSize={fs(6.5)} fill={tokens.surface.ink} textAnchor="end"
+          fontSize={FS.axis * fontScale} fill={tokens.surface.ink} textAnchor="end"
         >
           {annotation}
         </text>

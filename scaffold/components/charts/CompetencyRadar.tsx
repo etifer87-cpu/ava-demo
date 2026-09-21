@@ -13,7 +13,7 @@
  */
 
 import type { ChartTokens } from './chart-tokens';
-import { chartId, competencyColour, gradeColour, PAD } from './chart-tokens';
+import { chartId, chartType, competencyColour, gradeColour, PAD } from './chart-tokens';
 
 export interface RadarSeries {
   readonly key: string;
@@ -40,7 +40,7 @@ export interface CompetencyRadarProps {
   readonly emptyText?: string;
   /** Colour the vertices by grade band. The numeral is printed regardless. */
   readonly colourVerticesByGrade?: boolean;
-  /** Font size of the competency codes on the spokes. */
+  /** Font size of the competency codes on the spokes, in viewBox units. Omit for the shared scale. */
   readonly labelFontSize?: number;
   /** Print the value beside each vertex (default true). */
   readonly showValues?: boolean;
@@ -61,12 +61,16 @@ export function CompetencyRadar({
   label,
   emptyText = 'No data',
   colourVerticesByGrade = true,
-  labelFontSize = 9,
+  labelFontSize,
   showValues = true,
   showRingLabels = false,
   vertexRadius = 3.2,
 }: CompetencyRadarProps) {
   const uid = chartId(id);
+  // Measured 2026-09-21: a 300-unit viewBox renders in 541px, the largest viewBox-to-screen ratio
+  // in the product (1.8), so its units buy nearly twice the pixels of a KPI tile's. See
+  // CHART_TYPE_PX in chart-tokens - the scale is stated in pixels for exactly this reason.
+  const FS = chartType(1.80);
   const n = competencies.length;
   const cx = size / 2;
   const cy = size / 2;
@@ -108,7 +112,7 @@ export function CompetencyRadar({
             strokeWidth={0.8}
           />
           {showRingLabels && ringValue > min ? (
-            <text x={cx + 3} y={point(0, ringValue).y + 2} fontSize={labelFontSize * 0.7} fill={tokens.surface.inkMuted} textAnchor="start">{ringValue}</text>
+            <text x={cx + 3} y={point(0, ringValue).y + 2} fontSize={FS.axis} fill={tokens.surface.inkMuted} textAnchor="start">{ringValue}</text>
           ) : null}
         </g>
       ))}
@@ -129,7 +133,7 @@ export function CompetencyRadar({
             <text
               x={labelPos.x}
               y={labelPos.y}
-              fontSize={labelFontSize}
+              fontSize={labelFontSize ?? FS.label}
               fill={competencyColour(tokens, c.competencyId)}
               textAnchor={labelPos.x > cx + 2 ? 'start' : labelPos.x < cx - 2 ? 'end' : 'middle'}
               dominantBaseline="middle"
@@ -141,7 +145,7 @@ export function CompetencyRadar({
       })}
 
       {!hasAny && (
-        <text x={cx} y={cy} fontSize={11} fill={tokens.surface.inkMuted} textAnchor="middle">
+        <text x={cx} y={cy} fontSize={FS.value} fill={tokens.surface.inkMuted} textAnchor="middle">
           {emptyText}
         </text>
       )}
@@ -187,7 +191,7 @@ export function CompetencyRadar({
                       {showValues ? (
                         <text
                           x={q.x} y={q.y - 6}
-                          fontSize={8} fill={tokens.surface.ink} textAnchor="middle"
+                          fontSize={FS.axis} fill={tokens.surface.ink} textAnchor="middle"
                         >
                           {(p.v as number).toFixed(1)}
                         </text>

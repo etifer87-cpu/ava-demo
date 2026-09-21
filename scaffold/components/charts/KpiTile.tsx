@@ -17,7 +17,7 @@
  */
 
 import type { ChartTokens } from './chart-tokens';
-import { chartId } from './chart-tokens';
+import { chartId, chartType } from './chart-tokens';
 
 export type TileState = 'value' | 'suppressed' | 'insufficient' | 'not_captured' | 'not_applicable';
 
@@ -66,6 +66,9 @@ export function KpiTile({
   height = 104,
 }: KpiTileProps) {
   const uid = chartId(id);
+  // Measured 2026-09-21: 220 viewBox units render in 224px, so units and pixels are near 1:1 here
+  // and this was the smallest type in the product at 9.2px. See CHART_TYPE_PX in chart-tokens.
+  const FS = chartType(1.02);
   const bandColour = band ? tokens.bands[band] : tokens.surface.ink;
   const showValue = state === 'value' && value !== null;
   const stateText = state === 'value' ? null : STATE_TEXT[state as Exclude<TileState, 'value'>];
@@ -88,17 +91,17 @@ export function KpiTile({
         rx={6} fill="none" stroke={tokens.surface.border}
       />
 
-      <text x={12} y={20} fontSize={10} fill={tokens.surface.inkMuted}>
+      <text x={12} y={20} fontSize={FS.label} fill={tokens.surface.inkMuted}>
         {caption}
       </text>
 
       {showValue ? (
         <>
-          <text x={12} y={54} fontSize={28} fill={bandColour}>
+          <text x={12} y={54} fontSize={FS.emphasis} fill={bandColour}>
             {value}
           </text>
           {unit && (
-            <text x={12} y={70} fontSize={9} fill={tokens.surface.inkMuted}>
+            <text x={12} y={70} fontSize={FS.axis} fill={tokens.surface.inkMuted}>
               {unit}
             </text>
           )}
@@ -106,7 +109,7 @@ export function KpiTile({
       ) : (
         // An unmeasured tile says so. It never renders 0: a zero here reads as
         // "measured, and nothing found", which is a different claim entirely.
-        <text x={12} y={54} fontSize={16} fill={tokens.surface.inkMuted}>
+        <text x={12} y={54} fontSize={FS.emphasis * 0.55} fill={tokens.surface.inkMuted}>
           {stateText}
         </text>
       )}
@@ -120,7 +123,7 @@ export function KpiTile({
           />
           <text
             x={width - 17} y={22}
-            fontSize={9} fill={bandColour} textAnchor="end"
+            fontSize={FS.axis} fill={bandColour} textAnchor="end"
           >
             {bandLabel}
           </text>
@@ -128,12 +131,12 @@ export function KpiTile({
       )}
 
       {context && (
-        <text x={12} y={height - 22} fontSize={9} fill={tokens.surface.inkMuted}>
+        <text x={12} y={height - 22} fontSize={FS.axis} fill={tokens.surface.inkMuted}>
           {context}
         </text>
       )}
       {reference && (
-        <text x={12} y={height - 9} fontSize={9} fill={tokens.surface.inkMuted}>
+        <text x={12} y={height - 9} fontSize={FS.axis} fill={tokens.surface.inkMuted}>
           {reference}
         </text>
       )}

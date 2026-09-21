@@ -1,6 +1,6 @@
 import type { LeniencyZone } from '@/lib/config';
 import type { ChartTokens } from './chart-tokens';
-import { chartId, PAD } from './chart-tokens';
+import { chartId, chartType, PAD } from './chart-tokens';
 
 /**
  * LeniencyInterval - docs/07_VISUALISATION.md §5.8 chart 35.
@@ -36,6 +36,8 @@ export function LeniencyInterval({
   readonly height?: number;
 }) {
   const cid = chartId(id);
+  // Measured 2026-09-21: 900 units render in 1150px. The scale is stated in pixels; see CHART_TYPE_PX.
+  const FS = chartType(1.28);
   const innerW = width - PAD.left - PAD.right;
   const top = PAD.top + 6;
   const axisY = top + 46;
@@ -77,14 +79,14 @@ export function LeniencyInterval({
         {[-outlierAbs, outlierAbs].map((v) => (
           <g key={v}>
             <line x1={X(v)} x2={X(v)} y1={top} y2={axisY} stroke={tokens.bands.red} strokeWidth="1" strokeDasharray="3 3" />
-            <text x={X(v)} y={top + 8} textAnchor="middle" fontSize="9" fill={tokens.bands.red}>{v > 0 ? `+${v}` : v}</text>
+            <text x={X(v)} y={top + 8} textAnchor="middle" fontSize={FS.axis} fill={tokens.bands.red}>{v > 0 ? `+${v}` : v}</text>
           </g>
         ))}
         <line x1={X(0)} x2={X(0)} y1={top} y2={axisY} stroke={tokens.surface.ink} strokeWidth="1" />
         {peerMedian !== null ? (
           <>
             <line x1={X(peerMedian)} x2={X(peerMedian)} y1={top} y2={axisY} stroke={tokens.series.secondary} strokeWidth="1.5" />
-            <text x={X(peerMedian)} y={axisY - 3} textAnchor="middle" fontSize="9" fill={tokens.surface.inkMuted}>bench median</text>
+            <text x={X(peerMedian)} y={axisY - 3} textAnchor="middle" fontSize={FS.axis} fill={tokens.surface.inkMuted}>bench median</text>
           </>
         ) : null}
 
@@ -99,23 +101,23 @@ export function LeniencyInterval({
               </>
             ) : null}
             <circle cx={X(delta)} cy={top + 24} r="6" fill={provisional ? tokens.surface.bg : band?.colour ?? tokens.series.primary} stroke={tokens.surface.ink} strokeWidth="1.2" />
-            <text x={X(delta)} y={top + 14} textAnchor="middle" fontSize="11" fontWeight="700" fill={tokens.surface.ink}>
+            <text x={X(delta)} y={top + 14} textAnchor="middle" fontSize={FS.label} fontWeight="700" fill={tokens.surface.ink}>
               {delta > 0 ? '+' : ''}{delta.toFixed(2)}
             </text>
           </g>
         ) : (
-          <text x={width / 2} y={top + 26} textAnchor="middle" fontSize="10" fill={tokens.surface.inkMuted}>no graded record yet</text>
+          <text x={width / 2} y={top + 26} textAnchor="middle" fontSize={FS.value} fill={tokens.surface.inkMuted}>no graded record yet</text>
         )}
 
         <line x1={PAD.left} x2={width - PAD.right} y1={axisY} y2={axisY} stroke={tokens.surface.border} />
-        <text x={PAD.left} y={axisY + 11} textAnchor="start" fontSize="9" fill={tokens.surface.inkMuted}>stricter than the bench</text>
-        <text x={X(0)} y={axisY + 11} textAnchor="middle" fontSize="9" fontWeight="600" fill={tokens.surface.ink}>0</text>
-        <text x={width - PAD.right} y={axisY + 11} textAnchor="end" fontSize="9" fill={tokens.surface.inkMuted}>more lenient</text>
+        <text x={PAD.left} y={axisY + 11} textAnchor="start" fontSize={FS.axis} fill={tokens.surface.inkMuted}>stricter than the bench</text>
+        <text x={X(0)} y={axisY + 11} textAnchor="middle" fontSize={FS.axis} fontWeight="600" fill={tokens.surface.ink}>0</text>
+        <text x={width - PAD.right} y={axisY + 11} textAnchor="end" fontSize={FS.axis} fill={tokens.surface.inkMuted}>more lenient</text>
 
         {peers.map((p, i) => (
           <line key={`${p}-${i}`} x1={X(p)} x2={X(p)} y1={rugY} y2={rugY + 7} stroke={tokens.series.secondary} strokeWidth="1" opacity="0.7" />
         ))}
-        <text x={PAD.left} y={height - 2} fontSize="9" fill={tokens.surface.inkMuted}>
+        <text x={PAD.left} y={height - 2} fontSize={FS.axis} fill={tokens.surface.inkMuted}>
           each tick is one banded instructor ({peers.length})
           {rawDelta !== null ? ` · raw own-mean-minus-bench-mean ${rawDelta > 0 ? '+' : ''}${rawDelta.toFixed(2)}, shown for reference and never used to band` : ''}
         </text>

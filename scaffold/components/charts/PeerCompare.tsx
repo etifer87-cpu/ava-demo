@@ -14,6 +14,7 @@
  */
 
 import type { ChartTokens } from './chart-tokens';
+import { chartType } from './chart-tokens';
 
 export interface PeerCompareRow {
   readonly code: string;
@@ -46,6 +47,9 @@ export function PeerCompare({
 }) {
   const x = (v: number) => X_PLOT + ((v - min) / (max - min)) * PLOT_W;
   const height = rows.length * ROW + 46;
+  // Measured 2026-09-21: 560 units render in 550px, so units are pixels here and the text was
+  // 9.3px. Same viewBox width as TwoLineTrend, half the apparent size. See CHART_TYPE_PX.
+  const FS = chartType(0.98);
   const ticks: number[] = [];
   for (let t = min; t <= max; t += 1) ticks.push(t);
 
@@ -56,7 +60,7 @@ export function PeerCompare({
         {ticks.map((t) => (
           <g key={t}>
             <line x1={x(t)} x2={x(t)} y1={16} y2={rows.length * ROW + 18} stroke={tokens.surface.grid} />
-            <text x={x(t)} y={rows.length * ROW + 30} fontSize={9.5} fill={tokens.surface.inkMuted}
+            <text x={x(t)} y={rows.length * ROW + 30} fontSize={FS.axis} fill={tokens.surface.inkMuted}
                   textAnchor="middle">{t}</text>
           </g>
         ))}
@@ -73,8 +77,8 @@ export function PeerCompare({
                `, ${peerLabel} ${b === null ? 'no grades' : b.toFixed(2)} over ${r.peerN}`}
             </title>
             <rect x={X_CODE} y={y - 7} width={16} height={14} rx={3} fill={r.colour} />
-            <text x={X_CODE + 22} y={y} fontSize={10.5} fill={tokens.surface.ink} dominantBaseline="middle">{r.code}</text>
-            <text x={X_CODE + 52} y={y} fontSize={10.5} fill={tokens.surface.inkMuted} dominantBaseline="middle">
+            <text x={X_CODE + 22} y={y} fontSize={FS.label} fill={tokens.surface.ink} dominantBaseline="middle">{r.code}</text>
+            <text x={X_CODE + 52} y={y} fontSize={FS.label} fill={tokens.surface.inkMuted} dominantBaseline="middle">
               {r.name.length > 30 ? `${r.name.slice(0, 29)}…` : r.name}
             </text>
 
@@ -90,10 +94,10 @@ export function PeerCompare({
               <circle cx={x(a)} cy={y} r={5} fill={r.colour} stroke={tokens.surface.halo} strokeWidth={1.5} />
             ) : null}
 
-            <text x={X_VAL} y={y} fontSize={10.5} fill={tokens.surface.ink} textAnchor="end" dominantBaseline="middle">
+            <text x={X_VAL} y={y} fontSize={FS.label} fill={tokens.surface.ink} textAnchor="end" dominantBaseline="middle">
               {a === null ? '—' : a.toFixed(2)}
             </text>
-            <text x={X_DELTA} y={y} fontSize={10} textAnchor="end" dominantBaseline="middle"
+            <text x={X_DELTA} y={y} fontSize={FS.value} textAnchor="end" dominantBaseline="middle"
                   fill={delta === null ? tokens.surface.inkMuted : tokens.surface.ink}>
               {delta === null ? '' : `${delta >= 0 ? '+' : '−'}${Math.abs(delta).toFixed(2)}`}
             </text>
@@ -104,9 +108,9 @@ export function PeerCompare({
       {/* Two series, so a legend is not optional. */}
       <g>
         <circle cx={X_PLOT + 4} cy={8} r={5} fill={tokens.surface.ink} stroke={tokens.surface.halo} strokeWidth={1.5} />
-        <text x={X_PLOT + 14} y={8} fontSize={10} fill={tokens.surface.ink} dominantBaseline="middle">this pilot</text>
+        <text x={X_PLOT + 14} y={8} fontSize={FS.value} fill={tokens.surface.ink} dominantBaseline="middle">this pilot</text>
         <circle cx={X_PLOT + 92} cy={8} r={4.5} fill={tokens.surface.bg} stroke={tokens.series.secondary} strokeWidth={2} />
-        <text x={X_PLOT + 102} y={8} fontSize={10} fill={tokens.surface.inkMuted} dominantBaseline="middle">{peerLabel}</text>
+        <text x={X_PLOT + 102} y={8} fontSize={FS.value} fill={tokens.surface.inkMuted} dominantBaseline="middle">{peerLabel}</text>
       </g>
       <desc>
         {rows.map((r) => `${r.code}: ${r.subjectMean?.toFixed(2) ?? 'none'} against ${r.peerMean?.toFixed(2) ?? 'none'}`).join('. ')}

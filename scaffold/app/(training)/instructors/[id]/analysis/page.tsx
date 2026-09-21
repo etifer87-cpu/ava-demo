@@ -144,7 +144,7 @@ export default async function InstructorAnalysisPage({ params, searchParams }: {
         </div>
         <div style={{ marginTop: 'var(--space-3)' }}>
           <div className="xs muted" style={{ letterSpacing: '0.04em' }}>MONTHLY MEAN RESIDUAL · gaps are months with no grading, never zeros</div>
-          {prof.monthly.length ? <TrendSparkline id="an-resid" label="Monthly mean residual" points={prof.monthly} tokens={tokens} colour={tokens.series.primary} min={-residualRange} max={residualRange} width={900} height={110} fontScale={1.2} dotRadius={2.4} /> : <p className="muted small">No month with grades yet.</p>}
+          {prof.monthly.length ? <TrendSparkline id="an-resid" label="Monthly mean residual" points={prof.monthly} tokens={tokens} colour={tokens.series.primary} min={-residualRange} max={residualRange} width={900} height={110} fontScale={1} dotRadius={2.4} /> : <p className="muted small">No month with grades yet.</p>}
         </div>
       </Card>
 

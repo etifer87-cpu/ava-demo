@@ -1,6 +1,6 @@
 import type { LeniencyZone } from '@/lib/config';
 import type { ChartTokens } from './chart-tokens';
-import { chartId, PAD } from './chart-tokens';
+import { chartId, chartType, PAD } from './chart-tokens';
 
 export interface DeltaPoint {
   readonly id: string;
@@ -43,6 +43,8 @@ export function DeltaScatter({
   readonly height?: number;
 }) {
   const cid = chartId(id);
+  // Measured 2026-09-21: 900 units render in 1150px. The scale is stated in pixels; see CHART_TYPE_PX.
+  const FS = chartType(1.28);
   const legendH = zones.length ? 14 : 0;
   const innerW = width - PAD.left - PAD.right;
   const innerH = height - PAD.top - PAD.bottom - legendH;
@@ -94,26 +96,26 @@ export function DeltaScatter({
         ))}
 
         <line x1={PAD.left} x2={width - PAD.right} y1={bottom} y2={bottom} stroke={tokens.surface.border} />
-        <text x={PAD.left - 4} y={top + 8} textAnchor="end" fontSize="9" fill={tokens.surface.inkMuted}>{maxY}</text>
-        <text x={PAD.left - 4} y={bottom} textAnchor="end" fontSize="9" fill={tokens.surface.inkMuted}>0</text>
-        <text x={9} y={top + innerH / 2} fontSize="9" fill={tokens.surface.inkMuted} textAnchor="middle" transform={`rotate(-90 9 ${top + innerH / 2})`}>grades</text>
+        <text x={PAD.left - 4} y={top + 8} textAnchor="end" fontSize={FS.axis} fill={tokens.surface.inkMuted}>{maxY}</text>
+        <text x={PAD.left - 4} y={bottom} textAnchor="end" fontSize={FS.axis} fill={tokens.surface.inkMuted}>0</text>
+        <text x={9} y={top + innerH / 2} fontSize={FS.axis} fill={tokens.surface.inkMuted} textAnchor="middle" transform={`rotate(-90 9 ${top + innerH / 2})`}>grades</text>
 
         {[-outlierAbs, outlierAbs].map((v) => (
           <g key={v}>
             <line x1={X(v)} x2={X(v)} y1={top} y2={bottom} stroke={tokens.bands.red} strokeWidth="1" strokeDasharray="3 3" />
-            <text x={X(v)} y={top + 8} textAnchor="middle" fontSize="9" fontWeight="600" fill={tokens.bands.red}>{v > 0 ? `+${v}` : v}</text>
+            <text x={X(v)} y={top + 8} textAnchor="middle" fontSize={FS.axis} fontWeight="600" fill={tokens.bands.red}>{v > 0 ? `+${v}` : v}</text>
           </g>
         ))}
         {peerMedian !== null ? (
           <g>
             <line x1={X(peerMedian)} x2={X(peerMedian)} y1={top} y2={bottom} stroke={tokens.series.secondary} strokeWidth="1" />
-            <text x={X(peerMedian)} y={bottom - 3} textAnchor="middle" fontSize="9" fill={tokens.surface.inkMuted}>median {peerMedian > 0 ? '+' : ''}{peerMedian.toFixed(2)}</text>
+            <text x={X(peerMedian)} y={bottom - 3} textAnchor="middle" fontSize={FS.axis} fill={tokens.surface.inkMuted}>median {peerMedian > 0 ? '+' : ''}{peerMedian.toFixed(2)}</text>
           </g>
         ) : null}
         <line x1={X(0)} x2={X(0)} y1={top} y2={bottom} stroke={tokens.surface.ink} strokeWidth="1" />
-        <text x={X(0)} y={bottom + 11} textAnchor="middle" fontSize="9" fontWeight="600" fill={tokens.surface.ink}>0</text>
-        <text x={PAD.left} y={bottom + 11} textAnchor="start" fontSize="9" fill={tokens.surface.inkMuted}>stricter than the bench</text>
-        <text x={width - PAD.right} y={bottom + 11} textAnchor="end" fontSize="9" fill={tokens.surface.inkMuted}>more lenient than the bench</text>
+        <text x={X(0)} y={bottom + 11} textAnchor="middle" fontSize={FS.axis} fontWeight="600" fill={tokens.surface.ink}>0</text>
+        <text x={PAD.left} y={bottom + 11} textAnchor="start" fontSize={FS.axis} fill={tokens.surface.inkMuted}>stricter than the bench</text>
+        <text x={width - PAD.right} y={bottom + 11} textAnchor="end" fontSize={FS.axis} fill={tokens.surface.inkMuted}>more lenient than the bench</text>
 
         {points.map((p) => {
           const z = zoneOf(p.x);
@@ -131,7 +133,7 @@ export function DeltaScatter({
         {rings.map((r, i) => (
           <g key={`k-${r.label}`}>
             <rect x={PAD.left + i * 150} y={height - 10} width="9" height="9" fill={r.colour} fillOpacity="0.85" stroke={tokens.surface.ink} strokeWidth="0.5" />
-            <text x={PAD.left + i * 150 + 13} y={height - 2} fontSize="9" fill={tokens.surface.ink}>
+            <text x={PAD.left + i * 150 + 13} y={height - 2} fontSize={FS.axis} fill={tokens.surface.ink}>
               {r.label} {r.hi >= span ? `beyond ±${r.lo.toFixed(2)}` : `±${r.lo.toFixed(2)}-${r.hi.toFixed(2)}`}
             </text>
           </g>

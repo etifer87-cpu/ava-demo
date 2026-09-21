@@ -24,6 +24,7 @@
  */
 
 import type { ChartTokens } from './chart-tokens';
+import { chartType } from './chart-tokens';
 
 
 export interface TwoLinePoint {
@@ -50,6 +51,10 @@ export function TwoLineTrend({
   readonly emptyText?: string;
 }) {
   const L = 26; const R = 8; const T = 20; const B = 26;
+  // Measured 2026-09-21: 560 units render in 1150px, a ratio of 2.05, so this chart's text
+  // was coming out at 20.5px - the LARGEST in the product - from the same '9.5' literal that
+  // gave PeerCompare 9.3px. This brings it down to the shared scale. See CHART_TYPE_PX.
+  const FS = chartType(2.05);
   const subjectColour = colour ?? tokens.series.primary;
 
   if (points.length < 2) {
@@ -57,7 +62,7 @@ export function TwoLineTrend({
       <svg viewBox={`0 0 ${width} 44`} width="100%" role="img" aria-label={label}
            style={{ display: 'block', background: tokens.surface.bg }} fontFamily={tokens.fontStack}>
         <rect x={0} y={4} width={width} height={36} fill="none" stroke={tokens.surface.border} />
-        <text x={width / 2} y={22} fontSize={11} fill={tokens.surface.inkMuted}
+        <text x={width / 2} y={22} fontSize={FS.label} fill={tokens.surface.inkMuted}
               textAnchor="middle" dominantBaseline="middle">{emptyText}</text>
       </svg>
     );
@@ -108,7 +113,7 @@ export function TwoLineTrend({
       {ticks.map((t) => (
         <g key={t}>
           <line x1={L} x2={width - R} y1={y(t)} y2={y(t)} stroke={tokens.surface.grid} />
-          <text x={L - 5} y={y(t)} fontSize={9.5} fill={tokens.surface.inkMuted}
+          <text x={L - 5} y={y(t)} fontSize={FS.axis} fill={tokens.surface.inkMuted}
                 textAnchor="end" dominantBaseline="middle">{t}</text>
         </g>
       ))}
@@ -146,19 +151,19 @@ export function TwoLineTrend({
         </circle>
       )))}
 
-      <text x={L} y={height - 8} fontSize={9.5} fill={tokens.surface.inkMuted}>{first}</text>
-      <text x={width - R} y={height - 8} fontSize={9.5} fill={tokens.surface.inkMuted} textAnchor="end">{last}</text>
+      <text x={L} y={height - 8} fontSize={FS.axis} fill={tokens.surface.inkMuted}>{first}</text>
+      <text x={width - R} y={height - 8} fontSize={FS.axis} fill={tokens.surface.inkMuted} textAnchor="end">{last}</text>
 
       <g>
         <line x1={L} x2={L + 16} y1={8} y2={8} stroke={subjectColour} strokeWidth={2} strokeLinecap="round" />
-        <text x={L + 22} y={8} fontSize={10} fill={tokens.surface.ink} dominantBaseline="middle">this pilot</text>
+        <text x={L + 22} y={8} fontSize={FS.value} fill={tokens.surface.ink} dominantBaseline="middle">this pilot</text>
         <line x1={L + 108} x2={L + 124} y1={8} y2={8} stroke={tokens.series.secondary} strokeWidth={2} strokeLinecap="round" />
-        <text x={L + 130} y={8} fontSize={10} fill={tokens.surface.inkMuted} dominantBaseline="middle">{peerLabel}</text>
+        <text x={L + 130} y={8} fontSize={FS.value} fill={tokens.surface.inkMuted} dominantBaseline="middle">{peerLabel}</text>
         {segments.some((sg) => sg.bridged) || leadIn || leadOut ? (
           <>
             <line x1={width - 150} x2={width - 134} y1={8} y2={8} stroke={subjectColour}
                   strokeWidth={2} strokeLinecap="round" strokeDasharray="4 4" opacity={0.75} />
-            <text x={width - 128} y={8} fontSize={10} fill={tokens.surface.inkMuted}
+            <text x={width - 128} y={8} fontSize={FS.value} fill={tokens.surface.inkMuted}
                   dominantBaseline="middle">no training</text>
           </>
         ) : null}

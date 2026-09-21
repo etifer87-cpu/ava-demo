@@ -1,5 +1,5 @@
 import type { ChartTokens } from './chart-tokens';
-import { chartId, PAD } from './chart-tokens';
+import { chartId, chartType, PAD } from './chart-tokens';
 
 /**
  * AsiHistogram - docs/07_VISUALISATION.md §5.8 chart 32.
@@ -25,6 +25,8 @@ export function AsiHistogram({
   readonly bucket?: number;
 }) {
   const cid = chartId(id);
+  // Measured 2026-09-21: 460 units render in 590px. The scale is stated in pixels; see CHART_TYPE_PX.
+  const FS = chartType(1.28);
   const n = Math.ceil(100 / bucket);
   const bucketOf = (s: number) => Math.min(n - 1, Math.max(0, Math.floor(s / bucket)));
   const counts = Array.from({ length: n }, (_, i) => scores.filter((s) => bucketOf(s) === i).length);
@@ -42,8 +44,8 @@ export function AsiHistogram({
         {[0, 0.5, 1].map((f) => (
           <line key={f} x1={PAD.left} x2={width - PAD.right} y1={PAD.top + innerH - f * innerH} y2={PAD.top + innerH - f * innerH} stroke={tokens.surface.grid} strokeWidth="1" />
         ))}
-        <text x={PAD.left - 4} y={PAD.top + 8} textAnchor="end" fontSize="8" fill={tokens.surface.inkMuted}>{peak}</text>
-        <text x={PAD.left - 4} y={PAD.top + innerH} textAnchor="end" fontSize="8" fill={tokens.surface.inkMuted}>0</text>
+        <text x={PAD.left - 4} y={PAD.top + 8} textAnchor="end" fontSize={FS.axis} fill={tokens.surface.inkMuted}>{peak}</text>
+        <text x={PAD.left - 4} y={PAD.top + innerH} textAnchor="end" fontSize={FS.axis} fill={tokens.surface.inkMuted}>0</text>
         {counts.map((c, i) => {
           const lo = i * bucket;
           const h = (c / peak) * innerH;
@@ -52,17 +54,17 @@ export function AsiHistogram({
               <rect x={PAD.left + i * bw + 1} y={PAD.top + innerH - h} width={Math.max(1, bw - 2)} height={h} fill={colourAt(lo)} opacity={c ? 0.85 : 0.15}>
                 <title>{`${lo} to ${lo + bucket}: ${c} instructor${c === 1 ? '' : 's'}`}</title>
               </rect>
-              {c > 0 ? <text x={PAD.left + i * bw + bw / 2} y={PAD.top + innerH - h - 2} textAnchor="middle" fontSize="8" fontWeight="600" fill={tokens.surface.ink}>{c}</text> : null}
+              {c > 0 ? <text x={PAD.left + i * bw + bw / 2} y={PAD.top + innerH - h - 2} textAnchor="middle" fontSize={FS.axis} fontWeight="600" fill={tokens.surface.ink}>{c}</text> : null}
             </g>
           );
         })}
         <line x1={PAD.left} x2={width - PAD.right} y1={PAD.top + innerH} y2={PAD.top + innerH} stroke={tokens.surface.border} strokeWidth="1" />
         {[0, 25, 50, 75, 100].map((v) => (
-          <text key={v} x={tick(v)} y={PAD.top + innerH + 10} textAnchor="middle" fontSize="8" fill={tokens.surface.inkMuted}>{v}</text>
+          <text key={v} x={tick(v)} y={PAD.top + innerH + 10} textAnchor="middle" fontSize={FS.axis} fill={tokens.surface.inkMuted}>{v}</text>
         ))}
-        <text x={tick(bands.amber_min / 2)} y={height - 2} textAnchor="middle" fontSize="8" fill={tokens.bands.red}>red</text>
-        <text x={tick((bands.amber_min + bands.green_min) / 2)} y={height - 2} textAnchor="middle" fontSize="8" fill={tokens.bands.amber}>amber</text>
-        <text x={tick((bands.green_min + 100) / 2)} y={height - 2} textAnchor="middle" fontSize="8" fill={tokens.bands.green}>green</text>
+        <text x={tick(bands.amber_min / 2)} y={height - 2} textAnchor="middle" fontSize={FS.axis} fill={tokens.bands.red}>red</text>
+        <text x={tick((bands.amber_min + bands.green_min) / 2)} y={height - 2} textAnchor="middle" fontSize={FS.axis} fill={tokens.bands.amber}>amber</text>
+        <text x={tick((bands.green_min + 100) / 2)} y={height - 2} textAnchor="middle" fontSize={FS.axis} fill={tokens.bands.green}>green</text>
       </svg>
       <figcaption className="xs muted">
         {scores.length} banded instructor{scores.length === 1 ? '' : 's'}; green at {bands.green_min} and above, amber from {bands.amber_min}.
