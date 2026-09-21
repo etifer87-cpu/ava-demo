@@ -22,8 +22,15 @@
  * in between; it claims a direction between two things that were measured, which is what the reader
  * is here for.
  *
- * The ends are no longer carried. With the whole career on the axis and a slider over it, a stub to
- * the chart edge is noise rather than context.
+ * IT STILL SPANS THE WHOLE AXIS. Before the first session and after the last, the line is CARRIED
+ * FLAT at that value - solid now, like the rest. Without it the line starts and stops mid-chart
+ * while the fleet's runs edge to edge, and at every slider position there is a visible break at
+ * both ends; two series on one axis that cover different spans read as one being SHORTER rather
+ * than one being sparser. Carrying it flat states the only thing actually known outside the
+ * measured range: the last grade is still the last grade until somebody awards another.
+ *
+ * The caps carry NO MARKER, which is what keeps them honest - a marker is a session, and the chart
+ * edge is not one.
  *
  * No hooks, ids from the `id` prop, colours resolved - server, browser and PDF render the same bytes.
  */
@@ -104,6 +111,14 @@ export function TwoLineTrend({
      index 4 is one month and is measured; 3 to 9 spans five months nobody flew. */
   const measured = points.map((p, i) => ({ i, v: p.subject })).filter((p): p is { i: number; v: number } => p.v !== null);
   const segments = measured.slice(1).map((pt, k) => ({ from: measured[k]!, to: pt }));
+  /* The carried ends, drawn only where there is axis left to cover: a pilot who trained in the
+     first and last month of the window gets no stub. Same stroke as the rest, no marker. */
+  const firstM = measured[0] ?? null;
+  const lastM = measured[measured.length - 1] ?? null;
+  const caps = [
+    firstM && firstM.i > 0 ? { from: { i: 0, v: firstM.v }, to: firstM } : null,
+    lastM && lastM.i < points.length - 1 ? { from: lastM, to: { i: points.length - 1, v: lastM.v } } : null,
+  ].filter((c): c is { from: { i: number; v: number }; to: { i: number; v: number } } => c !== null);
 
   const ticks: number[] = [];
   for (let t = Math.ceil(min); t <= max; t += 1) ticks.push(t);
@@ -126,6 +141,13 @@ export function TwoLineTrend({
           ? <circle key={`p${k}`} cx={x(run[0]!.i)} cy={y(run[0]!.v)} r={2.5} fill={tokens.series.secondary} />
           : <path key={`p${k}`} d={path(run)} fill="none" stroke={tokens.series.secondary}
                   strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" />
+      ))}
+      {caps.map((sg, k) => (
+        <line
+          key={`cap${k}`}
+          x1={x(sg.from.i)} y1={y(sg.from.v)} x2={x(sg.to.i)} y2={y(sg.to.v)}
+          stroke={subjectColour} strokeWidth={2} strokeLinecap="round"
+        />
       ))}
       {segments.map((sg) => (
         <line
